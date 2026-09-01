@@ -1,0 +1,12 @@
+{
+  "module": {
+    "name": "entry_test",
+    "type": "test",
+    "description": "SettingsViewModel V2 单元测试模块",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ]
+  }
+}

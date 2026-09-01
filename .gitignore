@@ -1,0 +1,31 @@
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+/.appanalyzer
+.preferences
+/build-profile.json5
+/.arts
+/.jlsp
+/.merkle-snapshot.json
+# 补充缓存目录
+.cache/
+.codegraph/
+# 系统垃圾文件
+.DS_Store
+Thumbs.db
+*.log
+# 调试快照文件
+ui_dump*.xml
+# 华为AGC敏感配置文件（核心安全规则）
+**/agconnect-services.json
+# 自定义私有密钥配置
+*.private.json
+*.secret.json
