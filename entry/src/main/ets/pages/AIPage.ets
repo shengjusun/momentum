@@ -62,7 +62,7 @@ import { routeVM } from '../viewmodel/RoutePageViewModel'
 import { settingsVM } from '../viewmodel/SettingsViewModel'
 import { homeVM } from '../viewmodel/HomeViewModel'
 import { profileVM } from '../viewmodel/ProfileViewModel'
-import { ROUTE_NAME, navigateTo, consumeIntentFocusFlag } from '../common/RouterManager'
+import { ROUTE_NAME, navigateTo } from '../common/RouterManager'
 import { ChatMessageDataSource } from '../common/datasource/TaskDataSource'
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
@@ -116,8 +116,6 @@ export struct AIPage {
   @Local inputText: string = ''
   /** 是否正在等待 AI 回复（用于禁用发送按钮） */
   @Local isLoading: boolean = false
-  /** 是否聚焦输入框（小艺意图"创建目标"触发） */
-  @Local shouldFocusInput: boolean = false
   /**
    * Step 2 重构：对话流消息列表（仅内存，绝不入库）
    * 红线：chatMessages 仅存在于 @Local，绝不写入 routeVM.goals 或 CloudSyncService.SyncDataBundle
@@ -843,10 +841,6 @@ export struct AIPage {
   async aboutToAppear(): Promise<void> {
     this.isAttached = true
     this.isLoginRequired = !settingsVM.userProfile.isLoggedIn
-    // 小艺意图：冷启动拉起时聚焦输入框
-    if (consumeIntentFocusFlag()) {
-      this.shouldFocusInput = true
-    }
     await this.restoreDraft()
   }
 
@@ -887,10 +881,6 @@ export struct AIPage {
       Logger.info('AIPage', 'onPageShow: login required, disabling AI features')
     } else if (!this.isLoginRequired && wasLoginRequired) {
       Logger.info('AIPage', 'onPageShow: login restored, enabling AI features')
-    }
-    // 小艺意图：热启动拉起时聚焦输入框
-    if (consumeIntentFocusFlag()) {
-      this.shouldFocusInput = true
     }
   }
 
@@ -1144,8 +1134,6 @@ export struct AIPage {
                 .maxLength(200)
                 .enabled(!this.isLoading && settingsVM.settings.syncEnabled)
                 // 关键修复：显式允许点击获取焦点
-                // 旧写法 focusOnTouch(this.shouldFocusInput) 常态为 false，
-                // 关闭了点击聚焦能力，导致点击输入框无响应（键盘不弹出）
                 .focusOnTouch(true)
                 .onChange((value: string): void => {
                   this.inputText = value
@@ -1153,12 +1141,6 @@ export struct AIPage {
                 .onSubmit((_keyCode: EnterKeyType): void => {
                   if (!this.isLoading && settingsVM.settings.syncEnabled) {
                     this.handleSendMessage()
-                  }
-                })
-                .onAreaChange((_oldValue: Area, _newValue: Area): void => {
-                  // 小艺意图触发后首次渲染完成时清除标记
-                  if (this.shouldFocusInput) {
-                    this.shouldFocusInput = false
                   }
                 })
 

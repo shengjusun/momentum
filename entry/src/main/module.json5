@@ -11,7 +11,7 @@
     "metadata": [
       {
         "name": "client_id",
-        "value": "6917610036134137789"
+        "value": "6917616024351521930"
       }
     ],
     "deliveryWithInstall": true,
@@ -53,16 +53,6 @@
             "actions": [
               "action.system.home"
             ]
-          },
-          {
-            "actions": [
-              "ohos.want.action.createGoal"
-            ]
-          },
-          {
-            "actions": [
-              "ohos.want.action.viewTodos"
-            ]
           }
         ]
       }
@@ -101,14 +91,6 @@
       {
         "name": "ohos.permission.DETECT_GESTURE",
         "reason": "$string:reason_gesture_detection",
-        "usedScene": {
-          "abilities": ["EntryAbility"],
-          "when": "inuse"
-        }
-      },
-      {
-        "name": "ohos.permission.DISTRIBUTED_DATASYNC",
-        "reason": "$string:reason_distributed_sync",
         "usedScene": {
           "abilities": ["EntryAbility"],
           "when": "inuse"

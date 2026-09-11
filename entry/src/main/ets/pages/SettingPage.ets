@@ -36,6 +36,8 @@ export struct SettingPage {
   @Local isSyncing: boolean = false
   @Local isLoaded: boolean = true
   @Local cacheSizeText: string = ''
+  /** 一键删除所有数据执行中标志（防重复点击） */
+  @Local isDeletingAll: boolean = false
   private isAttached: boolean = false
 
   async aboutToAppear(): Promise<void> {
@@ -234,6 +236,61 @@ export struct SettingPage {
       // 从开变为关，直接生效
       promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.profile_sync_disabled_toast').id), duration: 1500 })
     }
+  }
+
+  /* ============================================================
+   * 删除所有数据（高危操作：本地 + 云端业务数据全删，二次确认）
+   * ============================================================ */
+
+  private handleDeleteAllData(): void {
+    // 防重复点击：上一次删除还在执行中
+    if (this.isDeletingAll) {
+      return
+    }
+    promptAction.showDialog({
+      title: $r('app.string.dialog_delete_all_title'),
+      message: getContext(this).resourceManager.getStringSync($r('app.string.dialog_delete_all_message').id),
+      buttons: [
+        { text: $r('app.string.common_cancel'), color: $r('app.color.text_tertiary') },
+        { text: $r('app.string.btn_confirm_delete'), color: $r('app.color.error_color') }
+      ]
+    }).then((result: promptAction.ShowDialogSuccessResponse): void => {
+      if (!this.isAttached) return
+      if (result.index === 1) {
+        this.doDeleteAllData()
+      }
+    }).catch((e: Error): void => {
+      Logger.error('SettingPage', 'delete all data dialog failed: ' + e.message)
+    })
+  }
+
+  private doDeleteAllData(): void {
+    this.isDeletingAll = true
+    this.settingsVM.deleteAllData(getContext(this)).then((ok: boolean): void => {
+      if (!this.isAttached) {
+        this.isDeletingAll = false
+        return
+      }
+      this.isDeletingAll = false
+      this.refreshCacheSize()
+      promptAction.showToast({
+        message: ok
+          ? getContext(this).resourceManager.getStringSync($r('app.string.toast_delete_all_success').id)
+          : getContext(this).resourceManager.getStringSync($r('app.string.toast_delete_all_failed').id),
+        duration: 1500
+      })
+    }).catch((e: Error): void => {
+      if (!this.isAttached) {
+        this.isDeletingAll = false
+        return
+      }
+      this.isDeletingAll = false
+      Logger.error('SettingPage', 'deleteAllData failed: ' + e.message)
+      promptAction.showToast({
+        message: getContext(this).resourceManager.getStringSync($r('app.string.toast_delete_all_failed').id),
+        duration: 1500
+      })
+    })
   }
 
   /* ============================================================
@@ -448,6 +505,38 @@ export struct SettingPage {
       .alignItems(VerticalAlign.Center)
       .onClick((): void => {
         this.handleClearCache()
+      })
+
+      Divider().color($r('app.color.divider')).padding({ left: 12, right: 12 })
+
+      // 删除所有数据（高危：本地 + 云端业务数据全删，红色警示 + 二次确认）
+      Row({ space: 12 }) {
+        Column({ space: 2 }) {
+          Text($r('app.string.settings_delete_all_data'))
+            .fontSize(CommonConstants.FONT_SIZE_BODY)
+            .fontColor($r('app.color.error_color'))
+          Text($r('app.string.settings_delete_all_data_desc'))
+            .fontSize(CommonConstants.FONT_SIZE_XS)
+            .fontColor($r('app.color.text_tertiary'))
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text($r('app.string.btn_delete'))
+          .fontSize(CommonConstants.FONT_SIZE_SMALL)
+          .fontColor($r('app.color.error_color'))
+          .fontWeight(FontWeight.Medium)
+          .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+          .borderRadius(14)
+          .backgroundColor($r('app.color.error_color_bg'))
+      }
+      .width('100%')
+      .constraintSize({ minHeight: 56 })
+      .padding({ left: 16, right: 16 })
+      .alignItems(VerticalAlign.Center)
+      .opacity(this.isDeletingAll ? 0.45 : 1)
+      .onClick((): void => {
+        this.handleDeleteAllData()
       })
     }
     .width('100%')

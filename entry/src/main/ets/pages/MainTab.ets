@@ -32,6 +32,9 @@ import { CommonConstants } from '../common/constants/CommonConstants'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
 import { BackPressHandler } from '../common/utils/BackPressHandler'
 import { DuneTabBar } from '../common/components/DuneTabBar'
+import { PrivacyConsentOverlay } from '../common/components/PrivacyConsentOverlay'
+import { CloudSdkService } from '../common/services/CloudSdkService'
+import { common } from '@kit.AbilityKit'
 
 // 全局拖拽状态同步对象（@ComponentV2 不支持 @StorageLink，用 @Trace 单例替代）
 @ObservedV2
@@ -102,6 +105,10 @@ export struct MainTab {
       Logger.error('MainTab', 'initAndRestoreMigration: settingsVM.init FAILED: ' + (e as Error).message)
     }
 
+    // 云 SDK 初始化链（不阻塞后续 init）：已同意隐私协议的老用户冷启动也必须拉起云端，
+    // 否则 CloudDB 未初始化导致所有云同步静默失败（新用户在 handlePrivacyAgreed 中拉起）
+    this.initCloudSdkIfNeeded()
+
     try {
       Logger.info('MainTab', 'initAndRestoreMigration: before homeVM.init')
       await homeVM.init(getContext(this))
@@ -152,6 +159,55 @@ export struct MainTab {
 
       Logger.info('MainTab', '========== initAndRestoreMigration END ==========')
     }, CommonConstants.COLD_START_ROUTE_DELAY_MS)
+  }
+
+  /**
+   * 云 SDK 初始化链：冷启动时若已同意隐私协议，拉起云端 SDK 并补跑一次合并同步
+   * （settingsVM.init 的自动同步此时云端尚未就绪会空转，init 完成后由 triggerSync 补偿）
+   * 未同意隐私协议时不做任何云端动作，等弹层同意后走 handlePrivacyAgreed
+   */
+  private async initCloudSdkIfNeeded(): Promise<void> {
+    if (!settingsVM.settings.privacyAgreed) {
+      Logger.info('MainTab', 'cloud sdk init skipped: privacy not agreed')
+      return
+    }
+    try {
+      const ok: boolean = await CloudSdkService.getInstance().init(getContext(this))
+      Logger.info('MainTab', 'cold start cloud sdk init result=' + ok.toString())
+    } catch (e) {
+      Logger.error('MainTab', 'cold start cloud sdk init failed: ' + (e as Error).message)
+      return
+    }
+    settingsVM.triggerSync()
+  }
+
+  /**
+   * 同意隐私协议：持久化同意状态 → 拉起云端 SDK 初始化链 → 补跑一次合并同步
+   * 云端 SDK（AGC auth / CloudFoundationKit / CloudDB）此前完全未初始化，
+   * 此处与 initCloudSdkIfNeeded 是它们在应用生命周期内的仅有的两个初始化入口
+   */
+  private async handlePrivacyAgreed(): Promise<void> {
+    Logger.info('MainTab', 'privacy agreed, initializing cloud sdk chain')
+    settingsVM.setPrivacyAgreed(true)
+    try {
+      const ok: boolean = await CloudSdkService.getInstance().init(getContext(this))
+      Logger.info('MainTab', 'cloud sdk init result=' + ok.toString())
+    } catch (e) {
+      Logger.error('MainTab', 'cloud sdk init failed: ' + (e as Error).message)
+    }
+    // 云 SDK 就绪后补跑冷启动合并同步（内部有登录态/同步开关守卫，条件不满足自动跳过）
+    settingsVM.triggerSync()
+  }
+
+  /** 不同意隐私协议：退出应用（合规要求：未同意不得使用） */
+  private handlePrivacyDisagreed(): void {
+    Logger.info('MainTab', 'privacy declined, terminate app')
+    try {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
+      ctx.terminateSelf()
+    } catch (e) {
+      Logger.error('MainTab', 'terminateSelf failed: ' + (e as Error).message)
+    }
   }
 
   aboutToDisappear(): void {
@@ -216,7 +272,7 @@ export struct MainTab {
 
   build(): void {
     // 标准结构：Navigation 在外，Tabs 在内
-    // 导航栏始终底部悬浮；平板（lg）加宽胶囊，手机（sm/md）72% 宽
+    // 导航栏底部悬浮（华为音乐平板式）：平板（lg）靠左下角，手机/折叠屏（sm/md）居中 72% 宽
     Navigation(globalNavStack) {
       Stack() {
         // Tabs 撑满整个区域（包括底部安全区），内容可滚到底部
@@ -261,6 +317,7 @@ export struct MainTab {
         })
 
         // 悬浮导航栏层：Column 满铺 + Blank 顶到底部，透传点击给 Tabs
+        // 平板靠左下角，手机居中
         Column() {
           Blank()
           DuneTabBar({
@@ -271,6 +328,7 @@ export struct MainTab {
             }
           })
             .width(breakpointState.isTablet ? '480vp' : '72%')
+            .margin({ left: breakpointState.isTablet ? 16 : 0 })
             // 导航栏横向拖拽 → 松手那一刻切换到相邻 Tab，页面带动画滑过去
             // PanGesture 而非 SwipeGesture：Swipe 有速度阈值，慢速拖动不触发；
             // Pan 只看位移，拖过 20vp 松手即切，轻扫和慢拖都能响应
@@ -293,7 +351,21 @@ export struct MainTab {
         }
         .width('100%')
         .height('100%')
+        .alignItems(breakpointState.isTablet ? HorizontalAlign.Start : HorizontalAlign.Center)
         .hitTestBehavior(HitTestMode.Transparent)
+
+        // 隐私门禁：设置加载完成且未同意隐私协议时，全屏弹层阻断一切交互
+        // isLoaded 门控：已同意的老用户冷启动加载期间不会看到弹层闪现
+        if (settingsVM.isLoaded && !settingsVM.settings.privacyAgreed) {
+          PrivacyConsentOverlay({
+            onAgree: (): void => {
+              this.handlePrivacyAgreed()
+            },
+            onDisagree: (): void => {
+              this.handlePrivacyDisagreed()
+            }
+          })
+        }
       }
       .width('100%')
       .layoutWeight(1)
@@ -303,6 +375,7 @@ export struct MainTab {
     .hideTitleBar(true)
     .backgroundColor($r('app.color.bg_page'))
     .width('100%')
+    .height('100%')
     .layoutWeight(1)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }

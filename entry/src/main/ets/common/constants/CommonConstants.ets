@@ -2,7 +2,7 @@
 
 export class CommonConstants {
   /** 日志 DOMAIN（hilog 域） */
-  static readonly LOG_DOMAIN: number = 0xD0001
+  static readonly LOG_DOMAIN: number = 0xD001
 
   /** 日志 TAG（hilog 标签） */
   static readonly LOG_TAG: string = 'Momentum'
@@ -21,6 +21,11 @@ export class CommonConstants {
 
   /** 登录保护窗口：登录成功后禁止云端旧数据覆盖本地配置（毫秒） */
   static readonly LOGIN_GUARD_WINDOW_MS: number = 5000
+
+  /** 一键删除所有数据后的自动云同步抑制窗口（毫秒）
+   *  覆盖 200ms 持久化防抖 + 1s 同步防抖 + 网络余量，
+   *  防止清空本地触发的 SYNC_NEEDED 把空数据重新上传、"复活"刚删除的云端记录 */
+  static readonly DELETE_ALL_SUPPRESS_SYNC_MS: number = 8000
 
   /** 一天的毫秒数 */
   static readonly DAY_MILLIS: number = 24 * 60 * 60 * 1000

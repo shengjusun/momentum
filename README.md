@@ -10,7 +10,6 @@ HarmonyOS 任务/目标管理应用（ArkTS + Stage 模型，端云一体化）�
 - **番茄钟**：可选时长、全屏沉浸倒计时、多轮循环、后台 reminderAgent 兜底、常驻通知栏倒计时
 - **云同步**：华为账号登录 + AGC CloudDB（GrowthDeskZone），upload / download / merge 三向同步，按 id 并集合并防冲突
 - **桌面卡片**：今日待办卡片（EntryFormAbility），同步本地数据
-- **小艺接入**：注册 `ohos.want.action.createGoal` / `viewTodos` 意图与技能调用
 
 ## 架构
 
@@ -37,7 +36,7 @@ cloud_objects/             # AGC 云对象（calldeepseek 云函数部署于 AGC
 
 - **状态管理**：纯 V2（@ComponentV2/@Local/@Param/@Trace/@Computed），列表走 LazyForEach + IDataSource 手动同步
 - **设计令牌**：字体大小统一走 `CommonConstants.FONT_SIZE_*`；颜色统一 `$r('app.color.*')`（base/dark 双主题）
-- **路由**：全局 Navigation 单例栈（`RouterManager`），内置 600ms 跳转防抖；深链/通知直达/小艺意图四条冷启动链路在 `EntryAbility` 统一调度
+- **路由**：全局 Navigation 单例栈（`RouterManager`），内置 600ms 跳转防抖；深链/通知直达两条冷启动链路在 `EntryAbility` 统一调度
 - **AI 调用**：客户端不持有 Key，经云函数 `calldeepseek` 中转（Key 在云函数环境变量）
 - **通知直达**：WantAgent 携带 `routeName + taskId/goalId`，目标页支持仅有 id 的降级解析
 
@@ -51,6 +50,6 @@ hvigorw assembleHap --mode module -p module=entry@default
 
 ## 上架前待办
 
-- [ ] 更换正式包名（当前 `com.example.Momentum` 不可上架，需同步重建 AGC 项目/云函数/CloudDB/签名）
+- [x] 包名已更换为 `com.sunshengju.momentum`（仍需在 AGC 重新生成 `agconnect-services.json`、同步云函数/CloudDB/签名与 module.json5 的 client_id）
 - [ ] 创建 release 签名证书与 Profile（调试密码勿入库）
 - [ ] `DETECT_GESTURE` 为受限权限：申请 AGC 白名单，否则下线 RoutePage 握姿功能并移除权限声明

@@ -8,6 +8,8 @@ import { profileVM, NotificationToggleResult } from './ProfileViewModel'
 import { HuaweiAuthService, HuaweiUserInfo } from '../common/services/HuaweiAuthService'
 import { CloudSyncService, SyncDataBundle, SyncApplyCallback, SyncDirection } from '../common/services/CloudSyncService'
 import { CloudDBSyncProxy } from '../common/services/CloudDBSyncProxy'
+import { AgcAuthService } from '../common/services/AgcAuthService'
+import { notificationCenterService } from '../common/services/NotificationCenterService'
 
 import { PersistHelper } from '../common/utils/PersistHelper'
 // 事件总线，解耦 ViewModel 循环依赖
@@ -57,6 +59,8 @@ export class SettingsViewModel {
   private context: Context | null = null
   // 事件总线订阅 ID
   private syncNeededCbId: number = -1
+  // Ability onDestroy 防护标志：销毁后阻断一切云同步触发
+  private isDestroyed: boolean = false
 
   // 本地有未上传修改标志，triggerCloudSync 时置 true，buildLocalSyncDataBundle 取出后重置
   // 保护本地新数据不被云端旧数据覆盖
@@ -64,6 +68,10 @@ export class SettingsViewModel {
 
   // 云同步回环阻断：同步回调写回本地时置 true，onScheduleFire 检测后跳过云同步
   private isApplyingSyncData: boolean = false
+
+  // 一键删除所有数据后的自动云同步抑制截止时间戳（Date.now() 毫秒）
+  // 清空本地会经 HomeVM 持久化防抖触发 SYNC_NEEDED，窗口内 doTriggerCloudSync 直接跳过
+  private suppressAutoSyncUntil: number = 0
 
   // triggerCloudSync 防抖定时器，避免静止状态周期 Upsert
   private syncDebounceTimer: number = -1
@@ -170,6 +178,14 @@ export class SettingsViewModel {
     }
 
     try {
+      // 隐私前置检查：未同意隐私协议时禁止任何云端交互（云端 SDK 也尚未初始化）
+      if (!this.settings.privacyAgreed) {
+        Logger.info(this.tag, 'init: privacy not agreed, skip auto download. ' +
+          'Local data loaded: settings.notification=' + this.settings.notificationEnabled.toString() +
+          ', settings.syncEnabled=' + this.settings.syncEnabled.toString() +
+          ', userProfile.isLoggedIn=' + this.userProfile.isLoggedIn.toString())
+        return
+      }
       // 云端同步关闭时跳过所有自动下载
       if (!CloudDBSyncProxy.getInstance().canSync()) {
         Logger.info(this.tag, 'init: sync disabled, skip auto download. ' +
@@ -288,6 +304,24 @@ export class SettingsViewModel {
   // 页面退出时强制刷盘
   async flush(): Promise<void> {
     await this.persistHelper.flush()
+  }
+
+  /**
+   * Ability onDestroy 防护（EntryAbility.onDestroy 调用）：
+   * 置销毁标志 + 清同步防抖定时器 + 退订事件总线，
+   * 阻断销毁后 SYNC_NEEDED 事件/到期的防抖回调再次触发云同步
+   */
+  destroy(): void {
+    this.isDestroyed = true
+    if (this.syncDebounceTimer !== -1) {
+      clearTimeout(this.syncDebounceTimer)
+      this.syncDebounceTimer = -1
+    }
+    if (this.syncNeededCbId > 0) {
+      eventBus.off(EventType.SYNC_NEEDED, this.syncNeededCbId)
+      this.syncNeededCbId = -1
+    }
+    Logger.info(this.tag, 'destroy: debounce timer cleared, event bus unsubscribed')
   }
 
   // 实际持久化逻辑：settings + userProfile 两部分写入
@@ -636,6 +670,16 @@ export class SettingsViewModel {
 
   // 实际执行云端上传同步（防抖到期后调用）
   private doTriggerCloudSync(): void {
+    // Ability 已销毁：阻断到期回调触发云同步
+    if (this.isDestroyed) {
+      Logger.info(this.tag, 'doTriggerCloudSync skipped: vm destroyed')
+      return
+    }
+    // 一键删除数据后的抑制窗口：跳过自动上传，防止空 bundle 复活刚删除的云端记录
+    if (Date.now() < this.suppressAutoSyncUntil) {
+      Logger.info(this.tag, 'doTriggerCloudSync skipped: auto sync suppressed (deleteAllData window)')
+      return
+    }
     // 未登录或无 UID 跳过
     if (!this.userProfile.isLoggedIn || this.userProfile.huaweiUid.length === 0) {
       Logger.info(this.tag, 'triggerCloudSync skipped: not logged in')
@@ -754,6 +798,13 @@ export class SettingsViewModel {
     if (result.success && result.user) {
       // 登录成功：立即标记防止云同步覆盖，然后应用登录数据
       this.isJustLoggedIn = true
+      // 关键时序：必须在 applyLoginResult 之前建立 AGC 云端会话。
+      // applyLoginResult 内部会立即发起 CloudDB 同步；若此时无 AGC 会话，
+      // 请求会以匿名(World 角色)被服务端拒绝(2001015)。此时华为账号授权刚完成、authCode 最新鲜，补建会话成功率最高。
+      const agcOk: boolean = await AgcAuthService.ensureSignedIn()
+      if (!agcOk) {
+        Logger.warn(this.tag, 'handleHuaweiLogin: AGC 会话建立失败，云端功能不可用')
+      }
 
       await this.applyLoginResult(result.user)
       return true
@@ -835,6 +886,66 @@ export class SettingsViewModel {
         ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
         : e.message
     })
+  }
+
+  /**
+   * 一键删除所有数据（设置页高危操作，UI 层二次确认后调用）
+   *
+   * 删除范围：云端同步记录 + 本地全部业务数据
+   *   - 云端：该 uid 的 UserSyncData 记录（未登录/同步关闭时跳过，仅清本地）
+   *   - 本地：目标/任务（CLEAR_ALL_REQUESTED，HomeVM 内置取消全部截止提醒）、
+   *           AI 拆解任务、番茄钟统计与会话快照、站内通知、四象限排序
+   * 保留范围：华为登录态、基础设置开关（通知/隐私/震动/同步）——删数据不应强制登出
+   *
+   * 关键时序：清空本地会经 HomeVM 持久化防抖触发 SYNC_NEEDED 自动上传空数据，
+   * 必须先开启自动同步抑制窗口，否则空 bundle 会把刚删掉的云端记录"复活"。
+   *
+   * @returns true 表示全部成功（云端记录不存在也视为成功）
+   */
+  async deleteAllData(context: common.Context): Promise<boolean> {
+    Logger.warn(this.tag, 'deleteAllData START')
+
+    // 1. 先开启自动同步抑制窗口（后续清空本地会触发 SYNC_NEEDED）
+    this.suppressAutoSyncUntil = Date.now() + CommonConstants.DELETE_ALL_SUPPRESS_SYNC_MS
+
+    // 2. 删除云端同步记录
+    let ok: boolean = true
+    if (this.userProfile.huaweiUid.length > 0 && CloudDBSyncProxy.getInstance().canSync()) {
+      try {
+        const cloudOk: boolean =
+          await CloudSyncService.getInstance().deleteCloudRecord(this.userProfile.huaweiUid)
+        if (!cloudOk) {
+          Logger.error(this.tag, 'deleteAllData: delete cloud record failed')
+          ok = false
+        }
+      } catch (e) {
+        Logger.error(this.tag, 'deleteAllData: delete cloud record threw: ' + (e as Error).message)
+        ok = false
+      }
+    }
+
+    // 3. 清空目标/任务（内存 + 持久化 + 取消全部截止提醒，HomeVM.clearAll 内置）
+    eventBus.emit(EventType.CLEAR_ALL_REQUESTED, null)
+    eventBus.emit(EventType.FLUSH_REQUESTED, null)
+
+    // 4. 清空其余本地业务数据
+    try {
+      await StorageManager.removeData(context, CommonConstants.STORAGE_KEY_AI_TASKS)
+      await StorageManager.removeData(context, CommonConstants.STORAGE_KEY_POMODORO_STATS)
+      await StorageManager.removeData(context, CommonConstants.STORAGE_KEY_POMODORO_SESSION)
+      await StorageManager.removeData(context, CommonConstants.STORAGE_KEY_QUADRANT_ORDER)
+      await notificationCenterService.clearAll()
+    } catch (e) {
+      Logger.error(this.tag, 'deleteAllData: clear local extras failed: ' + (e as Error).message)
+      ok = false
+    }
+
+    // 5. lastSyncTime 归零并持久化（云端记录已删，旧时间戳无意义）
+    this.userProfile.lastSyncTime = 0
+    await this.flush()
+
+    Logger.warn(this.tag, 'deleteAllData END, ok=' + ok.toString())
+    return ok
   }
 
   /**

@@ -9,7 +9,6 @@ import { HuaweiAuthService, HuaweiLoginResult, HuaweiUserInfo } from '../common/
 import { settingsVM } from '../viewmodel/SettingsViewModel'
 import { Logger } from '../common/utils/Logger'
 import { promptAction } from '@kit.ArkUI'
-import auth from '@hw-agconnect/auth'
 import { common } from '@kit.AbilityKit'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
 import { CommonConstants } from '../common/constants/CommonConstants'
@@ -89,20 +88,7 @@ export struct LoginPage {
       if (success) {
         Logger.info('LoginPage', 'login success, openId=' + settingsVM.userProfile.huaweiUid)
 
-        // Step 2: AGC 云端登录（autoCreateUser=true 首次自动创建账号）
-        // 华为 ID 认证只获取用户身份，auth.signIn 让后续云函数/云存储请求携带用户身份
-        try {
-          await auth.signIn({
-            autoCreateUser: true,
-            credentialInfo: {
-              kind: 'hwid'
-            }
-          })
-          Logger.info('LoginPage', 'AGC auth signIn success')
-        } catch (agcErr) {
-          // AGC 登录失败不阻塞流程：华为 ID 已登录成功，本地数据可用，仅云端功能受限
-          Logger.error('LoginPage', 'AGC auth signIn failed: ' + (agcErr as Error).message)
-        }
+        // AGC 云端会话已在 settingsVM.handleHuaweiLogin 内部（华为账号授权后、落库同步前）建立
 
         // Step 3: 返回 MainTab 首页（路由栈 pop 揭露底层的 Tabs）
         globalNavStack.pop()

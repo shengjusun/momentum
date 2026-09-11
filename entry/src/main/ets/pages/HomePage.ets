@@ -211,6 +211,20 @@ export struct HomePage {
    * - 半模态标题与数据源根据此值动态切换
    */
   @Local activeQuadrant: EisenhowerQuadrant = EisenhowerQuadrant.Q1_IMPORTANT_URGENT
+  /**
+   * 任务总数追踪（驱动四象限 DataSource 同步）
+   * 为什么需要：q1~q4DataSource 是 eisenhowerMatrix 的独立副本，无响应式绑定。
+   * 之前只在"打开半模态 / 数据变更后可见性回调"时同步，平板右栏（常驻面板）
+   * 冷启动首次渲染时数据源还是空的 → 面板空白。用 @Local + @Monitor 在
+   * build 之后统一补一次同步（模式与 RoutePage.goalCount 一致）。
+   */
+  @Local quadrantTaskTotal: number = -1
+  @Monitor('quadrantTaskTotal')
+  onQuadrantTaskTotalChange(): void {
+    if (this.quadrantTaskTotal >= 0) {
+      this.syncEisenhowerDataSources()
+    }
+  }
   /** 象限卡拖拽松手后吞掉紧随的一次 onClick（防拖拽换位后误开半模态） */
   private suppressQuadrantCardClick: boolean = false
 
@@ -252,6 +266,17 @@ export struct HomePage {
   }
 
   /**
+   * build 之后更新任务总数，触发 @Monitor 同步四象限 DataSource
+   * （数据加载完成时 build 重渲染 → 此处补同步，避免平板右栏常驻面板空白）
+   */
+  onDidBuild(): void {
+    const total: number = this.viewModel.taskList.length
+    if (this.quadrantTaskTotal !== total) {
+      this.quadrantTaskTotal = total
+    }
+  }
+
+  /**
    * 异步获取窗口宽度并缓存到 windowWidthVp
    * - 折叠屏/平板宽度不同，拖拽跨格阈值需依赖真实窗口宽度
    * - 通过 window.getLastWindow 获取（UIContext 无 getWindowInfo，DisplayKit 未引入）
@@ -260,8 +285,8 @@ export struct HomePage {
     try {
       window.getLastWindow(getContext(this)).then((win: window.Window): void => {
         const props: window.WindowProperties = win.getWindowProperties()
-        // windowRect 单位已是 vp，无需 px2vp 二次换算
-        const widthVp: number = props.windowRect.width
+        // windowRect 单位是 px（真机实测：平板横屏 2800px / density 2.5 = 1120vp），需 px2vp 换算
+        const widthVp: number = px2vp(props.windowRect.width)
         if (widthVp > 0) {
           this.windowWidthVp = widthVp
           Logger.info('HomePage', 'refreshWindowWidth success, vp=' + this.windowWidthVp.toString())
@@ -277,6 +302,9 @@ export struct HomePage {
   aboutToAppear(): void {
     this.isAttached = true
     this.loadQuadrantOrder()
+    // HomePage 不是 @Entry 页面，onPageShow 不保证触发；窗口宽度改在这里取，
+    // 保证四象限拖拽跨格阈值用的是真实窗口宽度（默认 360 在平板上会偏大）
+    this.refreshWindowWidth()
   }
 
   aboutToDisappear(): void {
@@ -539,9 +567,17 @@ export struct HomePage {
       .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
-    .height(breakpointState.isTablet ? 200 : 150)
+    // 高度由 Grid 行高（rowsTemplate 1fr 1fr）决定，从而铺满屏幕；不再写死 150/200vp
+    .height('100%')
+    .constraintSize({ minHeight: 120 })
     .backgroundColor($r('app.color.bg_card'))
     .borderRadius(16)
+    .border({
+      width: breakpointState.isTablet && this.activeQuadrant === quadrant ? 2 : 0,
+      color: breakpointState.isTablet && this.activeQuadrant === quadrant
+        ? this.getQuadrantThemeColor(quadrant)
+        : Color.Transparent
+    })
     .shadow({ radius: 4, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 1 })
     .clip(true)
     .accessibilityText(
@@ -621,7 +657,13 @@ export struct HomePage {
         this.suppressQuadrantCardClick = false
         return
       }
-      this.onOpenQuadrantSheet(quadrant)
+      if (breakpointState.isTablet) {
+        // 平板：点击象限切换右侧常驻面板，不拉半模态
+        this.activeQuadrant = quadrant
+        this.syncEisenhowerDataSources()
+      } else {
+        this.onOpenQuadrantSheet(quadrant)
+      }
     })
   }
 
@@ -659,6 +701,177 @@ export struct HomePage {
   }
 
   /**
+   * 四象限矩阵（手机与平板共用），由调用方决定外层容器与内边距
+   */
+  @Builder
+  QuadrantMatrixBuilder() {
+    Grid() {
+      ForEach(this.quadrantOrder, (q: EisenhowerQuadrant, idx: number): void => {
+        GridItem() {
+          this.EisenhowerQuadrantCardBuilder(q, idx)
+        }
+      }, (q: EisenhowerQuadrant): string => q)
+    }
+    .columnsTemplate('1fr 1fr')
+    // 两行等分：让 2x2 矩阵吃满外层可用高度（此前只给 columnsTemplate，Grid 按内容自适应 → 底部留白）
+    .rowsTemplate('1fr 1fr')
+    .columnsGap(8)
+    .rowsGap(8)
+    .width('100%')
+    .height('100%')
+  }
+
+  /** 象限空态占位（半模态与平板右侧面板共用） */
+  @Builder
+  QuadrantEmptyBuilder() {
+    Column({ space: 8 }) {
+      Column()
+        .width(56)
+        .height(56)
+        .borderRadius(28)
+        .backgroundColor($r('app.color.bg_tag'))
+        .border({ width: 1.5, color: $r('app.color.divider') })
+      Text($r('app.string.eisenhower_empty_quadrant'))
+        .fontSize(CommonConstants.FONT_SIZE_BODY)
+        .fontColor($r('app.color.text_secondary'))
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  /**
+   * 象限任务单行（半模态与平板右栏共用）
+   * @param task - 任务项
+   */
+  @Builder
+  QuadrantTaskItemBuilder(task: HomeTodoItem) {
+    ListItem() {
+      TaskListItemComponent({
+        task: task,
+        onToggle: (id: Id): void => {
+          this.toggleEisenhowerTask(id)
+        },
+        onNavigate: (todo: HomeTodoItem): void => {
+          if (todo.relatedTaskId && todo.relatedGoalId) {
+            if (!todo.id || todo.id.length === 0) {
+              promptAction.showToast({
+                message: getContext(this).resourceManager.getStringSync(
+                  $r('app.string.home_toast_task_detail_unavailable').id)
+              })
+              return
+            }
+            this.showEisenhowerSheet = false
+            const detailItem: TaskDetailItem = new TaskDetailItem(
+              todo.id,
+              todo.title,
+              '',
+              todo.duration,
+              todo.priority,
+              todo.isCompleted,
+              todo.createTime
+            )
+            const param: TaskDetailRouteNavParam = {
+              id: todo.id,
+              task: detailItem,
+              goalId: todo.relatedGoalId,
+              relatedTaskId: todo.relatedTaskId
+            }
+            pushNavPath(ROUTE_NAME.TASK_DETAIL, param)
+          } else {
+            promptAction.showToast({
+              message: getContext(this).resourceManager.getStringSync(
+                $r('app.string.home_toast_task_detail_unavailable').id)
+            })
+          }
+        }
+      })
+    }
+    .backgroundColor(Color.Transparent)
+    .swipeAction({ end: this.deleteBuilder(task), edgeEffect: SwipeEdgeEffect.None })
+  }
+
+  /**
+   * 平板右栏任务列表：直接读 @Computed 象限数据（响应式，无需手动同步 DataSource）
+   * 为什么不复用 QuadrantTaskListBuilder：右栏是常驻面板，冷启动即渲染，
+   * 而 q1~q4DataSource 是独立副本、只在半模态/数据变更回调时同步 → 曾出现右栏空白。
+   * 直接绑定 getTasksByQuadrant 结果可随 taskList(@Trace) 自动刷新。
+   * @param hPadding - 列表左右内边距
+   */
+  @Builder
+  QuadrantPaneTaskListBuilder(hPadding: number) {
+    List({ space: 12 }) {
+      ForEach(this.viewModel.getTasksByQuadrant(this.activeQuadrant), (task: HomeTodoItem): void => {
+        this.QuadrantTaskItemBuilder(task)
+      }, (task: HomeTodoItem): string => task.id)
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .cachedCount(3)
+    .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: false })
+    .padding({ left: hPadding, right: hPadding, bottom: 16 })
+  }
+
+  /**
+   * 象限任务列表（半模态使用；LazyForEach 适配长列表）
+   * @param hPadding - 列表左右内边距
+   */
+  @Builder
+  QuadrantTaskListBuilder(hPadding: number) {
+    List({ space: 12 }) {
+      LazyForEach(this.getActiveDataSource(), (task: HomeTodoItem, index: number): void => {
+        this.QuadrantTaskItemBuilder(task)
+      }, (task: HomeTodoItem, index: number): string => {
+        return task.id
+      })
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .cachedCount(3)
+    .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: false })
+    .padding({ left: hPadding, right: hPadding, bottom: 16 })
+  }
+
+  /** 平板右侧常驻任务面板：点击左侧象限格切换，替代半模态 */
+  @Builder
+  QuadrantPaneBuilder() {
+    Column({ space: 8 }) {
+      Row({ space: 8 }) {
+        Text(this.getQuadrantTitleRes(this.activeQuadrant))
+          .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.getQuadrantThemeColor(this.activeQuadrant))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1)
+
+        Text(getContext(this).resourceManager.getStringSync($r('app.string.home_quadrant_count_prefix').id) +
+          this.getQuadrantCount(this.activeQuadrant).toString() +
+          getContext(this).resourceManager.getStringSync($r('app.string.home_quadrant_count_suffix').id))
+          .fontSize(CommonConstants.FONT_SIZE_SMALL)
+          .fontColor($r('app.color.text_secondary'))
+      }
+      .width('100%')
+      .padding({ left: 4, right: 4, top: 4 })
+      .alignItems(VerticalAlign.Center)
+
+      if (this.getQuadrantCount(this.activeQuadrant) === 0) {
+        this.QuadrantEmptyBuilder()
+      } else {
+        this.QuadrantPaneTaskListBuilder(4)
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor($r('app.color.bg_card_variant'))
+    .borderRadius(16)
+    .padding(8)
+  }
+
+  /**
    * 四象限矩阵半模态内容
    * - 点击首页某象限卡片后拉起，展示该象限完整任务列表
    * - 顶部标题根据 activeQuadrant 动态变化
@@ -688,81 +901,11 @@ export struct HomePage {
       .padding({ left: 16, right: 16, top: 16, bottom: 8 })
       .alignItems(HorizontalAlign.Start)
 
-      // 任务列表区：空态 / LazyForEach 完整列表
+      // 任务列表区：空态 / 完整任务列表（共用 Builder）
       if (this.getQuadrantCount(this.activeQuadrant) === 0) {
-        // 空象限占位：纯几何装饰，避免系统符号资源依赖
-        Column({ space: 8 }) {
-          Column()
-            .width(56)
-            .height(56)
-            .borderRadius(28)
-            .backgroundColor($r('app.color.bg_tag'))
-            .border({ width: 1.5, color: $r('app.color.divider') })
-          Text($r('app.string.eisenhower_empty_quadrant'))
-            .fontSize(CommonConstants.FONT_SIZE_BODY)
-            .fontColor($r('app.color.text_secondary'))
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        this.QuadrantEmptyBuilder()
       } else {
-        // 完整任务列表（复用 TaskListItemComponent，含勾选/导航/滑动删除）
-        List({ space: 12 }) {
-          LazyForEach(this.getActiveDataSource(), (task: HomeTodoItem, index: number): void => {
-            ListItem() {
-              TaskListItemComponent({
-                task: task,
-                onToggle: (id: Id): void => {
-                  this.toggleEisenhowerTask(id)
-                },
-                onNavigate: (todo: HomeTodoItem): void => {
-                  if (todo.relatedTaskId && todo.relatedGoalId) {
-                    if (!todo.id || todo.id.length === 0) {
-                      promptAction.showToast({
-                        message: getContext(this).resourceManager.getStringSync(
-                          $r('app.string.home_toast_task_detail_unavailable').id)
-                      })
-                      return
-                    }
-                    this.showEisenhowerSheet = false
-                    const detailItem: TaskDetailItem = new TaskDetailItem(
-                      todo.id,
-                      todo.title,
-                      '',
-                      todo.duration,
-                      todo.priority,
-                      todo.isCompleted,
-                      todo.createTime
-                    )
-                    const param: TaskDetailRouteNavParam = {
-                      id: todo.id,
-                      task: detailItem,
-                      goalId: todo.relatedGoalId,
-                      relatedTaskId: todo.relatedTaskId
-                    }
-                    pushNavPath(ROUTE_NAME.TASK_DETAIL, param)
-                  } else {
-                    promptAction.showToast({
-                      message: getContext(this).resourceManager.getStringSync(
-                        $r('app.string.home_toast_task_detail_unavailable').id)
-                    })
-                  }
-                }
-              })
-            }
-            .backgroundColor(Color.Transparent)
-            .swipeAction({ end: this.deleteBuilder(task), edgeEffect: SwipeEdgeEffect.None })
-          }, (task: HomeTodoItem, index: number): string => {
-            return task.id
-          })
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .cachedCount(3)
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: false })
-        .padding({ left: 16, right: 16, bottom: 16 })
+        this.QuadrantTaskListBuilder(16)
       }
     }
     .width('100%')
@@ -770,11 +913,11 @@ export struct HomePage {
     .backgroundColor($r('app.color.bg_page'))
   }
 
-  /** 内容列限宽：平板（lg）铺满全宽，手机/折叠屏保持限宽居中 */
+  /** 内容列限宽：平板（lg）双栏上限 DUAL_MAX_WIDTH，手机/折叠屏保持 640 居中 */
   private getPageConstraint(): ConstraintSizeOptions {
     if (breakpointState.isTablet) {
-      const full: ConstraintSizeOptions = { maxWidth: '100%' }
-      return full
+      const dual: ConstraintSizeOptions = { maxWidth: DimensConstants.DUAL_MAX_WIDTH }
+      return dual
     }
     const capped: ConstraintSizeOptions = { maxWidth: DimensConstants.CONTENT_MAX_WIDTH }
     return capped
@@ -853,19 +996,31 @@ export struct HomePage {
             globalTabsController.changeIndex(TAB_INDEX.AI)
           }
         })
-      } else {
-        // 正常态：2x2 四象限矩阵（卡片高度固定 150，不再平铺拉伸剩余空间）
-        Grid() {
-          ForEach(this.quadrantOrder, (q: EisenhowerQuadrant, idx: number): void => {
-            GridItem() {
-              this.EisenhowerQuadrantCardBuilder(q, idx)
-            }
-          }, (q: EisenhowerQuadrant): string => q)
+      } else if (breakpointState.isTablet) {
+        // 正常态-平板：左象限矩阵 + 右常驻任务面板（点击左格右栏直接切换，替代半模态）
+        Row({ space: 16 }) {
+          Column() {
+            this.QuadrantMatrixBuilder()
+          }
+          .layoutWeight(5)
+          .height('100%')
+
+          Column() {
+            this.QuadrantPaneBuilder()
+          }
+          .layoutWeight(4)
+          .height('100%')
         }
-        .columnsTemplate('1fr 1fr')
-        .columnsGap(8)
-        .rowsGap(8)
         .width('100%')
+        .layoutWeight(1)
+        .padding({ left: 16, right: 16, bottom: safeAreaHelper.getBottomWith(DimensConstants.TAB_CLEARANCE) })
+      } else {
+        // 正常态-手机：2x2 四象限矩阵铺满剩余高度（layoutWeight(1) + Grid 行等分）
+        Column() {
+          this.QuadrantMatrixBuilder()
+        }
+        .width('100%')
+        .layoutWeight(1)
         .padding({ left: 16, right: 16, bottom: safeAreaHelper.getBottomWith(DimensConstants.TAB_CLEARANCE) })
       }
       }

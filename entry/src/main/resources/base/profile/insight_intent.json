@@ -1,7 +1,0 @@
-{
-  "insightIntentsSrcEntry": [
-    {
-      "srcEntry": "./ets/skillexecutor/CreateGoalIntentImpl.ets"
-    }
-  ]
-}

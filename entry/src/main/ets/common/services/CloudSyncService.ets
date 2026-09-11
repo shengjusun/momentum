@@ -93,6 +93,22 @@ export class CloudSyncService {
     return CloudDBService.getInstance().init(context)
   }
 
+  /**
+   * 删除云端同步记录（设置页"一键删除所有数据"专用）
+   * 未登录（uid 为空）或 CloudDB 未初始化时返回 false
+   */
+  async deleteCloudRecord(uid: string): Promise<boolean> {
+    if (uid.length === 0) {
+      return false
+    }
+    const dbService: CloudDBService = CloudDBService.getInstance()
+    if (!dbService.isInitialized()) {
+      Logger.warn(CloudSyncService.tag, 'deleteCloudRecord: CloudDB not initialized')
+      return false
+    }
+    return dbService.deleteRecord(uid)
+  }
+
   async upload(uid: string, data: SyncDataBundle): Promise<boolean> {
     if (uid.length === 0) return false
     const dbService: CloudDBService = CloudDBService.getInstance()

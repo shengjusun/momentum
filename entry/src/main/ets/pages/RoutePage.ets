@@ -733,11 +733,11 @@ export struct RoutePage {
     .width('100%')
   }
 
-  /** 内容列限宽：平板（lg）铺满全宽（双列网格），手机/折叠屏保持 640 居中 */
+  /** 内容列限宽：平板（lg）双列上限 DUAL_MAX_WIDTH，手机/折叠屏保持 640 居中 */
   private getContentConstraint(): ConstraintSizeOptions {
     if (breakpointState.isTablet) {
-      const full: ConstraintSizeOptions = { maxWidth: '100%' }
-      return full
+      const dual: ConstraintSizeOptions = { maxWidth: DimensConstants.DUAL_MAX_WIDTH }
+      return dual
     }
     const capped: ConstraintSizeOptions = { maxWidth: DimensConstants.CONTENT_MAX_WIDTH }
     return capped
@@ -827,8 +827,8 @@ export struct RoutePage {
           .width('100%')
           .layoutWeight(1)
           .padding({ left: 16, right: 16, bottom: safeAreaHelper.getBottomWith(DimensConstants.TAB_CLEARANCE) })
-        } else if (breakpointState.isTablet) {
-          // 正常态-平板：双列目标卡片网格（宽度换列数，华为音乐式铺满）
+        } else if (breakpointState.breakpoint !== 'sm') {
+          // 正常态-md/lg：双列目标卡片网格（宽度换列数）
           // 页面级滚动：header + 网格 + 底部避让整体滚动，目标数量级小无需虚拟化
           Scroll() {
             Column() {
@@ -859,7 +859,7 @@ export struct RoutePage {
               .rowsGap(12)
               .width('100%')
 
-              // 底部占位：让 DuneTabBar 避让空间参与滚动
+              // 底部占位：底部悬浮胶囊的避让空间参与滚动
               Column()
                 .width('100%')
                 .height(safeAreaHelper.getBottomWith(DimensConstants.TAB_CLEARANCE))

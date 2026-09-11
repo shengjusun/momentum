@@ -853,11 +853,11 @@ export struct TaskDetailPage {
     })
   }
 
-  /** 内容列限宽：平板（lg）双栏铺满，手机/折叠屏保持 640 居中 */
+  /** 内容列限宽：平板（lg）双栏上限 DUAL_MAX_WIDTH，手机/折叠屏保持 640 居中 */
   private getContentConstraint(): ConstraintSizeOptions {
     if (breakpointState.isTablet) {
-      const full: ConstraintSizeOptions = { maxWidth: '100%' }
-      return full
+      const dual: ConstraintSizeOptions = { maxWidth: DimensConstants.DUAL_MAX_WIDTH }
+      return dual
     }
     const capped: ConstraintSizeOptions = { maxWidth: DimensConstants.CONTENT_MAX_WIDTH }
     return capped

@@ -55,32 +55,41 @@ export class BreakpointUtil {
     try {
       // md 断点：宽度 >= 600vp
       BreakpointUtil.mdListener = mediaquery.matchMediaSync(`(min-width: ${CommonConstants.BREAKPOINT_MD}vp)`)
-      BreakpointUtil.mdListener.on('change', (result: mediaquery.MediaQueryResult) => {
-        BreakpointUtil.currentBreakpoint = result.matches ? 'md' : 'sm'
-        BreakpointUtil.notifyListeners()
-        Logger.info(tag, 'breakpoint changed to {0}', BreakpointUtil.currentBreakpoint)
+      BreakpointUtil.mdListener.on('change', (_result: mediaquery.MediaQueryResult): void => {
+        BreakpointUtil.updateBreakpoint()
       })
 
       // lg 断点：宽度 >= 840vp
       BreakpointUtil.lgListener = mediaquery.matchMediaSync(`(min-width: ${CommonConstants.BREAKPOINT_LG}vp)`)
-      BreakpointUtil.lgListener.on('change', (result: mediaquery.MediaQueryResult) => {
-        BreakpointUtil.currentBreakpoint = result.matches ? 'lg' : 'md'
-        BreakpointUtil.notifyListeners()
-        Logger.info(tag, 'breakpoint changed to {0}', BreakpointUtil.currentBreakpoint)
+      BreakpointUtil.lgListener.on('change', (_result: mediaquery.MediaQueryResult): void => {
+        BreakpointUtil.updateBreakpoint()
       })
 
       // 初始值：根据当前匹配状态推断
-      if (BreakpointUtil.lgListener.matches) {
-        BreakpointUtil.currentBreakpoint = 'lg'
-      } else if (BreakpointUtil.mdListener.matches) {
-        BreakpointUtil.currentBreakpoint = 'md'
-      } else {
-        BreakpointUtil.currentBreakpoint = 'sm'
-      }
+      BreakpointUtil.updateBreakpoint()
       Logger.info(tag, 'register success, initial={0}', BreakpointUtil.currentBreakpoint)
     } catch (error) {
       Logger.error(tag, 'register failed, msg={0}', (error as Error).message)
     }
+  }
+
+  /**
+   * 联动推导当前断点（唯一写入点）
+   * 两个 mediaquery 监听器的 change 事件会独立触发，且宽度 < 600vp 时 lg 监听器
+   * 也会以 matches=false 触发——若各自独立写值，lg 的 false 会把正确的 sm 覆盖成 md
+   * （表现为手机竖屏页面被渲染成平板双列布局）。必须每次用两个监听器的 matches
+   * 状态联合推导：lg 匹配 → lg；否则 md 匹配 → md；否则 sm。
+   */
+  private static updateBreakpoint(): void {
+    const lgMatches: boolean = BreakpointUtil.lgListener !== null && BreakpointUtil.lgListener.matches
+    const mdMatches: boolean = BreakpointUtil.mdListener !== null && BreakpointUtil.mdListener.matches
+    const next: BreakpointType = lgMatches ? 'lg' : (mdMatches ? 'md' : 'sm')
+    if (next === BreakpointUtil.currentBreakpoint) {
+      return
+    }
+    BreakpointUtil.currentBreakpoint = next
+    Logger.info('BreakpointUtil', 'breakpoint changed to {0}', next)
+    BreakpointUtil.notifyListeners()
   }
 
   /**

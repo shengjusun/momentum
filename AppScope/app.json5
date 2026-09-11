@@ -1,7 +1,7 @@
 {
   "app": {
-    "bundleName": "com.example.Momentum",
-    "vendor": "example",
+    "bundleName": "com.sunshengju.momentum",
+    "vendor": "孙胜举",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "buildVersion": "1",
