@@ -1124,6 +1124,18 @@ chk('进度同步：RoutePage 订阅后在回调里 reload 快照（forceSyncGoa
 chk('进度同步：RoutePage 退出时按 id 注销订阅（防多实例串台）',
     'eventBus.off(EventType.GOAL_PROGRESS_CHANGED' in _rtp, '')
 
+# 2026-09-18 深度体检补齐：**"独立副本页"必须自己订阅进度事件**
+#   `GoalDetailPage` 持有 `@Local goal` 与 `@Local l2Tasks`（不像首页 / 统计页直接读
+#   `liveGoals` / `liveTasks` 派生视图）⇒ 云同步落地时本页**不会自动感知**，必须靠事件
+#   重取活引用，否则进度环 / 里程碑 / 任务列表停在旧值。
+#   这正是用户报障「目标与待办都同步了、但进度没同步」的真根因：读派生视图的页面全都会
+#   自动刷新，只有持有副本的页面需要手动挂事件。
+chk('进度同步：GoalDetailPage 订阅 GOAL_PROGRESS_CHANGED 并在回调里重取活引用（refreshOnShown）',
+    'GOAL_PROGRESS_CHANGED' in _gdp
+    and re.search(r'GOAL_PROGRESS_CHANGED[\s\S]{0,460}?refreshOnShown\(\)', _gdp) is not None, '')
+chk('进度同步：GoalDetailPage 退出时按 id 注销进度订阅（防回调堆积）',
+    'eventBus.off(EventType.GOAL_PROGRESS_CHANGED, this.goalProgressCallbackId)' in _gdp, '')
+
 # 15.4 进度环吃原始类型（对象引用观察链不可靠）
 chk('进度同步：GoalHeaderSection 用 @Param progress（原始类型，必然刷新）',
     '@Param progress: number' in _gdp, '')
@@ -1571,6 +1583,39 @@ chk('资源引用：$r(app.string|color|media.X) 全部存在（%d 处，缺了�
     _ref_cnt >= 1000 and not _bad_ref, ' | '.join(_bad_ref[:5]))
 chk('资源引用：getStringByNameSync 字面量 key 全部存在（%d 处，缺了静默变空白）' % _byname_ok,
     _byname_ok >= 30 and not _byname_bad, ' | '.join(_byname_bad[:5]))
+
+# ---------------------------------------------------------------- 20. CloudDB 加密字段误开检测（会静默杀死云同步）
+# 背景（2026-09-18 查证 —— 用户本打算"删掉 UserSyncData 重建、顺便开加密"）：
+#   华为官方原文：设置加密字段即开启「**全程加密**」，此后
+#     ·「所有人」与「认证用户」角色**不再拥有** query / upsert / delete 权限（且不允许修改）；
+#     ·「**如果未调用 setUserKey() 方法设置用户密码，则该对象类型的数据无法同步至云侧，
+#        且无法对云侧该对象类型的数据进行操作**」；
+#     ·「云数据库**不会保存用户密码**，需要应用开发者自定义用户密码管理策略」。
+#
+#   ⚠️⚠️ 本工程**根本调不了** setUserKey：
+#     `CloudDBService` 用的是 `@kit.CloudFoundationKit` 的 `cloudDatabase`，而它的类型定义
+#     （`hms/ets/api/@hms.core.deviceCloudGateway.cloudDatabase.d.ts`，30 KB）里
+#     `setUserKey` / `userKey` / `encrypt` / `secretkey` / `isNeedEncrypt` **全部 0 命中**
+#     —— 全程加密的实现只存在于**另一套独立 SDK** `@hw-agconnect/cloud`
+#     （`src/main/ets/database/encrypt/EntireEncryption.ts`、`SecretKeyManager.ts` 等）。
+#
+#   ⇒ 若在 AGC 控制台给 UserSyncData 开了加密字段，**云同步会静默失效**（传不上去、读不下来，
+#     且不报错）。本段即护栏：schema.json 里出现 `isNeedEncrypt: true` 直接 FAIL。
+#     真要加密必须先完成两件事：换/补 SDK 到能调 setUserKey 的那套 + 设计用户密码管理策略
+#     （我们只有华为账号一键登录，没有密码概念，忘记密码 = 云端数据永久读不回）。
+#     替代方案见记忆：**应用层加密**（上传前 AES 加密 4 个 JSON 字段、下载后解密）。
+_schema_path = os.path.join(ROOT, 'entry', 'src', 'main', 'resources', 'rawfile', 'schema.json')
+_schema_doc = json.load(io.open(_schema_path, encoding='utf-8')) if os.path.exists(_schema_path) else {}
+_enc_bad = []
+_enc_fields = 0
+for _obj in _schema_doc.get('objectTypes', []):
+    for _fd in _obj.get('fields', []):
+        _enc_fields += 1
+        if _fd.get('isNeedEncrypt') is True:
+            _enc_bad.append('%s.%s' % (_obj.get('objectTypeName'), _fd.get('fieldName')))
+
+chk('云库加密：schema.json 全部 %d 个字段均未开 isNeedEncrypt（开了会因缺 setUserKey 静默断同步）'
+    % _enc_fields, _enc_fields >= 10 and not _enc_bad, 'encrypted: %s' % ','.join(_enc_bad))
 
 # ---------------------------------------------------------------- 输出
 lines = []

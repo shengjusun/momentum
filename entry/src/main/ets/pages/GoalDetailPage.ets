@@ -28,7 +28,8 @@ import { ConfettiOverlay } from '../common/components/ConfettiOverlay'
 import {
   eventBus,
   EventType,
-  GoalCompletedPayload
+  GoalCompletedPayload,
+  GoalProgressChangedPayload
 } from '../common/event/AppEventBus'
 
 /* ============================================================
@@ -1000,6 +1001,13 @@ export struct GoalDetailPage {
   /** 目标达成撒花（GOAL_COMPLETED 事件驱动，仅当前页目标达成时播放） */
   @Local showConfetti: boolean = false
   private goalCompletedCallbackId: number = -1
+  /**
+   * 目标进度变化订阅 ID（本地操作 / **云同步落地**都会广播；-1 = 未订阅）
+   * ⚠️ 本页持有 `@Local goal` 与 `@Local l2Tasks` **独立副本**（不像首页/统计页直接读
+   *    `liveGoals` / `liveTasks` 派生视图）⇒ 云同步落地时本页**不会自动感知**，
+   *    必须在事件里重取活引用，否则进度环 / 里程碑 / 任务列表停在旧值。
+   */
+  private goalProgressCallbackId: number = -1
 
   aboutToAppear(): void {
     this.isAttached = true
@@ -1012,6 +1020,18 @@ export struct GoalDetailPage {
           this.showConfetti = true
         }
       })
+    // 进度变化事件：只对本页目标响应（其他目标的进度与本页无关）。
+    // 幂等：重复 aboutToAppear 时先注销旧订阅，避免回调堆积。
+    if (this.goalProgressCallbackId !== -1) {
+      eventBus.off(EventType.GOAL_PROGRESS_CHANGED, this.goalProgressCallbackId)
+    }
+    this.goalProgressCallbackId = eventBus.on(EventType.GOAL_PROGRESS_CHANGED,
+      (payload: Object): void => {
+        const data: GoalProgressChangedPayload = payload as GoalProgressChangedPayload
+        if (data.goalId === this.goal.id) {
+          this.refreshOnShown()
+        }
+      })
   }
 
   aboutToDisappear(): void {
@@ -1020,6 +1040,10 @@ export struct GoalDetailPage {
     if (this.goalCompletedCallbackId !== -1) {
       eventBus.off(EventType.GOAL_COMPLETED, this.goalCompletedCallbackId)
       this.goalCompletedCallbackId = -1
+    }
+    if (this.goalProgressCallbackId !== -1) {
+      eventBus.off(EventType.GOAL_PROGRESS_CHANGED, this.goalProgressCallbackId)
+      this.goalProgressCallbackId = -1
     }
   }
 
