@@ -1518,6 +1518,60 @@ _miss_b = sorted(_f for _f in _lit_fields if _f not in _keep_names)
 chk('混淆白名单：序列化字面量 key（%d 个）全部被 keep' % len(_lit_fields),
     len(_lit_fields) >= 20 and not _miss_b, 'missing: %s' % ' '.join(_miss_b))
 
+# ---------------------------------------------------------------- 19. 资源引用存在性（编译期 / 运行期硬错误）
+# 背景（2026-09-18 深度体检，本轮最重要的发现）：
+#   两条**完全不同**的资源访问路径，失效表现也完全不同：
+#     ① `$r('app.string|color|media.X')` —— 引用不存在的 key ⇒ **编译期报错**（用户 build 时才会撞上；
+#        本工程 CLI 不能编译，所以必须靠本段静态兜住）
+#     ② `resourceManager.getStringByNameSync('X')` —— 引用不存在的 key ⇒ **不报错**，运行时拿到空串
+#        ⇒ 通知标题 / 按钮文案**静默变空白**（如 `notif_task_deadline_title`、`pomo_notif_*`、
+#        `login_error_*`、`liveview_title_*`、`duration_preset_half_day` 全是这条路径）
+# ⚠️⚠️ **这两条路径用的是两套 key 写法**：② 不带 `app.string.` 前缀。因此任何"以 `app.string.X`
+#   为口径的零引用资源分析，都会把 ② 的 key 全部误判为零引用** —— 本轮实测该误判清单（297 条）
+#   里**至少 20 多条实际在用**（全在上面那串例子里）。**严禁**据此删除资源键；
+#   真要做资源清理，口径必须同时覆盖 `app.string.X`、`$string:X`、`getStringByNameSync('X')`。
+_res_base = os.path.join(ROOT, 'entry', 'src', 'main', 'resources', 'base')
+
+
+def _res_names(_sub, _file, _arr):
+    _p = os.path.join(_res_base, _sub, _file)
+    if not os.path.exists(_p):
+        return set()
+    return set(_it['name'] for _it in json.load(io.open(_p, encoding='utf-8')).get(_arr, []))
+
+
+_res_str = _res_names('element', 'string.json', 'string')
+_res_col = _res_names('element', 'color.json', 'color')
+_res_med = set()
+if os.path.isdir(os.path.join(_res_base, 'media')):
+    _res_med = set(os.path.splitext(_f)[0] for _f in os.listdir(os.path.join(_res_base, 'media')))
+
+_ref_cnt = 0
+_bad_ref = []
+_byname_ok = 0
+_byname_bad = []
+for _p in all_ets:
+    _rel = os.path.relpath(_p, ETS).replace(os.sep, '/')
+    try:
+        _c = strip_comments_keep_literals(io.open(_p, encoding='utf-8').read())
+    except Exception:
+        continue
+    for _kind, _pool in (('string', _res_str), ('color', _res_col), ('media', _res_med)):
+        for _m in re.finditer(r"\$r\(\s*'app\.%s\.([A-Za-z0-9_]+)'" % _kind, _c):
+            _ref_cnt += 1
+            if _m.group(1) not in _pool:
+                _bad_ref.append('%s: %s.%s' % (_rel, _kind, _m.group(1)))
+    for _m in re.finditer(r"getStringByNameSync\(\s*'([^']+)'\s*\)", _c):
+        if _m.group(1) in _res_str:
+            _byname_ok += 1
+        else:
+            _byname_bad.append('%s: %s' % (_rel, _m.group(1)))
+
+chk('资源引用：$r(app.string|color|media.X) 全部存在（%d 处，缺了是编译错）' % _ref_cnt,
+    _ref_cnt >= 1000 and not _bad_ref, ' | '.join(_bad_ref[:5]))
+chk('资源引用：getStringByNameSync 字面量 key 全部存在（%d 处，缺了静默变空白）' % _byname_ok,
+    _byname_ok >= 30 and not _byname_bad, ' | '.join(_byname_bad[:5]))
+
 # ---------------------------------------------------------------- 输出
 lines = []
 ok_all = True

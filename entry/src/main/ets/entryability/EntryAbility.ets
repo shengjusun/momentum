@@ -1,5 +1,5 @@
 
-import { AbilityConstant, UIAbility, Want, common, wantConstant } from '@kit.AbilityKit'
+import { AbilityConstant, UIAbility, Want, wantConstant } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { CommonConstants } from '../common/constants/CommonConstants'

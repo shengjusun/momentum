@@ -3,7 +3,7 @@
 import { promptAction } from '@kit.ArkUI'
 import { DimensConstants } from '../common/constants/DimensConstants'
 import { RoutePageViewModel, routeVM } from '../viewmodel/RoutePageViewModel'
-import { GoalCardItem, MilestoneNode, AiGeneratedTask, Id, GoalDetailRouteNavParam,
+import { GoalCardItem, MilestoneNode, AiGeneratedTask, GoalDetailRouteNavParam,
   TaskPriority, TaskStatus, buildGoalCardItem } from '../model/Models'
 import { globalNavStack, ROUTE_NAME, globalTabsController, TAB_INDEX } from '../common/RouterManager'
 import { Logger } from '../common/utils/Logger'

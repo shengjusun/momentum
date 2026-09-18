@@ -7,7 +7,7 @@
 import { globalNavStack } from '../common/RouterManager'
 import { AppInfoDialog } from '../common/components/AppInfoDialog'
 import { DimensConstants } from '../common/constants/DimensConstants'
-import { HuaweiAuthService, HuaweiLoginResult, HuaweiUserInfo } from '../common/services/HuaweiAuthService'
+import { HuaweiAuthService } from '../common/services/HuaweiAuthService'
 import { settingsVM } from '../viewmodel/SettingsViewModel'
 import { Logger } from '../common/utils/Logger'
 import { promptAction } from '@kit.ArkUI'
