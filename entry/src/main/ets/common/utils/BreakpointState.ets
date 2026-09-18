@@ -43,8 +43,10 @@ let bindCount: number = 0
 /**
  * 绑定全局断点状态（幂等，可重入）
  * 内部持有 BreakpointUtil 的注册/监听，把 mediaquery 结果同步到 breakpointState
+ *
+ * @param uiContext - 根页面的 UIContext（this.getUIContext()），见 BreakpointUtil.register 说明
  */
-export function bindBreakpointState(): void {
+export function bindBreakpointState(uiContext: UIContext): void {
   bindCount++
   if (bindCount > 1) {
     return
@@ -53,7 +55,7 @@ export function bindBreakpointState(): void {
     breakpointState.breakpoint = bp
     breakpointState.isTablet = bp === 'lg'
   }
-  BreakpointUtil.register()
+  BreakpointUtil.register(uiContext)
   // 关键顺序：先挂监听再读初始值——若窗口在 register 与 addListener 之间发生变化，
   // change 事件能正常写入 breakpointState，不丢事件
   BreakpointUtil.addListener(boundListener)

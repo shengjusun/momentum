@@ -13,14 +13,17 @@ import { deadlineReminderService } from '../common/services/DeadlineReminderServ
 import { pomodoroService } from '../common/services/PomodoroService'
 import { notificationCenterService } from '../common/services/NotificationCenterService'
 import { DeepSeekService } from '../common/services/DeepSeekService'
-import { globalNavStack, setMigrationPayload, getCurrentTabIndex, navigateToWithId, markPendingDeepLink } from '../common/RouterManager'
+import { globalNavStack, setMigrationPayload, getCurrentTabIndex, navigateToWithIdOnce, markPendingDeepLink } from '../common/RouterManager'
 import { util } from '@kit.ArkTS';
 import { CloudSdkService } from '../common/services/CloudSdkService'
+import { FeedbackService } from '../common/services/FeedbackService'
 
 /** 通知直达路由信息（冷启动暂存，待 UI 加载后执行） */
 interface PendingNotificationRoute {
   routeName: string
   id: string
+  /** true 表示落地即呼出全屏番茄钟（番茄钟倒计时通知专用） */
+  openImmersive: boolean
 }
 
 /** 多端协同迁移负载 */
@@ -34,10 +37,14 @@ export default class EntryAbility extends UIAbility {
   private readonly tag: string = 'EntryAbility'
   /** 待执行的通知直达路由 */
   private pendingNotificationRoute: PendingNotificationRoute | null = null
+  /** 热启动同步节流：上次 onNewWant 触发 triggerSync 的时刻（0 = 从未触发） */
+  private lastHotStartSyncAt: number = 0
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     Logger.info(this.tag, 'onCreate, launchReason=' + launchParam.launchReason)
-    Logger.info(this.tag, 'want.parameters=' + JSON.stringify(want.parameters))
+    // 隐私合规：want.parameters 在多端流转场景携带完整用户数据（migrationData），
+    // 禁止走 Logger.info（%{public}s 公开可读）。debug 档为 %{private}s，release 掩码。
+    Logger.debug(this.tag, 'want.parameters=' + JSON.stringify(want.parameters))
     // 优先级：通知直达 > 多端流转
     if (!this.extractNotificationRoute(want)) {
       this.extractMigrationData(want)
@@ -117,7 +124,9 @@ export default class EntryAbility extends UIAbility {
     }
 
     const migrationData: string = JSON.stringify(payload)
-    Logger.info(this.tag, 'onContinue: migrationData=' + migrationData)
+    // 隐私合规：migrationData 是多端流转的完整载荷（路由 + 页面参数），
+    // 与 onCreate/onNewWant 的 want.parameters 同级敏感 → 一律 debug（%{private}s），release 掩码
+    Logger.debug(this.tag, 'onContinue: migrationData=' + migrationData)
 
     wantParam.routeName = routeName
     wantParam.param = paramStr
@@ -133,7 +142,8 @@ export default class EntryAbility extends UIAbility {
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     Logger.info(this.tag, 'onNewWant, launchReason=' + launchParam.launchReason)
-    Logger.info(this.tag, 'want.parameters=' + JSON.stringify(want.parameters))
+    // 隐私合规：同 onCreate —— parameters 可能含完整流转数据，降 debug（%{private}s）
+    Logger.debug(this.tag, 'want.parameters=' + JSON.stringify(want.parameters))
     // 优先级：通知直达 > 多端流转
     // 热启动时 UI 已加载，解析后立即跳转
     if (!this.extractNotificationRoute(want)) {
@@ -142,8 +152,17 @@ export default class EntryAbility extends UIAbility {
       this.executeNotificationRoute()
     }
     // 热启动并集合并刷新（方案A）：不无脑用云端覆盖本地，两端独有数据都保留
-    // 冷启动已由 settingsVM.init() → smartSync('merge') 自动执行
-    settingsVM.triggerSync()
+    // 冷启动已由 settingsVM.init() → syncNow('cold-start') 触发，就绪后由 notifyCloudReady 补跑
+    // 节流：triggerSync 自身只有 1s 防抖，点 N 次通知（间隔 >1s）= N 次全量云往返 →
+    // 30s 窗口内只触发一次；窗口内的本地变更由 SYNC_NEEDED 脏标记 + 2s 防抖兜底，不会丢
+    const nowMs: number = Date.now()
+    if (nowMs - this.lastHotStartSyncAt >= CommonConstants.HOT_START_SYNC_THROTTLE_MS) {
+      this.lastHotStartSyncAt = nowMs
+      settingsVM.triggerSync()
+    } else {
+      Logger.info(this.tag, 'onNewWant: triggerSync throttled (<' +
+        CommonConstants.HOT_START_SYNC_THROTTLE_MS.toString() + 'ms since last)')
+    }
 
     // 番茄钟运行中检测：热启动时若专注进行中，自动呼出沉浸屏
     this.restorePomodoroImmersiveIfNeeded()
@@ -152,8 +171,11 @@ export default class EntryAbility extends UIAbility {
   /**
    * 番茄钟沉浸屏恢复
    * 热启动时若番茄钟运行中，导航到对应任务详情页（页面内番茄钟卡片会显示进行中状态）
-   * 注意：不再自动 showImmersive 强制全屏拉起——用户回前台被打断体验差，
-   * 且全局可见标志残留曾导致"打开任意任务详情都被番茄钟覆盖"
+   *
+   * ⚠️ 这里【不】自动 showImmersive：用户自己回前台被打断体验差，
+   *    且全局可见标志残留曾导致"打开任意任务详情都被番茄钟覆盖"。
+   *    需要"落地即全屏"的只有一种情况——用户主动点番茄钟通知，
+   *    那条路径由 executeNotificationRoute 依据 openImmersive 标记显式呼出。
    */
   private restorePomodoroImmersiveIfNeeded(): void {
     try {
@@ -166,7 +188,9 @@ export default class EntryAbility extends UIAbility {
       }
       Logger.info(this.tag, 'restorePomodoroImmersiveIfNeeded: pomodoro running, taskId=' + session.taskId)
 
-      // 检查当前页面栈顶是否已是 TaskDetailPage，避免重复压栈
+      // 检查页面栈顶是否已是 TaskDetailPage，避免重复压栈
+      // 注意这里【只比路由名、不比 id】是刻意的：栈顶已是"某个任务的详情页"时就不打扰用户，
+      // 若改成 name+id 比较，会在"番茄钟跑 B、用户正在看 A 的详情"时把页面替用户换掉。
       const pathStack: NavPathInfo[] = globalNavStack.getPathStack()
       if (Array.isArray(pathStack) && pathStack.length > 0) {
         const topPath: NavPathInfo = pathStack[pathStack.length - 1]
@@ -176,8 +200,8 @@ export default class EntryAbility extends UIAbility {
         }
       }
 
-      // 导航到 TaskDetailPage（携带 taskId，页面从 homeVM 反查构造数据）
-      navigateToWithId('TaskDetailPage', session.taskId)
+      // 导航到 TaskDetailPage（携带 taskId，页面从 homeVM 反查构造数据）；幂等跳转避免重复压栈
+      navigateToWithIdOnce('TaskDetailPage', session.taskId)
       Logger.info(this.tag, 'restorePomodoroImmersiveIfNeeded: navigate to TaskDetailPage')
     } catch (e) {
       Logger.warn(this.tag, 'restorePomodoroImmersiveIfNeeded failed: ' + (e as Error).message)
@@ -288,7 +312,7 @@ export default class EntryAbility extends UIAbility {
       if (routeName === 'GoalDetailPage') {
         const goalId: string = this.decodeParamValue(params.goalId)
         if (goalId.length > 0) {
-          this.pendingNotificationRoute = { routeName: routeName, id: goalId }
+          this.pendingNotificationRoute = { routeName: routeName, id: goalId, openImmersive: false }
           markPendingDeepLink()
           Logger.info(this.tag, 'extractNotificationRoute: goal detail, goalId=' + goalId)
           return true
@@ -298,9 +322,13 @@ export default class EntryAbility extends UIAbility {
       if (routeName === 'TaskDetailPage') {
         const taskId: string = this.decodeParamValue(params.taskId)
         if (taskId.length > 0) {
-          this.pendingNotificationRoute = { routeName: routeName, id: taskId }
+          const openImmersive: boolean = this.decodeParamValue(params.openImmersive) === '1'
+          this.pendingNotificationRoute = {
+            routeName: routeName, id: taskId, openImmersive: openImmersive
+          }
           markPendingDeepLink()
-          Logger.info(this.tag, 'extractNotificationRoute: task detail, taskId=' + taskId)
+          Logger.info(this.tag, 'extractNotificationRoute: task detail, taskId=' + taskId +
+            ', openImmersive=' + openImmersive.toString())
           return true
         }
       }
@@ -324,9 +352,24 @@ export default class EntryAbility extends UIAbility {
     const route: PendingNotificationRoute = this.pendingNotificationRoute
     this.pendingNotificationRoute = null
     try {
-      navigateToWithId(route.routeName, route.id)
+      // 幂等跳转：栈顶已是同一 (route, id) 时不再压栈。
+      // 否则每点一次通知压一层新详情页，用户"返回一次"会退回到上一个同类页面而非来源页。
+      const navigated: boolean = navigateToWithIdOnce(route.routeName, route.id)
       Logger.info(this.tag, 'executeNotificationRoute: navigate to ' + route.routeName +
-        ', id=' + route.id)
+        ', id=' + route.id + ', effective=' + navigated.toString())
+
+      // 番茄钟通知直达：确认目标页已在位后再置位"全屏可见"，
+      // 新页面 onDestinationReady 会据此直接渲染全屏番茄钟，不再依赖进程内标志是否残留
+      // （进程被回收后该标志为 false，点通知只会落到任务详情页）。
+      // 顺序要求：必须在导航生效【之后】——若跳转被 600ms 防抖拦下，
+      // 提前置位会让标志悬挂（没有宿主页面承载全屏层），之后用户手动打开该任务详情会被"意外全屏"。
+      if (navigated && route.openImmersive && route.routeName === 'TaskDetailPage') {
+        const session = pomodoroService.getCurrentSession()
+        if (session !== null && session.state !== 'idle' && session.taskId === route.id) {
+          pomodoroService.showImmersive()
+          Logger.info(this.tag, 'executeNotificationRoute: session active, show immersive screen')
+        }
+      }
     } catch (e) {
       Logger.error(this.tag, 'executeNotificationRoute failed: ' + (e as Error).message)
     }
@@ -358,6 +401,14 @@ export default class EntryAbility extends UIAbility {
     const mainWindow = windowStage.getMainWindowSync()
     // 关键：开启全屏布局，否则 expandSafeArea 无法突破系统默认 inset
     mainWindow.setWindowLayoutFullScreen(true)
+
+    // 自愈：每次启动都无条件恢复"状态栏 + 导航栏"可见。
+    // 番茄钟沉浸屏会在整屏生命周期内隐藏系统栏；若进程在隐藏态被杀/崩溃，
+    // 这里保证下次启动一定回到可见状态，不会留下"应用没有状态栏"这类诡异故障。
+    const barNames: Array<'status' | 'navigation'> = ['status', 'navigation']
+    mainWindow.setWindowSystemBarEnable(barNames).catch((e: BusinessError): void => {
+      Logger.warn(this.tag, 'restore system bars failed: ' + e.message)
+    })
 
     const systemAvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
     const statusBarHeight = px2vp(systemAvoidArea.topRect.height)
@@ -422,8 +473,20 @@ export default class EntryAbility extends UIAbility {
 
   onForeground(): void {
     Logger.info(this.tag, 'onForeground')
-    // 回前台：取消番茄钟 reminderAgent 后台兜底提醒（前台计时器恢复接管）
-    pomodoroService.cancelBackgroundReminder()
+    // 回前台：不再取消后台兜底提醒，而是【重新注册】（幂等，内部会先取消旧的）。
+    // 原因：取消会留下"前台运行期间进程被系统回收 / 崩溃"的提醒空洞——那条路径不会触发
+    // onBackground，兜底就此丢失。重复通知的风险由两处共同消除：
+    //   ① 兜底提醒的触发时间带 5s 延迟（PomodoroService.BG_REMINDER_LEAD_MILLIS）；
+    //   ② 前台计时器到点时 onPhaseComplete() 会先 cancelReminder() 再发完成通知。
+    pomodoroService.registerBackgroundReminder()
+    // 回前台：补传上次因未登录/网络异常而暂存的用户反馈（内部有云 SDK 就绪判断，不满足则静默跳过）
+    FeedbackService.getInstance().flushQueue().catch((e: Error): void => {
+      Logger.warn(this.tag, 'flush feedback queue failed: ' + e.message)
+    })
+    // 回前台：通知同步层就绪（补跑滞留请求）+ 主动触发一次 merge 拉取云端更新
+    // （多设备场景：另一台设备改完数据后，本机切回前台即可看到）
+    settingsVM.notifyCloudReady()
+    settingsVM.triggerSync()
   }
 
   onBackground(): void {
@@ -437,6 +500,10 @@ export default class EntryAbility extends UIAbility {
     routeVM.flush().catch((e: Error): void => {
       Logger.error(this.tag, 'onBackground routeVM.flush failed: ' + e.message)
     })
+    // ⚠️ 退后台**只做本地持久化 + 写持久化脏标记，绝不发起网络 merge**：
+    //    鸿蒙后台进程随时可能被冻结/回收，异步网络请求不保证完成。
+    //    未上传的改动由脏标记兜住，等回前台 / 下次启动自动重试。
+    settingsVM.markSyncNeeded('background', false)
     // 退后台：注册番茄钟 reminderAgent 兜底提醒
     // 即使进程被杀，系统也会在倒计时结束时弹出通知（应用常驻通知无法保证后台存活）
     pomodoroService.registerBackgroundReminder()

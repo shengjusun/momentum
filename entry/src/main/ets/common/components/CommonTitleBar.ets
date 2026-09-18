@@ -14,7 +14,7 @@ export struct CommonTitleBar {
   @Builder
   defaultRightActions() {
     if (this.showBack) {
-      Column().width(52)
+      Column().width(40)
     }
   }
 
@@ -23,19 +23,19 @@ export struct CommonTitleBar {
     Column() {
       // 原有的 Row 逻辑保持不变
       Row() {
-        // 返回按钮区域：固定 52vp 宽度，左对齐
+        // 返回按钮区域：华为风格圆形浅灰底 + 细左箭头，左对齐
         if (this.showBack) {
           Row() {
-            Text('‹')
-              .fontSize(CommonConstants.FONT_SIZE_XXL)
-              .fontColor($r('app.color.text_primary'))
+            SymbolGlyph($r('sys.symbol.chevron_left'))
+              .fontSize(22)
+              .fontColor([$r('app.color.text_primary')])
               .fontWeight(FontWeight.Medium)
           }
-          .width(52)
+          .width(40)
           .height(40)
           .justifyContent(FlexAlign.Center)
-          .borderRadius(18)
-          .backgroundColor(Color.Transparent)
+          .borderRadius(20)
+          .backgroundColor($r('app.color.bg_search'))
           .accessibilityText($r('app.string.acc_back_button'))
           .onClick((): void => {
             this.onBack()

@@ -11,6 +11,7 @@
  */
 
 import { promptAction } from '@kit.ArkUI'
+import { DimensConstants } from '../common/constants/DimensConstants'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { picker } from '@kit.CoreFileKit'
 import { fileIo as fs } from '@kit.CoreFileKit'
@@ -21,6 +22,7 @@ import { homeVM } from '../viewmodel/HomeViewModel'
 import { settingsVM } from '../viewmodel/SettingsViewModel'
 import { globalNavStack } from '../common/RouterManager'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
+import { AppActionSheet, AppActionSheetItem } from '../common/components/AppActionSheet'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
 import {
   GoalCardItem, GoalCardItemJSON, snapshotGoalCardItem, hydrateGoalCardItem
@@ -48,6 +50,10 @@ interface MergeResult {
 export struct ImportExportPage {
   @Local isExporting: boolean = false
   @Local isImporting: boolean = false
+  /** 统一操作面板状态 */
+  @Local showActionSheet: boolean = false
+  @Local actionSheetTitle: string = ''
+  @Local actionSheetItems: AppActionSheetItem[] = []
 
   private handleBack(): void {
     globalNavStack.pop()
@@ -69,6 +75,9 @@ export struct ImportExportPage {
       data['todos'] = todosSnapshot
       data['settings'] = settingsSnapshot
       const pkg: BackupPackage = {
+        // ⚠️ 备份文件格式标识：与下方导入校验（parsed.app !== 'Momentum'）成对出现，
+        // 属导出文件的兼容契约。应用改名（Momentum → 起势）时**此处不得同步修改**，
+        // 否则用户此前导出的备份将全部无法导入。如需换标识，必须同时兼容新旧两个值。
         app: 'Momentum',
         version: 1,
         exportedAt: Date.now(),
@@ -120,7 +129,7 @@ export struct ImportExportPage {
     if (this.isImporting) return
     try {
       const options = new picker.DocumentSelectOptions()
-      options.fileSuffixFilters = ['JSON 文件|.json']
+      options.fileSuffixFilters = [getContext(this).resourceManager.getStringSync($r('app.string.import_file_filter_label').id) + '|.json']
       const documentPicker = new picker.DocumentViewPicker(getContext(this))
       const uris: Array<string> = await documentPicker.select(options)
       if (uris.length === 0) return
@@ -142,21 +151,17 @@ export struct ImportExportPage {
         return
       }
 
-      // 二次确认：合并模式导入
-      promptAction.showDialog({
-        title: $r('app.string.import_confirm_title'),
-        message: getContext(this).resourceManager.getStringSync($r('app.string.import_confirm_message').id),
-        buttons: [
-          { text: $r('app.string.common_cancel'), color: $r('app.color.text_tertiary') },
-          { text: $r('app.string.common_confirm'), color: $r('app.color.primary_color') }
-        ]
-      }).then((result: promptAction.ShowDialogSuccessResponse): void => {
-        if (result.index === 1) {
-          this.doMergeImport(parsed.data)
+      // 二次确认：合并模式导入（统一 ActionSheet）
+      this.actionSheetTitle = getContext(this).resourceManager.getStringSync($r('app.string.import_confirm_message').id)
+      this.actionSheetItems = [
+        {
+          label: getContext(this).resourceManager.getStringSync($r('app.string.common_confirm').id),
+          action: (): void => {
+            this.doMergeImport(parsed.data)
+          }
         }
-      }).catch((e: Error): void => {
-        Logger.error('ImportExportPage', 'import confirm dialog failed: ' + e.message)
-      })
+      ]
+      this.showActionSheet = true
     } catch (e) {
       Logger.error('ImportExportPage', 'import failed: ' + (e as Error).message)
       promptAction.showToast({
@@ -178,6 +183,9 @@ export struct ImportExportPage {
       const mergedTasks: HomeTodoItemJSON[] = []
 
       // ---- 目标合并 ----
+      // ⚠️ 这里刻意遍历**底层 routeVM.goals（含墓碑）**，属于 §1.4 数据分层规范的**唯一例外**：
+      //    导入是"按 id 去重的数据合并"操作，必须看到墓碑 id 才能避免在数组里产生重复 id；
+      //    若只看 liveGoals，已删除目标的 id 会被当作"本地不存在"而重复插入。
       const localGoalIds: Set<string> = new Set<string>()
       for (let i: number = 0; i < routeVM.goals.length; i++) {
         localGoalIds.add(routeVM.goals[i].id)
@@ -198,6 +206,7 @@ export struct ImportExportPage {
       }
 
       // ---- 待办合并 ----
+      // 同目标合并：刻意遍历底层 homeVM.taskList（含墓碑），理由见上
       const localTaskIds: Set<string> = new Set<string>()
       for (let i: number = 0; i < homeVM.taskList.length; i++) {
         localTaskIds.add(homeVM.taskList[i].id)
@@ -228,6 +237,10 @@ export struct ImportExportPage {
       routeVM.applyCloudSnapshot(goalsSnapshot)
       homeVM.applyCloudSnapshot(todosSnapshot)
 
+      // ⚠️ applyCloudSnapshot 是"同步落地"语义：只落盘、**不打脏标记、不触发云同步**（防回环）。
+      //    导入是本地用户操作，必须显式打脏标记，让导入结果能同步到云端。
+      settingsVM.markSyncNeeded('import')
+
       this.isImporting = false
       promptAction.showToast({
         message: getContext(this).resourceManager.getStringSync($r('app.string.import_success').id),
@@ -248,15 +261,15 @@ export struct ImportExportPage {
    * ============================================================ */
 
   @Builder
-  SectionCardBuilder(icon: string, title: ResourceStr, desc: ResourceStr,
+  SectionCardBuilder(icon: Resource, title: ResourceStr, desc: ResourceStr,
     btnText: ResourceStr, onBtn: () => void) {
     Column({ space: 10 }) {
       Row({ space: 10 }) {
-        Text(icon)
+        SymbolGlyph(icon)
           .fontSize(CommonConstants.FONT_SIZE_HEADLINE)
+          .fontColor([$r('app.color.primary_color')])
           .width(40)
           .height(40)
-          .textAlign(TextAlign.Center)
         Column({ space: 3 }) {
           Text(title)
             .fontSize(CommonConstants.FONT_SIZE_MID)
@@ -286,12 +299,13 @@ export struct ImportExportPage {
     .width('100%')
     .padding(16)
     .backgroundColor($r('app.color.bg_card'))
-    .borderRadius(16)
+    .borderRadius(DimensConstants.RADIUS_L)
     .margin({ top: 16 })
   }
 
   build() {
     NavDestination() {
+      Stack() {
       Column() {
         CommonTitleBar({
           title: $r('app.string.page_import_export'),
@@ -304,7 +318,7 @@ export struct ImportExportPage {
         Scroll() {
           Column() {
             this.SectionCardBuilder(
-              '💾',
+              $r('sys.symbol.arrow_up_circle'),
               $r('app.string.export_section_title'),
               $r('app.string.export_section_desc'),
               $r('app.string.export_btn'),
@@ -314,7 +328,7 @@ export struct ImportExportPage {
             )
 
             this.SectionCardBuilder(
-              '📥',
+              $r('sys.symbol.square_and_arrow_down'),
               $r('app.string.import_section_title'),
               $r('app.string.import_section_desc'),
               $r('app.string.import_btn'),
@@ -334,6 +348,20 @@ export struct ImportExportPage {
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.bg_page'))
+
+      // 统一操作面板（替代系统 showDialog）
+      if (this.showActionSheet) {
+        AppActionSheet({
+          title: this.actionSheetTitle,
+          items: this.actionSheetItems,
+          onDismiss: (): void => {
+            this.showActionSheet = false
+          }
+        })
+      }
+      }
+      .width('100%')
+      .height('100%')
     }
     .hideTitleBar(true)
     .onBackPressed((): boolean => {

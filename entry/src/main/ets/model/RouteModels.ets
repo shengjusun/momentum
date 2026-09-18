@@ -134,6 +134,20 @@ export interface GoalCardItemJSON {
   actualCompletionTime?: number
   /** 截止时间戳（毫秒），默认 0（用于截止日期提醒） */
   deadline?: number
+  /**
+   * 墓碑标记（云同步软删除），默认 false
+   * - true 表示该目标已被删除，条目仍留在底层 goals 数组里用于跨设备传播删除
+   * - 老数据缺失此字段 → 反序列化时视为 false（向后兼容）
+   * - ⚠️ UI / 统计 / 提醒 / 导出一律读取 liveGoals 视图，禁止直接遍历底层 goals
+   */
+  isDeleted?: boolean
+  /**
+   * 条目最后修改时间戳（毫秒）—— 云同步冲突裁决唯一依据
+   * - 新建时写入当前时间；任何会让目标内容变化的写操作都要刷新
+   * - 老数据缺失此字段 → 0，冲突裁决退化为 createTime 兜底
+   * - ⚠️ 同步落地（applyCloudSnapshot）**禁止**改写本字段
+   */
+  updatedAt?: number
 }
 
 /**
@@ -148,7 +162,7 @@ export interface GoalCardItemJSON {
  * V2 深度修复：
  *   - 从 interface 升级为 @ObservedV2 class
  *   - tasks/milestones/progress 等属性变更可被 @Trace 精确追踪
- *   - 勾选 Step 时只需修改 task.completedSteps，无需重建整个 goals 数组
+ *   - 勾选 Step 时只需修改 task.steps[i].isCompleted，无需重建整个 goals 数组
  *
  * 时间字段扩展（阶段1：数据底座扩展）：
  *   - plannedTime: 计划开始时间，用于番茄钟、日程安排
@@ -189,6 +203,17 @@ export class GoalCardItem {
    * - 默认值 0，表示无截止日期
    */
   @Trace deadline: Timestamp = 0
+  /**
+   * 墓碑标记（云同步软删除）
+   * - 删除目标时只置 true，不从 goals 数组移除 → 保证删除能跨设备传播、不复活
+   * - 老数据默认为 false
+   */
+  @Trace isDeleted: boolean = false
+  /**
+   * 目标最后修改时间戳（毫秒）—— 跨设备冲突裁决依据（谁的值大谁胜出）
+   * - 同步落地时禁止改写（见 GoalCardItemJSON.updatedAt 说明）
+   */
+  @Trace updatedAt: Timestamp = 0
 
   constructor(
     id: Id,
@@ -204,7 +229,9 @@ export class GoalCardItem {
     tasks: AiGeneratedTask[],
     plannedTime: Timestamp = 0,
     actualCompletionTime: Timestamp = 0,
-    deadline: Timestamp = 0
+    deadline: Timestamp = 0,
+    isDeleted: boolean = false,
+    updatedAt: Timestamp = 0
   ) {
     this.id = id
     this.name = name
@@ -220,6 +247,8 @@ export class GoalCardItem {
     this.plannedTime = plannedTime
     this.actualCompletionTime = actualCompletionTime
     this.deadline = deadline
+    this.isDeleted = isDeleted
+    this.updatedAt = updatedAt
   }
 
   static fromJSON(json: GoalCardItemJSON | null | undefined): GoalCardItem | null {
@@ -247,11 +276,15 @@ export class GoalCardItem {
       json.actualCompletionTime : 0
     const safeDeadline: Timestamp = (typeof json.deadline === 'number' && !isNaN(json.deadline)) ?
       json.deadline : 0
+    // 云同步扩展字段容错：老数据缺失 → isDeleted=false、updatedAt=0（后续由 createTime 兜底裁决）
+    const safeIsDeleted: boolean = typeof json.isDeleted === 'boolean' ? json.isDeleted : false
+    const safeUpdatedAt: number = (typeof json.updatedAt === 'number' && !isNaN(json.updatedAt) && json.updatedAt > 0) ?
+      json.updatedAt : 0
     return new GoalCardItem(
       json.id,
       json.name,
       typeof json.description === 'string' ? json.description : '',
-      typeof json.category === 'string' ? json.category : '其他',
+      typeof json.category === 'string' ? json.category : '',
       (typeof json.progress === 'number' && !isNaN(json.progress)) ?
         Math.max(0, Math.min(100, Math.floor(json.progress))) : 0,
       typeof json.duration === 'string' ? json.duration : '',
@@ -265,7 +298,9 @@ export class GoalCardItem {
       safeTasks,
       safePlannedTime,
       safeActualCompletionTime,
-      safeDeadline
+      safeDeadline,
+      safeIsDeleted,
+      safeUpdatedAt
     )
   }
 
@@ -299,7 +334,9 @@ export class GoalCardItem {
       tasks: jsonTasks,
       plannedTime: this.plannedTime,
       actualCompletionTime: this.actualCompletionTime,
-      deadline: this.deadline
+      deadline: this.deadline,
+      isDeleted: this.isDeleted === true,
+      updatedAt: typeof this.updatedAt === 'number' && !isNaN(this.updatedAt) ? this.updatedAt : 0
     }
   }
 }
@@ -310,6 +347,14 @@ export class GoalCardItem {
 
 export interface GoalDetailRouteNavParam extends RouteParam {
   goal: GoalCardItem
+}
+
+/**
+ * 反馈/举报页路由参数
+ * mode = 'feedback' 普通问题反馈（默认） | 'report' AI 生成内容举报
+ */
+export interface FeedbackRouteNavParam {
+  mode: string
 }
 
 /* ============================================================
@@ -335,7 +380,9 @@ export function buildGoalCardItem(
   tasks: AiGeneratedTask[],
   plannedTime: Timestamp = 0,
   actualCompletionTime: Timestamp = 0,
-  deadline: Timestamp = 0
+  deadline: Timestamp = 0,
+  isDeleted: boolean = false,
+  updatedAt: Timestamp = 0
 ): GoalCardItem {
   if (typeof id !== 'string' || id.length === 0) {
     throw new Error('buildGoalCardItem: id is required and must be non-empty string')
@@ -359,11 +406,15 @@ export function buildGoalCardItem(
     actualCompletionTime : 0
   const safeDeadline: Timestamp = (typeof deadline === 'number' && !isNaN(deadline)) ?
     deadline : 0
+  // 云同步扩展：墓碑默认 false；updatedAt 缺省时按"新建"语义写入当前时间
+  const safeIsDeleted: boolean = typeof isDeleted === 'boolean' ? isDeleted : false
+  const safeUpdatedAt: Timestamp = (typeof updatedAt === 'number' && !isNaN(updatedAt) && updatedAt > 0) ?
+    updatedAt : Date.now()
   return new GoalCardItem(
     id,
     name,
     typeof description === 'string' ? description : '',
-    typeof category === 'string' ? category : '其他',
+    typeof category === 'string' ? category : '',
     safeProgress,
     typeof duration === 'string' ? duration : '',
     safeCompleted,
@@ -373,7 +424,9 @@ export function buildGoalCardItem(
     safeTasks,
     safePlannedTime,
     safeActualCompletionTime,
-    safeDeadline
+    safeDeadline,
+    safeIsDeleted,
+    safeUpdatedAt
   )
 }
 

@@ -44,12 +44,16 @@ cloud_objects/             # AGC 云对象（calldeepseek 云函数部署于 AGC
 
 DevEco Studio 6.1+（API 23 / 6.1.0），`build-profile.json5` 使用本机自动签名调试。
 
-```
-hvigorw assembleHap --mode module -p module=entry@default
-```
+⚠️ **本工程 CLI 不可构建**：仓库内**没有 `hvigorw` 包装脚本**，`hvigorw assembleHap ...` 之类的命令行构建**无法执行**。
+编译与真机验证请在 DevEco Studio 内完成（`Build → Build Hap(s)/APP(s)`）。
+
+> 这条务必留意：任何"用命令行跑一次构建"的排查思路在本工程都走不通，
+> 代码改动的编译验证只能由人工在 IDE 内完成。
 
 ## 上架前待办
 
-- [x] 包名已更换为 `com.sunshengju.momentum`（仍需在 AGC 重新生成 `agconnect-services.json`、同步云函数/CloudDB/签名与 module.json5 的 client_id）
+- [x] 包名已更换为 `com.sunshengju.momentum`
+- [x] AGC 侧已同步：`agconnect-services.json` 已重新生成并生效，云函数 / CloudDB / 签名与 `module.json5` 的 `client_id` 已对齐
 - [ ] 创建 release 签名证书与 Profile（调试密码勿入库）
-- [ ] `DETECT_GESTURE` 为受限权限：申请 AGC 白名单，否则下线 RoutePage 握姿功能并移除权限声明
+- [x] `DETECT_GESTURE` **无需申请白名单**：官方权限表标注为 `normal` / `system_grant`，声明即可使用（智感握姿已在实际使用）。
+      详见 `docs/上架素材/智感握姿说明.md`

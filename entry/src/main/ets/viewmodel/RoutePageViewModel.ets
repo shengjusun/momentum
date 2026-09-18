@@ -2,16 +2,18 @@
 
 import {
   GoalCardItem, GoalCardItemJSON, MilestoneNode, Id, Timestamp, AiGeneratedTask,
-  HomeTodoItem, TaskStatus, TaskPriority,
+  HomeTodoItem, TaskStatus, TaskPriority, TaskStep, generateStepId,
   buildGoalCardItem, buildHomeTodoItem,
-  getCompletedStepsSafe, isStepCompleted,
+  isStepCompleted,
   hydrateGoalCardItem, snapshotGoalCardItem
 } from '../model/Models'
 import { Logger } from '../common/utils/Logger'
 import { StorageManager } from '../common/utils/StorageManager'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { PersistHelper } from '../common/utils/PersistHelper'
+import { formatEstimatedDuration } from '../common/utils/SafeUtils'
 import { deadlineReminderService } from '../common/services/DeadlineReminderService'
+import { hapticFeedback } from '../common/services/HapticFeedback'
 // 事件总线（解耦 ViewModel 循环依赖）
 import {
   eventBus,
@@ -23,7 +25,9 @@ import {
   GoalRemovedPayload,
   TaskRemovedPayload,
   buildGoalRemovedPayload,
-  buildTaskRemovedPayload
+  buildTaskRemovedPayload,
+  buildGoalCompletedPayload,
+  buildGoalProgressChangedPayload
 } from '../common/event/AppEventBus'
 
 interface RouteVMSnapshot {
@@ -42,14 +46,61 @@ export class RoutePageViewModel {
   @Trace goals: GoalCardItem[] = []
   @Trace filterCategory: string = ''
   @Trace categories: string[] = []
+  /** “全部”筛选标签的本地化文本（用于判定 filterCategory，避免硬编码中文比较） */
+  private categoryAllLabel: string = ''
+
+  /**
+   * 对外统一视图：**过滤掉墓碑目标**（isDeleted === true）
+   *
+   * 数据分层规范（云同步重构）：
+   *   - 底层 `goals`：原始完整数据集，**含墓碑条目**，仅用于「同步合并 / 本地持久化」
+   *   - 对外 `liveGoals`：UI 页面 / 统计计数 / 提醒服务 / 导出备份统一读取此视图
+   * ⚠️ 禁止在 UI、统计、提醒、导出中直接遍历底层 goals
+   */
+  @Computed
+  get liveGoals(): GoalCardItem[] {
+    const alive: GoalCardItem[] = []
+    for (let i: number = 0; i < this.goals.length; i++) {
+      const goal: GoalCardItem = this.goals[i]
+      if (goal.isDeleted !== true) {
+        alive.push(goal)
+      }
+    }
+    return alive
+  }
+
+  /**
+   * 同步落地抑制标志：`applyCloudSnapshot` 执行期间为 true
+   * - 抑制 onScheduleFire 发出 SYNC_NEEDED：否则「merge → 落地 → 触发同步 → merge」死循环
+   * - 不影响本地持久化（落地数据必须落盘）
+   */
+  private isApplyingCloudSnapshot: boolean = false
 
   private context: Context | null = null
-  // 防抖持久化：200ms 内多次修改合并为一次写入，无 onScheduleFire 回调
-  // 云同步由 HomeVM 的 persistHelper onScheduleFire 统一触发 SYNC_NEEDED（同流程中 HomeVM 也会被修改）
+  /**
+   * 防抖持久化：200ms 内多次修改合并为一次写入
+   *
+   * 云同步重构（2026-09-15）：**本 VM 补上 onScheduleFire**
+   *   原设计"云同步由 HomeVM 的 onScheduleFire 统一触发"存在缺口：
+   *   只修改目标 / 里程碑 / L2 任务 / L3 步骤时 HomeVM 并未被修改，
+   *   不会发出 SYNC_NEEDED → 这些改动仅落本地、迟迟不上传（要等下次冷启动 merge 才补）。
+   */
   private persistHelper: PersistHelper = new PersistHelper(
     'RoutePageViewModel',
     async (): Promise<void> => { await this.persistData() },
-    200
+    200,
+    (): void => {
+      // 同步落地触发的持久化：只落盘，不打脏标记、不触发云同步（防回环，消费一次后复位）
+      if (this.isApplyingCloudSnapshot) {
+        this.isApplyingCloudSnapshot = false
+        Logger.info(this.tag, 'onScheduleFire skipped: applying cloud snapshot, break sync loop')
+        return
+      }
+      const isLoggedIn: boolean = AppStorage.get<boolean>('isLoggedIn') ?? false
+      if (isLoggedIn) {
+        eventBus.emit(EventType.SYNC_NEEDED, null)
+      }
+    }
   )
   private isInitInProgress: boolean = false
   /** 事件总线订阅 ID（用于精确取消订阅） */
@@ -61,17 +112,18 @@ export class RoutePageViewModel {
 
   @Computed
   get activeGoalCount(): number {
-    return this.goals.length
+    return this.liveGoals.length
   }
 
   @Computed
   get averageProgress(): number {
-    if (this.goals.length === 0) return 0
+    const alive: GoalCardItem[] = this.liveGoals
+    if (alive.length === 0) return 0
     let total: number = 0
-    for (let i: number = 0; i < this.goals.length; i++) {
-      total += this.goals[i].progress
+    for (let i: number = 0; i < alive.length; i++) {
+      total += alive[i].progress
     }
-    return Math.round(total / this.goals.length)
+    return Math.round(total / alive.length)
   }
 
   /**
@@ -80,9 +132,10 @@ export class RoutePageViewModel {
    */
   @Computed
   get completedGoalCount(): number {
+    const alive: GoalCardItem[] = this.liveGoals
     let count: number = 0
-    for (let i: number = 0; i < this.goals.length; i++) {
-      if (this.goals[i].progress === 100) {
+    for (let i: number = 0; i < alive.length; i++) {
+      if (alive[i].progress === 100) {
         count++
       }
     }
@@ -95,9 +148,10 @@ export class RoutePageViewModel {
    */
   @Computed
   get inProgressGoalCount(): number {
+    const alive: GoalCardItem[] = this.liveGoals
     let count: number = 0
-    for (let i: number = 0; i < this.goals.length; i++) {
-      const p: number = this.goals[i].progress
+    for (let i: number = 0; i < alive.length; i++) {
+      const p: number = alive[i].progress
       if (p > 0 && p < 100) {
         count++
       }
@@ -116,9 +170,10 @@ export class RoutePageViewModel {
    */
   @Computed
   get pendingGoalCount(): number {
+    const alive: GoalCardItem[] = this.liveGoals
     let count: number = 0
-    for (let i: number = 0; i < this.goals.length; i++) {
-      if (this.goals[i].progress === 0) {
+    for (let i: number = 0; i < alive.length; i++) {
+      if (alive[i].progress === 0) {
         count++
       }
     }
@@ -132,9 +187,10 @@ export class RoutePageViewModel {
   @Computed
   get overdueGoalCount(): number {
     const now: number = Date.now()
+    const alive: GoalCardItem[] = this.liveGoals
     let count: number = 0
-    for (let i: number = 0; i < this.goals.length; i++) {
-      const goal: GoalCardItem = this.goals[i]
+    for (let i: number = 0; i < alive.length; i++) {
+      const goal: GoalCardItem = alive[i]
       if (goal.deadline > 0 && goal.deadline < now && goal.progress < 100) {
         count++
       }
@@ -142,15 +198,18 @@ export class RoutePageViewModel {
     return count
   }
 
+  /** 列表展示用（已过滤墓碑 + 分类筛选） */
   @Computed
   get filteredGoals(): GoalCardItem[] {
-    if (!this.filterCategory || this.filterCategory === '全部' || this.filterCategory === '') {
-      return this.goals
+    const alive: GoalCardItem[] = this.liveGoals
+    if (!this.filterCategory || this.filterCategory === '' ||
+      (this.categoryAllLabel.length > 0 && this.filterCategory === this.categoryAllLabel)) {
+      return alive
     }
     const result: GoalCardItem[] = []
-    for (let i: number = 0; i < this.goals.length; i++) {
-      if (this.goals[i].category === this.filterCategory) {
-        result.push(this.goals[i])
+    for (let i: number = 0; i < alive.length; i++) {
+      if (alive[i].category === this.filterCategory) {
+        result.push(alive[i])
       }
     }
     return result
@@ -159,9 +218,25 @@ export class RoutePageViewModel {
   constructor() {
   }
 
+  /**
+   * 分类筛选（纯本机 UI 视图状态）
+   * ⚠️ 只落盘、**不触发云同步**：`filterCategory` 不参与云同步语义
+   *    （merge 时统一取云端值，`applyCloudSnapshot` 也不采纳本地该字段），
+   *    若走 scheduleSave，每点一次分类都会白跑一轮网络 merge。
+   */
   setCategory(category: string): void {
     this.filterCategory = category
-    this.scheduleSave()
+    this.scheduleSaveSilent()
+  }
+
+  /**
+   * 清除分类筛选（回到「全部」）
+   * 供路线页「筛选后为空」的空态使用 —— 用户点「查看全部」就是要退出当前筛选。
+   */
+  clearCategoryFilter(): void {
+    if (this.filterCategory === this.categoryAllLabel) return
+    this.filterCategory = this.categoryAllLabel
+    this.scheduleSaveSilent()
   }
 
   async init(context: Context): Promise<void> {
@@ -225,7 +300,8 @@ export class RoutePageViewModel {
       this.isLoading = false
       this.isInitInProgress = false
       // 目标截止提醒：应用启动数据加载完成后重建所有目标提醒
-      deadlineReminderService.rescheduleAllGoals(this.goals)
+      // 提醒只针对存活目标（墓碑不得再排提醒）
+      deadlineReminderService.rescheduleAllGoals(this.liveGoals)
     }
   }
 
@@ -255,9 +331,31 @@ export class RoutePageViewModel {
         this.context.resourceManager.getStringSync($r('app.string.category_reading').id),
         this.context.resourceManager.getStringSync($r('app.string.category_ai').id)
       ]
+      this.categoryAllLabel = this.categories[0]
     } catch (e) {
       Logger.error(this.tag, 'loadCategories failed: ' + ((e as Error).message))
+      // 资源读取异常的兜底（仅异常路径，正常不会执行）
       this.categories = ['全部', '编程', '语言', '健身', '阅读', 'AI 生成']
+      this.categoryAllLabel = this.categories[0]
+    }
+    this.normalizeFilterCategory()
+  }
+
+  /**
+   * 归一化筛选分类：把「未选 / 标签已失效」统一落到「全部」
+   *
+   * 为什么需要：
+   *   1. `filterCategory` 的默认值是 `''`，而筛选项选中态的判定是 `filterCategory === cat`
+   *      → **空值不命中任何一个 chip（含「全部」）**，表现为"刚进页面所有筛选项都不高亮"；
+   *   2. 切换应用语言后，旧语言的分类标签会整体失效，选中态同样会丢。
+   *
+   * 归一之后，**选中态（UI 直接比较该值）与筛选语义（`filteredGoals` 的"全部"分支）
+   * 共用同一个值**，不再各自判断 —— "同一状态被两处各自理解"正是此前番茄钟读数出问题的成因。
+   */
+  private normalizeFilterCategory(): void {
+    if (this.categories.length === 0) return
+    if (this.categories.indexOf(this.filterCategory) < 0) {
+      this.filterCategory = this.categoryAllLabel
     }
   }
 
@@ -299,10 +397,19 @@ export class RoutePageViewModel {
     return { goals: [], filterCategory: '', version: RoutePageViewModel.CURRENT_VERSION }
   }
 
-  /** 防抖持久化（委托 PersistHelper） */
+  /** 防抖持久化（委托 PersistHelper）—— 会触发云同步（打脏标记 + merge） */
   private scheduleSave(): void {
     if (this.context === null) return
     this.persistHelper.scheduleSave()
+  }
+
+  /**
+   * 防抖持久化，但**不触发云同步** —— 专用于纯本机视图状态
+   * 见 `PersistHelper.scheduleSaveSilent` 的注释
+   */
+  private scheduleSaveSilent(): void {
+    if (this.context === null) return
+    this.persistHelper.scheduleSaveSilent()
   }
 
   /**
@@ -335,7 +442,12 @@ export class RoutePageViewModel {
     await this.persistHelper.flush()
   }
 
-  buildSnapshot(): RouteVMSnapshot {
+  /**
+   * 同步用快照：**包含墓碑目标**（底层原始数据）
+   * ⚠️ 仅供云同步的本地快照提供者使用（`MainTab.registerSnapshotProviders`）。
+   *    若改用过滤后的视图，删除操作无法上传 → 墓碑传播失效 → 对端删除复活。
+   */
+  buildSyncSnapshot(): RouteVMSnapshot {
     const jsonGoals: GoalCardItemJSON[] = []
     for (let i: number = 0; i < this.goals.length; i++) {
       const json: GoalCardItemJSON | null = snapshotGoalCardItem(this.goals[i])
@@ -350,32 +462,91 @@ export class RoutePageViewModel {
     }
   }
 
+  /**
+   * 对外快照（导出备份等）：**过滤墓碑目标**
+   * ⚠️ 禁止用于云同步（会丢墓碑）
+   */
+  buildSnapshot(): RouteVMSnapshot {
+    const jsonGoals: GoalCardItemJSON[] = []
+    const alive: GoalCardItem[] = this.liveGoals
+    for (let i: number = 0; i < alive.length; i++) {
+      const json: GoalCardItemJSON | null = snapshotGoalCardItem(alive[i])
+      if (json) {
+        jsonGoals.push(json)
+      }
+    }
+    return {
+      goals: jsonGoals,
+      filterCategory: this.filterCategory,
+      version: RoutePageViewModel.CURRENT_VERSION
+    }
+  }
+
+  /**
+   * 应用云端合并结果（同步落地）
+   *
+   * ⚠️ 硬约束（违反会造成反复上传 / 死循环）：
+   *   1. **禁止改写条目 updatedAt** —— 这里只做 hydrate（原值保留）；
+   *      落地时刷成本机时间会伪造"本机更新"，导致指纹永不相等、反复上传
+   *   2. **禁止走 scheduleSave**（防抖 + onScheduleFire 会打脏标记并再次触发 merge）
+   *      → 改为直接 `persistData()` 落盘
+   *   3. `filterCategory` 是**本机 UI 瞬时状态**：合并不覆盖它，避免两端来回覆盖
+   *      （载荷中的兄弟字段以云端为准是为了让指纹收敛，本地视图状态不参与同步语义）
+   */
   applyCloudSnapshot(cloudData: Record<string, Object>): void {
-    const goalsRaw: Object | undefined = cloudData['goals']
-    if (Array.isArray(goalsRaw)) {
-      // 临时数组完成全部 hydrate（不触碰 this.goals，不触发 @Trace）
-      const rehydratedGoals: GoalCardItem[] = []
-      const items: Object[] = goalsRaw as Object[]
-      for (let i: number = 0; i < items.length; i++) {
-        const rawGoal: GoalCardItemJSON = items[i] as GoalCardItemJSON
-        const g: GoalCardItem | null = hydrateGoalCardItem(rawGoal)
-        if (g) {
-          rehydratedGoals.push(g)
-        } else {
-          // hydrate 失败打 warn，打印索引与 id，便于排查"3→2"丢数据根因
-          Logger.warn(this.tag, 'applyCloudSnapshot: skip invalid goal at index ' + i.toString() +
-            ', id=' + (rawGoal.id ?? 'null') + ', name=' + (rawGoal.name ?? 'null'))
+    this.isApplyingCloudSnapshot = true
+    try {
+      const goalsRaw: Object | undefined = cloudData['goals']
+      if (Array.isArray(goalsRaw)) {
+        // 临时数组完成全部 hydrate（不触碰 this.goals，不触发 @Trace）
+        const rehydratedGoals: GoalCardItem[] = []
+        const items: Object[] = goalsRaw as Object[]
+        for (let i: number = 0; i < items.length; i++) {
+          const rawGoal: GoalCardItemJSON = items[i] as GoalCardItemJSON
+          const g: GoalCardItem | null = hydrateGoalCardItem(rawGoal)
+          if (g) {
+            rehydratedGoals.push(g)
+          } else {
+            // hydrate 失败打 warn，打印索引与 id，便于排查"3→2"丢数据根因
+            Logger.warn(this.tag, 'applyCloudSnapshot: skip invalid goal at index ' + i.toString() +
+              ', id=' + (rawGoal.id ?? 'null') + ', name=' + (rawGoal.name ?? 'null'))
+          }
+        }
+
+        // ⚠️ 落地前先比 progress：splice 之后旧值即丢失。
+        // 为什么必须比（2026-09-17 补）：`filteredGoals`(@Computed) 不依赖单个目标的 progress，
+        // 且 RoutePage.goalDataSource 是独立快照、`isGoalDataSourceStale()` 只比「数量 / 首项 id」
+        // ⇒ 若合并只改变了进度，路线页既不同步数据源也不重渲染，卡片进度环永远停在旧值。
+        let changedGoalId: Id = ''
+        let changedProgress: number = 0
+        for (let k: number = 0; k < rehydratedGoals.length; k++) {
+          const next: GoalCardItem = rehydratedGoals[k]
+          const prev: GoalCardItem | null = this.findGoal(next.id)
+          if (prev !== null && prev.progress !== next.progress) {
+            changedGoalId = next.id
+            changedProgress = next.progress
+            break
+          }
+        }
+
+        // 原子化全量覆盖 —— splice 一次完成"清空 + 插入"，只触发 1 次 @Trace
+        this.goals.splice(0, this.goals.length, ...rehydratedGoals)
+
+        // 进度变化 → 复用既有广播出口，让路线页强制重同步数据源
+        // （RoutePage 的订阅回调只做 forceSyncGoalDataSource，故一次事件足以覆盖全部目标）
+        if (changedGoalId.length > 0) {
+          this.notifyGoalProgressChanged(changedGoalId, changedProgress)
         }
       }
-      // 原子化全量覆盖 —— splice 一次完成"清空 + 插入"，只触发 1 次 @Trace
-      this.goals.splice(0, this.goals.length, ...rehydratedGoals)
+      // filterCategory 保持本机值（不采纳云端），见方法头注释第 3 条
+      this.persistData().catch((e: Error): void => {
+        Logger.error(this.tag, 'applyCloudSnapshot persist failed: ' + e.message)
+      })
+      Logger.info(this.tag, 'applyCloudSnapshot done, goals=' + this.goals.length.toString())
+    } finally {
+      // 正常情况下不会走 onScheduleFire；此处复位避免标志长期滞留
+      this.isApplyingCloudSnapshot = false
     }
-    const filter: Object | undefined = cloudData['filterCategory']
-    if (typeof filter === 'string') {
-      this.filterCategory = filter as string
-    }
-    this.scheduleSave()
-    Logger.info(this.tag, 'applyCloudSnapshot done, goals=' + this.goals.length.toString())
   }
 
   /**
@@ -389,6 +560,10 @@ export class RoutePageViewModel {
     const milestone: MilestoneNode | null = this.findMilestoneInGoal(goal, milestoneId)
     if (!milestone) return false
 
+    // 目标达成检测基线：本函数只在用户动作链被调用（云同步落地直接整体替换 goals，
+    // 不经过此处），故"未完成 → 100"的跳变即用户本机达成目标
+    const wasGoalCompleted: boolean = goal.progress >= 100
+
     milestone.isCompleted = isCompleted
     milestone.completedTime = isCompleted ? Date.now() : 0
 
@@ -397,15 +572,61 @@ export class RoutePageViewModel {
       if (goal.milestones[i].isCompleted) completedCount++
     }
     goal.completedMilestones = completedCount
-    goal.progress = goal.totalMilestones > 0 ?
+    const newProgress: number = goal.totalMilestones > 0 ?
       Math.round((completedCount / goal.totalMilestones) * 100) : 0
+    const progressChanged: boolean = goal.progress !== newProgress
+    goal.progress = newProgress
+    // 里程碑改动会改变目标内容 → 刷新目标条目版本（保证跨设备冲突时本机改动胜出）
+    goal.updatedAt = Date.now()
+
+    // 触觉反馈：里程碑完成方向轻点一下（取消完成不震）
+    if (isCompleted) {
+      hapticFeedback.stepCompleted()
+    }
+
+    // 进度变化唯一出口广播：路线页的 goalDataSource 是独立快照，需要显式通知才会重读
+    if (progressChanged) {
+      this.notifyGoalProgressChanged(goal.id, newProgress)
+    }
 
     this.scheduleSave()
     // 目标截止提醒：progress 达 100 时取消提醒（目标已完成）
     if (goal.progress >= 100) {
       deadlineReminderService.cancelGoalDeadlineReminder(goal.id)
+      // 目标达成：庆祝震动 + 广播事件（GoalDetailPage 订阅后播撒花）
+      if (!wasGoalCompleted) {
+        this.notifyGoalCompleted(goalId)
+      }
     }
     return true
+  }
+
+  /**
+   * 目标达成的统一反馈出口：庆祝震动 + GOAL_COMPLETED 事件广播
+   *
+   * ⚠️ 调用前提：调用方必须已确认"progress 从 <100 跳到 100"且处于**用户本机动作链**
+   * （云同步落地 / 导入恢复直接整体替换 goals，不经过本函数，天然不触发）
+   */
+  private notifyGoalCompleted(goalId: Id): void {
+    hapticFeedback.goalCompleted()
+    eventBus.emit(EventType.GOAL_COMPLETED, buildGoalCompletedPayload(goalId))
+    Logger.info(this.tag, 'goal completed: goalId=' + goalId)
+  }
+
+  /**
+   * 进度变化的统一广播出口（唯一）
+   *
+   * ⚠️ 调用前提：`goal.progress` **已经**被写成新值，且新旧值确实不同。
+   *
+   * 为什么必须广播：路线页卡片列表走 LazyForEach + `goalDataSource`（filteredGoals 的
+   *   **独立快照**），数据源只在收到通知时才重读数据；而触发通知的 `goalCount` 只感知
+   *   **数量**变化 ⇒ 纯进度变化不会让路线页重渲染，卡片进度环停在旧值。
+   *   本 App 里所有写 `goal.progress` 的地方都收敛在 `updateMilestone` /
+   *   `updateGoalProgressByTasks` 两处，各写一次即可覆盖全链路。
+   */
+  private notifyGoalProgressChanged(goalId: Id, progress: number): void {
+    eventBus.emit(EventType.GOAL_PROGRESS_CHANGED,
+      buildGoalProgressChangedPayload(goalId, progress) as Object)
   }
 
   /**
@@ -430,7 +651,25 @@ export class RoutePageViewModel {
     if (!goalId) return
     const goal: GoalCardItem | null = this.findGoal(goalId)
     if (!goal) return
-    if (!Array.isArray(goal.tasks) || goal.tasks.length === 0) return
+    if (!Array.isArray(goal.tasks)) return
+
+    // 目标达成检测基线：调用方均为用户本机动作链（勾步骤 / 勾待办联动 / 删任务重算），
+    // 云同步落地直接整体替换 goals 不经过此处 ⇒ 跳变即本机达成
+    const wasGoalCompleted: boolean = goal.progress >= 100
+
+    // 任务被删空时：无任务可依据，进度归零（否则进度冻结在删除前的旧值）
+    if (goal.tasks.length === 0) {
+      if (goal.progress !== 0) {
+        goal.progress = 0
+        goal.actualCompletionTime = 0
+        // 目标内容已变（progress 属于目标对象内容）→ 刷新条目版本
+        goal.updatedAt = Date.now()
+        // 进度变化唯一出口广播（路线页数据源是独立快照，需显式通知）
+        this.notifyGoalProgressChanged(goalId, 0)
+        this.scheduleSave()
+      }
+      return
+    }
 
     let completedTaskCount: number = 0
     for (let i: number = 0; i < goal.tasks.length; i++) {
@@ -442,6 +681,18 @@ export class RoutePageViewModel {
     const newProgress: number = Math.round((completedTaskCount / goal.tasks.length) * 100)
     if (goal.progress !== newProgress) {
       goal.progress = newProgress
+      // 目标完成时间戳：进度达 100 时补全（供统计/复盘使用），回退到 100 以下时重置
+      if (newProgress >= 100) {
+        if (goal.actualCompletionTime === 0) {
+          goal.actualCompletionTime = Date.now()
+        }
+      } else {
+        goal.actualCompletionTime = 0
+      }
+      // 目标内容已变（派生进度也是目标对象的组成部分）→ 刷新条目版本
+      goal.updatedAt = Date.now()
+      // 进度变化唯一出口广播（路线页数据源是独立快照，纯进度变化不广播就不会刷新）
+      this.notifyGoalProgressChanged(goalId, newProgress)
       this.scheduleSave()
       Logger.info(this.tag, 'updateGoalProgressByTasks: goalId=' + goalId +
         ', completedTasks=' + completedTaskCount.toString() +
@@ -450,23 +701,34 @@ export class RoutePageViewModel {
       // 目标截止提醒：progress 达 100 时取消提醒（目标已完成）
       if (newProgress >= 100) {
         deadlineReminderService.cancelGoalDeadlineReminder(goalId)
+        // 目标达成：庆祝震动 + 广播事件（GoalDetailPage 订阅后播撒花）
+        if (!wasGoalCompleted) {
+          this.notifyGoalCompleted(goalId)
+        }
       }
     }
   }
 
+  /**
+   * 删除目标：**软删除（墓碑）**
+   * - 不从底层 goals 移除对象，只置 `isDeleted = true` 并刷新条目 `updatedAt`
+   * - 底层保留条目 → 删除状态可随 merge 传播到其他设备，杜绝"删了又复活"
+   * - UI 侧读 `liveGoals` / `filteredGoals` 自动隐藏
+   */
   deleteGoal(goalId: Id): boolean {
     if (!goalId) return false
-    const goalIndex: number = this.findGoalIndex(goalId)
-    if (goalIndex < 0) return false
-    const oldGoal: GoalCardItem = this.goals[goalIndex]
-    this.goals.splice(goalIndex, 1)
+    const goal: GoalCardItem | null = this.findGoal(goalId)
+    if (!goal) return false
+    if (goal.isDeleted === true) return false
+    goal.isDeleted = true
+    goal.updatedAt = Date.now()
     this.scheduleSave()
-    // 解耦：通过事件总线通知 HomeViewModel 删除关联任务
+    // 解耦：通过事件总线通知 HomeViewModel 级联软删除关联待办
     const goalRemovedPayload: GoalRemovedPayload = buildGoalRemovedPayload(goalId)
     eventBus.emit(EventType.GOAL_REMOVED, goalRemovedPayload as Object)
     // 目标截止提醒：删除目标时取消提醒
     deadlineReminderService.cancelGoalDeadlineReminder(goalId)
-    Logger.info(this.tag, 'deleteGoal: deleted goal=' + oldGoal.name + ', id=' + goalId)
+    Logger.info(this.tag, 'deleteGoal: tombstoned goal=' + goal.name + ', id=' + goalId)
     return true
   }
 
@@ -476,7 +738,9 @@ export class RoutePageViewModel {
    */
   clearAll(): void {
     this.goals.splice(0, this.goals.length)
-    this.filterCategory = ''
+    // 复位到「全部」而不是空串：空串在 UI 的 `filterCategory === cat` 判定下不命中任何 chip，
+    // 会留下"筛选项全部未选中"的观感（详见 normalizeFilterCategory 的注释）
+    this.filterCategory = this.categoryAllLabel
     this.scheduleSave()
     Logger.info(this.tag, 'clearAll done')
   }
@@ -497,11 +761,15 @@ export class RoutePageViewModel {
     }
     if (!found) return false
     goal.tasks = newTasks
+    // L2 任务属于目标对象的组成部分（整块随目标走，不做条目级墓碑）→ 刷新目标版本
+    goal.updatedAt = Date.now()
+    // 删除任务后重算目标进度（含任务删空归零、完成时间戳维护）
+    this.updateGoalProgressByTasks(goalId)
     this.scheduleSave()
-    // 解耦：通过事件总线通知 HomeViewModel 删除关联任务
+    // 解耦：通过事件总线通知 HomeViewModel 级联软删除关联待办
     const taskRemovedPayload: TaskRemovedPayload = buildTaskRemovedPayload(taskId)
     eventBus.emit(EventType.TASK_REMOVED, taskRemovedPayload as Object)
-    Logger.info(this.tag, 'deleteTask: deleted task=' + taskId + ' from goal=' + goalId)
+    Logger.info(this.tag, 'deleteTask: removed task=' + taskId + ' from goal=' + goalId)
     return true
   }
 
@@ -521,36 +789,65 @@ export class RoutePageViewModel {
   /**
    * 直接修改 GoalCardItem 的 @Trace 属性
    */
-  updateGoal(goalId: Id, name: string, description: string, category: string): boolean {
+  updateGoal(goalId: Id, name: string, description: string, category: string,
+    newDeadline?: number): boolean {
     if (!goalId || !name) return false
     const goal: GoalCardItem | null = this.findGoal(goalId)
     if (!goal) return false
     goal.name = name.trim()
     goal.description = description.trim()
     goal.category = category.trim()
+    // 截止时间变更（可选参数，缺省不变更）：更新后联动重排目标级截止提醒
+    let deadlineChanged: boolean = false
+    if (newDeadline !== undefined && newDeadline >= 0 && goal.deadline !== newDeadline) {
+      goal.deadline = newDeadline
+      deadlineChanged = true
+      deadlineReminderService.cancelGoalDeadlineReminder(goalId)
+      if (newDeadline > Date.now() && goal.progress < 100 && goal.actualCompletionTime === 0) {
+        deadlineReminderService.scheduleGoalDeadlineReminder(goal)
+      }
+    }
+    // 目标内容已变 → 刷新条目版本
+    goal.updatedAt = Date.now()
     this.scheduleSave()
     // 解耦：通过事件总线通知 HomeViewModel 更新关联目标名
     const goalRenamedPayload: GoalRenamedPayload = { goalId: goalId, newName: name.trim() }
     eventBus.emit(EventType.GOAL_RENAMED, goalRenamedPayload as Object)
-    Logger.info(this.tag, 'updateGoal: updated goal=' + goalId + ', newName=' + name)
+    Logger.info(this.tag, 'updateGoal: updated goal=' + goalId +
+      ', newName=' + name + ', deadlineChanged=' + deadlineChanged.toString())
     return true
   }
 
   /**
    * 直接修改 AiGeneratedTask 的 @Trace 属性
    */
-  updateTask(goalId: Id, taskId: Id, taskName: string, estimatedTime: number): boolean {
+  updateTask(goalId: Id, taskId: Id, taskName: string, estimatedTime: number,
+    newPriority?: TaskPriority, newDeadline?: number): boolean {
     if (!goalId || !taskId || !taskName) return false
     const task: AiGeneratedTask | null = this.findTask(goalId, taskId)
     if (!task) return false
+    const ownerGoal: GoalCardItem | null = this.findGoal(goalId)
     task.taskName = taskName.trim()
     task.estimatedTime = Math.max(1, Math.floor(estimatedTime))
+    // 优先级/截止时间变更（可选参数，缺省不变更）
+    if (newPriority !== undefined) {
+      task.priority = newPriority
+    }
+    if (newDeadline !== undefined && newDeadline >= 0) {
+      task.deadline = newDeadline
+    }
+    // L2 任务属于目标内容 → 刷新目标条目版本
+    if (ownerGoal !== null) {
+      ownerGoal.updatedAt = Date.now()
+    }
     this.scheduleSave()
-    // 解耦：通过事件总线通知 HomeViewModel 更新关联任务信息
+    // 解耦：通过事件总线通知 HomeViewModel 更新关联任务信息（含优先级/截止时间联动）
     const taskInfoPayload: TaskInfoUpdatedPayload = {
       taskId: taskId,
       newTitle: taskName.trim(),
-      newEstimatedTime: estimatedTime
+      newEstimatedTime: estimatedTime,
+      newPriority: newPriority,
+      newDeadline: newDeadline
     }
     eventBus.emit(EventType.TASK_INFO_UPDATED, taskInfoPayload as Object)
     Logger.info(this.tag, 'updateTask: updated task=' + taskId)
@@ -569,9 +866,14 @@ export class RoutePageViewModel {
     const target: string = newCategory.trim()
     if (target.length === 0 || oldCategory === target) return
     let changed: number = 0
-    for (let i: number = 0; i < this.goals.length; i++) {
-      if (this.goals[i].category === oldCategory) {
-        this.goals[i].category = target
+    const stamp: number = Date.now()
+    // 只改存活目标（墓碑条目内容不应再变化）
+    const alive: GoalCardItem[] = this.liveGoals
+    for (let i: number = 0; i < alive.length; i++) {
+      const goal: GoalCardItem = alive[i]
+      if (goal.category === oldCategory) {
+        goal.category = target
+        goal.updatedAt = stamp
         changed++
       }
     }
@@ -613,6 +915,11 @@ export class RoutePageViewModel {
         return
       }
     }
+    // 新建目标必须有版本时间戳（冲突裁决依据；缺失时补当前时间）
+    if (!(goal.updatedAt > 0)) {
+      goal.updatedAt = Date.now()
+    }
+    goal.isDeleted = false
     this.goals.unshift(goal)
     this.scheduleSave()
     // 目标截止提醒：新增目标时调度提醒（deadline <= 0 时 service 内部会自动跳过）
@@ -636,6 +943,8 @@ export class RoutePageViewModel {
     if (goal) {
       goal.milestones.push(milestone)
       goal.totalMilestones = goal.milestones.length
+      // 里程碑属于目标内容 → 刷新目标条目版本
+      goal.updatedAt = Date.now()
       this.scheduleSave()
       Logger.info(this.tag, 'addMilestoneToGoal: added milestone=' + milestone.title +
         ' to goal=' + goalId)
@@ -658,11 +967,28 @@ export class RoutePageViewModel {
     const goal: GoalCardItem | undefined = this.goals.find((g: GoalCardItem): boolean => g.id === goalId)
     if (goal) {
       goal.tasks.push(task)
+      // L2 任务属于目标内容 → 刷新目标条目版本
+      goal.updatedAt = Date.now()
       this.scheduleSave()
       Logger.info(this.tag, 'addTaskToGoal: added task=' + task.taskName +
         ' to goal=' + goalId)
     } else {
       Logger.warn(this.tag, 'addTaskToGoal: goal not found, id=' + goalId)
+    }
+  }
+
+  /**
+   * 刷新目标条目版本时间戳（conflict 裁决依据）
+   *
+   * ⚠️ **任何会让目标内容发生变化的写操作都必须调用**：
+   *    目标自身字段、里程碑数组、L2 任务数组、L3 步骤数组、派生进度。
+   *    漏调用 = 该改动在与云端冲突时静默输给对方的旧版本。
+   * ⚠️ **同步落地（applyCloudSnapshot）禁止调用**（会伪造"本机更新"导致反复上传）。
+   */
+  private touchGoal(goalId: Id): void {
+    const goal: GoalCardItem | null = this.findGoal(goalId)
+    if (goal !== null) {
+      goal.updatedAt = Date.now()
     }
   }
 
@@ -702,7 +1028,7 @@ export class RoutePageViewModel {
         task.taskName,
         goalName,
         (typeof task.estimatedTime === 'number' && !isNaN(task.estimatedTime)) ?
-          Math.max(0, Math.floor(task.estimatedTime)).toString() + ' min' : '',
+          formatEstimatedDuration(Math.max(0, Math.floor(task.estimatedTime)), this.context !== null ? this.context.resourceManager : null) : '',
         task.priority,
         task.status === TaskStatus.COMPLETED,
         Date.now(),
@@ -710,7 +1036,12 @@ export class RoutePageViewModel {
         goalId,
         task.plannedTime,
         task.actualCompletionTime,
-        task.deadline
+        task.deadline,
+        false,
+        0,
+        // 摘取一个「已完成」的 L2 任务 = L4 侧首次声明完成 ⇒ 带上 L2 的完成态轴，
+        // 否则 L4 侧该轴为 0（"从未变更过完成态"），跨设备裁决时会被对端的无关编辑压掉
+        task.status === TaskStatus.COMPLETED ? task.completionUpdatedAt : 0
       )
       Logger.info(this.tag, 'extractToHomeTodo: success, taskId=' + task.id +
         ', plannedTime=' + task.plannedTime.toString() +
@@ -724,8 +1055,8 @@ export class RoutePageViewModel {
   }
 
   /**
-   * 直接修改 AiGeneratedTask.completedSteps @Trace 属性
-   * 从 40+ 行"整体替换 goals 数组"缩减到 10 行精确修改
+   * 直接修改 `AiGeneratedTask.steps[i].isCompleted` @Trace 属性
+   * L3 步骤对象化后改单个元素即可精确追踪（原先需整体替换 completedSteps 平行数组）
    *
    * 完成时间戳反向链路（L3 → L2 → L4）：
    *   - 当 L3 步骤全部完成 → L2.status = COMPLETED，L2.actualCompletionTime 若为 0 则补 Date.now()
@@ -742,20 +1073,31 @@ export class RoutePageViewModel {
     if (typeof stepIndex !== 'number' || stepIndex < 0) return false
     const task: AiGeneratedTask | null = this.findTask(goalId, taskId)
     if (!task) return false
-    const safe: Array<boolean> = getCompletedStepsSafe(task)
-    while (safe.length <= stepIndex) {
-      safe.push(false)
+    const steps: TaskStep[] = Array.isArray(task.steps) ? task.steps : []
+    if (stepIndex >= steps.length) return false
+    // 对象化后：改单个元素的 @Trace isCompleted 即被精确追踪，
+    // 不再需要「整体替换平行布尔数组」那套绕行写法。
+    // 触觉反馈：仅"未完成 → 完成"的跳变轻点一下（取消完成 / 联动写入不经过本函数）
+    const wasStepCompleted: boolean = steps[stepIndex].isCompleted === true
+    steps[stepIndex].isCompleted = isCompleted === true
+    task.steps = steps
+    if (isCompleted === true && !wasStepCompleted) {
+      hapticFeedback.stepCompleted()
     }
-    safe[stepIndex] = isCompleted === true
-    task.completedSteps = safe
-    let allCompleted: boolean = safe.length > 0
-    for (let i: number = 0; i < safe.length; i++) {
-      if (!safe[i]) {
+    let allCompleted: boolean = steps.length > 0
+    for (let i: number = 0; i < steps.length; i++) {
+      if (steps[i].isCompleted !== true) {
         allCompleted = false
         break
       }
     }
+    const wasTaskCompleted: boolean = task.status === TaskStatus.COMPLETED
     task.status = allCompleted ? TaskStatus.COMPLETED : TaskStatus.IN_PROGRESS
+    // 完成态时间轴打点（云同步裁决「完成 vs 取消完成」的依据）
+    // ⚠️ 必须**仅在完成态真的变化**时打：无条件打点会让每次勾步骤都改变载荷指纹 → 白跑一轮上传
+    if (wasTaskCompleted !== allCompleted) {
+      task.completionUpdatedAt = Date.now()
+    }
     // 补全 L2 实际完成时间戳（与 status 语义保持一致）
     if (allCompleted) {
       // 全部完成：仅在尚未记录完成时间时补全，避免覆盖历史时刻
@@ -776,6 +1118,8 @@ export class RoutePageViewModel {
     eventBus.emit(EventType.TASK_COMPLETION_SYNCED, completionPayload as Object)
     // 4 级架构联动：L2 status 变化后重算 L1 goal progress
     this.updateGoalProgressByTasks(goalId)
+    // L3 步骤属于目标内容 → 刷新目标条目版本
+    this.touchGoal(goalId)
     this.scheduleSave()
     Logger.info(this.tag, 'updateStep: success, goalId=' + goalId + ', taskId=' + taskId +
       ', stepIndex=' + stepIndex.toString() + ', isCompleted=' + isCompleted.toString() +
@@ -791,6 +1135,90 @@ export class RoutePageViewModel {
   }
 
   /**
+   * 一次性**设定** L2 任务的完成态，并连带同步其全部 L3 步骤
+   *
+   * 语义（统一「底部标记完成」与「逐个勾步骤」两个入口，2026-09-17）：
+   *   - completed = true  → 全部 L3 步骤置完成 + L2.status = COMPLETED + 补 actualCompletionTime
+   *   - completed = false → 全部 L3 步骤置未完成 + L2.status = PENDING + actualCompletionTime 归零
+   *
+   * 为什么不复用「写 L2.status + homeVM.toggleTask 翻转 L4 + 靠 TODO_COMPLETED 事件兜回 L3」：
+   *   1. 事件兜底要求 L4 待办存在且 relatedTaskId 对得上；从目标详情「断链兜底」进来的任务
+   *      没有 L4，`homeVM.toggleTask` 直接 return ⇒ 事件不发 ⇒ 步骤原样不动（"点了完成但步骤没动"）；
+   *   2. `homeVM.toggleTask` 是**翻转**语义而非**设定**语义，L4 与本地展示状态一旦不同步就反向错；
+   *   3. 直接写 L2.status 会绕过 `updateStep` 建立的 actualCompletionTime 不变式。
+   *   本方法只做「设定」，L4 侧由 TASK_COMPLETION_SYNCED 事件**按值**同步（幂等、非翻转）。
+   *
+   * @param goalId - L1 目标 ID
+   * @param taskId - L2 任务 ID
+   * @param completed - 目标完成态
+   * @returns true 成功；任务不存在或参数非法返回 false
+   */
+  setTaskCompletion(goalId: Id, taskId: Id, completed: boolean): boolean {
+    if (!goalId || !taskId) return false
+    const task: AiGeneratedTask | null = this.findTask(goalId, taskId)
+    if (!task) return false
+
+    const goalBefore: GoalCardItem | null = this.findGoal(goalId)
+    const progressBefore: number = goalBefore !== null ? goalBefore.progress : 0
+
+    // 1) L3：把「用户语义上的完成」落到每一个步骤上（对象化后逐个改 @Trace 即可精确刷新）
+    const steps: TaskStep[] = Array.isArray(task.steps) ? task.steps : []
+    let stepChanged: boolean = false
+    for (let i: number = 0; i < steps.length; i++) {
+      if (steps[i].isCompleted !== completed) {
+        steps[i].isCompleted = completed
+        stepChanged = true
+      }
+    }
+    if (stepChanged) {
+      task.steps = steps
+    }
+
+    // 2) L2：状态 + 实际完成时间戳（与 updateStep 共用同一套不变式）
+    //    完成态时间轴打点：仅当完成态真的变化时打（云同步裁决「完成 vs 取消完成」的依据）
+    const wasTaskCompleted: boolean = task.status === TaskStatus.COMPLETED
+    task.status = completed ? TaskStatus.COMPLETED : TaskStatus.PENDING
+    if (wasTaskCompleted !== completed) {
+      task.completionUpdatedAt = Date.now()
+    }
+    if (completed) {
+      // 仅在尚未记录完成时间时补全，避免覆盖历史时刻
+      if (task.actualCompletionTime === 0) {
+        task.actualCompletionTime = Date.now()
+      }
+    } else {
+      task.actualCompletionTime = 0
+    }
+
+    // 3) L2 → L4 按值同步（HomeVM.syncRelatedTaskCompletion 是设定语义，重复调用安全）
+    const completionPayload: TaskCompletionSyncedPayload = {
+      taskId: task.id,
+      completed: completed
+    }
+    eventBus.emit(EventType.TASK_COMPLETION_SYNCED, completionPayload as Object)
+
+    // 4) L2 status → L1 progress 重算（可能顺带触发「目标达成」：庆祝震动 + 撒花事件）
+    this.updateGoalProgressByTasks(goalId)
+    this.touchGoal(goalId)
+
+    // 5) 触觉反馈：仅完成方向给一次「任务完成」中震。
+    //    ⚠️ 若本次正好把整个目标推到达成，goalCompleted 的节奏震更"重"，应由它独占
+    //       （HapticFeedback 有 60ms 限流，后到的会被丢弃）→ 此时不再补任务中震。
+    const goalAfter: GoalCardItem | null = this.findGoal(goalId)
+    const goalJustCompleted: boolean = completed && progressBefore < 100 &&
+      goalAfter !== null && goalAfter.progress >= 100
+    if (completed && !goalJustCompleted) {
+      hapticFeedback.taskCompleted()
+    }
+
+    this.scheduleSave()
+    Logger.info(this.tag, 'setTaskCompletion: goalId=' + goalId + ', taskId=' + taskId +
+      ', completed=' + completed.toString() + ', steps=' + steps.length.toString() +
+      ', stepChanged=' + stepChanged.toString())
+    return true
+  }
+
+  /**
    * 直接修改 AiGeneratedTask 的 @Trace 属性
    */
   addStep(goalId: Id, taskId: Id, stepText: string): boolean {
@@ -798,22 +1226,17 @@ export class RoutePageViewModel {
     if (typeof stepText !== 'string' || stepText.trim().length === 0) return false
     const task: AiGeneratedTask | null = this.findTask(goalId, taskId)
     if (!task) return false
-    const newSteps: Array<string> = []
+    const newSteps: TaskStep[] = []
     if (Array.isArray(task.steps)) {
       for (let i: number = 0; i < task.steps.length; i++) {
         newSteps.push(task.steps[i])
       }
     }
-    newSteps.push(stepText.trim())
-    const newCompleted: Array<boolean> = []
-    if (Array.isArray(task.completedSteps)) {
-      for (let i: number = 0; i < task.completedSteps.length; i++) {
-        newCompleted.push(task.completedSteps[i])
-      }
-    }
-    newCompleted.push(false)
+    // 新步骤分配**稳定 id** —— 列表增删动效依赖它作 key（原先只能靠下标，禁用动效）
+    newSteps.push(new TaskStep(generateStepId(), stepText.trim(), false))
     task.steps = newSteps
-    task.completedSteps = newCompleted
+    // L3 步骤属于目标内容 → 刷新目标条目版本
+    this.touchGoal(goalId)
     this.scheduleSave()
     Logger.info(this.tag, 'addStep: success, goalId=' + goalId + ', taskId=' + taskId +
       ', stepText=' + stepText + ', newStepCount=' + newSteps.length.toString())
@@ -828,17 +1251,17 @@ export class RoutePageViewModel {
     if (typeof stepIndex !== 'number' || stepIndex < 0) return false
     const task: AiGeneratedTask | null = this.findTask(goalId, taskId)
     if (!task) return false
-    const oldSteps: Array<string> = Array.isArray(task.steps) ? task.steps : []
+    const oldSteps: TaskStep[] = Array.isArray(task.steps) ? task.steps : []
     if (oldSteps.length <= 1) {
       Logger.warn(this.tag, 'removeStep: cannot remove last step, goalId=' + goalId + ', taskId=' + taskId)
       return false
     }
     if (stepIndex >= oldSteps.length) return false
-    const newSteps: Array<string> = oldSteps.filter((_: string, idx: number): boolean => idx !== stepIndex)
-    const oldCompleted: Array<boolean> = Array.isArray(task.completedSteps) ? task.completedSteps : []
-    const newCompleted: Array<boolean> = oldCompleted.filter((_: boolean, idx: number): boolean => idx !== stepIndex)
+    // 完成状态与文本同存于一个对象，删除即整体移除 —— 不再需要额外维护平行数组
+    const newSteps: TaskStep[] = oldSteps.filter((_: TaskStep, idx: number): boolean => idx !== stepIndex)
     task.steps = newSteps
-    task.completedSteps = newCompleted
+    // L3 步骤属于目标内容 → 刷新目标条目版本
+    this.touchGoal(goalId)
     this.scheduleSave()
     Logger.info(this.tag, 'removeStep: success, goalId=' + goalId + ', taskId=' + taskId +
       ', stepIndex=' + stepIndex.toString() + ', remainingSteps=' + newSteps.length.toString())
@@ -854,14 +1277,18 @@ export class RoutePageViewModel {
     if (typeof newText !== 'string' || newText.trim().length === 0) return false
     const task: AiGeneratedTask | null = this.findTask(goalId, taskId)
     if (!task) return false
-    const oldSteps: Array<string> = Array.isArray(task.steps) ? task.steps : []
+    const oldSteps: TaskStep[] = Array.isArray(task.steps) ? task.steps : []
     if (stepIndex >= oldSteps.length) return false
-    const newSteps: Array<string> = []
+    const newSteps: TaskStep[] = []
     for (let i: number = 0; i < oldSteps.length; i++) {
-      newSteps.push(oldSteps[i])
+      const s: TaskStep = oldSteps[i]
+      // ⚠️ 编辑文本必须**保留原 id** —— 步骤身份不因文字变化而改变。
+      //    否则 key 变化会被框架判定为"删除 + 新增"，凭空播一次增删动效。
+      newSteps.push(i === stepIndex ? new TaskStep(s.id, newText.trim(), s.isCompleted) : s)
     }
-    newSteps[stepIndex] = newText.trim()
     task.steps = newSteps
+    // L3 步骤属于目标内容 → 刷新目标条目版本
+    this.touchGoal(goalId)
     this.scheduleSave()
     Logger.info(this.tag, 'updateStepText: success, goalId=' + goalId + ', taskId=' + taskId +
       ', stepIndex=' + stepIndex.toString())
@@ -878,37 +1305,26 @@ export class RoutePageViewModel {
     if (fromIndex === toIndex) return false
     const task: AiGeneratedTask | null = this.findTask(goalId, taskId)
     if (!task) return false
-    const oldSteps: Array<string> = Array.isArray(task.steps) ? task.steps : []
+    const oldSteps: TaskStep[] = Array.isArray(task.steps) ? task.steps : []
     if (fromIndex >= oldSteps.length || toIndex >= oldSteps.length) return false
-    const newSteps: Array<string> = []
+    const newSteps: TaskStep[] = []
     for (let i: number = 0; i < oldSteps.length; i++) {
       newSteps.push(oldSteps[i])
     }
-    const removed: string = newSteps.splice(fromIndex, 1)[0]
+    // 完成状态与文本同在一个对象里 → 重排一次即可
+    // （原先还要同步重排 completedSteps 平行数组、并补齐/截断长度）
+    const removed: TaskStep = newSteps.splice(fromIndex, 1)[0]
     newSteps.splice(toIndex, 0, removed)
-    const oldCompleted: Array<boolean> = Array.isArray(task.completedSteps) ? task.completedSteps : []
-    const newCompleted: Array<boolean> = []
-    for (let i: number = 0; i < oldCompleted.length; i++) {
-      newCompleted.push(oldCompleted[i])
-    }
-    while (newCompleted.length < newSteps.length) {
-      newCompleted.push(false) // 新增步骤默认未完成
-    }
-    if (newCompleted.length > newSteps.length) {
-      newCompleted.splice(newSteps.length) // 截断多余
-    }
-    // 无条件重排 completedSteps
-    const completedRemoved: boolean = newCompleted.splice(fromIndex, 1)[0]
-    newCompleted.splice(toIndex, 0, completedRemoved)
     task.steps = newSteps
-    task.completedSteps = newCompleted
+    // L3 步骤顺序属于目标内容 → 刷新目标条目版本
+    this.touchGoal(goalId)
     this.scheduleSave()
     Logger.info(this.tag, 'reorderSteps: success, goalId=' + goalId + ', taskId=' + taskId +
       ', from=' + fromIndex.toString() + ', to=' + toIndex.toString())
     return true
   }
 
-  private findGoal(goalId: Id): GoalCardItem | null {
+  findGoal(goalId: Id): GoalCardItem | null {
     for (let i: number = 0; i < this.goals.length; i++) {
       if (this.goals[i].id === goalId) return this.goals[i]
     }
@@ -940,16 +1356,20 @@ export class RoutePageViewModel {
     if (!task) return
 
     // 4 级架构正向联动核心：L4 勾选完成 → L3 步骤全部标记完成
-    // 同步 L3 completedSteps 数组（与 L2 status 保持语义一致）
+    // 对象化后逐个改元素上的 @Trace isCompleted 即可（原先需重建平行数组并整体替换）
     if (Array.isArray(task.steps) && task.steps.length > 0) {
-      const safe: Array<boolean> = getCompletedStepsSafe(task)
-      for (let i: number = 0; i < safe.length; i++) {
-        safe[i] = completed === true
+      for (let i: number = 0; i < task.steps.length; i++) {
+        task.steps[i].isCompleted = completed === true
       }
-      task.completedSteps = safe
     }
 
+    // 完成态时间轴打点：仅当完成态真的变化时打
+    // （L4 → L2 联动也算一次完成态变更，跨设备裁决时须能被识别）
+    const wasTaskCompleted: boolean = task.status === TaskStatus.COMPLETED
     task.status = completed ? TaskStatus.COMPLETED : TaskStatus.PENDING
+    if (wasTaskCompleted !== completed) {
+      task.completionUpdatedAt = Date.now()
+    }
     // 同步回写 L2 实际完成时间戳（与 isCompleted 语义保持一致）
     if (completed) {
       // 标记完成：仅在尚未记录完成时间时补全，避免覆盖历史时刻
@@ -963,18 +1383,14 @@ export class RoutePageViewModel {
 
     // 4 级架构联动：L2 status 变化后重算 L1 goal progress
     this.updateGoalProgressByTasks(goalId)
+    // L2/L3 状态属于目标内容 → 刷新目标条目版本
+    goal.updatedAt = Date.now()
 
     this.scheduleSave()
     Logger.info(this.tag, 'syncStepFromTodoCompletion: goalId=' + goalId +
       ', taskId=' + taskId + ', completed=' + completed.toString() +
-      ', actualCompletionTime=' + task.actualCompletionTime.toString())
-  }
-
-  private findGoalIndex(goalId: Id): number {
-    for (let i: number = 0; i < this.goals.length; i++) {
-      if (this.goals[i].id === goalId) return i
-    }
-    return -1
+      ', actualCompletionTime=' + task.actualCompletionTime.toString() +
+      ', completionUpdatedAt=' + task.completionUpdatedAt.toString())
   }
 
   private findMilestoneInGoal(goal: GoalCardItem, milestoneId: Id): MilestoneNode | null {

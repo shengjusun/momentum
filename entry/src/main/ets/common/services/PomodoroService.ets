@@ -7,13 +7,16 @@
 import { notificationManager } from '@kit.NotificationKit'
 import { reminderAgentManager } from '@kit.BackgroundTasksKit'
 import { vibrator } from '@kit.SensorServiceKit'
-import { WantAgent } from '@kit.AbilityKit'
+import { WantAgent, common } from '@kit.AbilityKit'
+import { resourceManager } from '@kit.LocalizationKit'
 import { Logger } from '../utils/Logger'
 import { StorageManager } from '../utils/StorageManager'
 import { CommonConstants } from '../constants/CommonConstants'
 import { WantAgentFactory } from '../utils/WantAgentFactory'
-import { PomodoroNotificationService } from './PomodoroNotificationService'
+import { PomodoroNotificationService, PomoNotifPhase, PomoNotifStatus } from './PomodoroNotificationService'
+import { PomodoroLiveViewService, pomodoroLiveViewService } from './PomodoroLiveViewService'
 import { notificationCenterService } from './NotificationCenterService'
+import { eventBus, EventType, FocusCompletedPayload } from '../event/AppEventBus'
 
 /** 番茄钟阶段 */
 export type PomodoroPhase = 'focus' | 'break'
@@ -118,14 +121,25 @@ export class PomodoroService {
   private tickCallbacks: Map<number, PomodoroTickCallback> = new Map()
   private stateCallbacks: Map<number, PomodoroStateCallback> = new Map()
   private completeCallbacks: Map<number, PomodoroCompleteCallback> = new Map()
-  /** 沉浸屏可见性变化回调（由 TaskDetailPage 注册） */
-  private immersiveVisibleCallback: PomodoroImmersiveVisibleCallback | null = null
+  /**
+   * 沉浸屏可见性变化回调（多订阅：与 tick/state/complete 同一模式）
+   * ⚠️ 曾为「单槽」实现，被后注册的页面覆盖 → 前一份页面状态永远不同步，
+   *    表现为"从通知重复进入后，返回一次又看到全屏番茄钟"。不要再改回单槽。
+   */
+  private immersiveVisibleCallbacks: Map<number, PomodoroImmersiveVisibleCallback> = new Map()
   /** 沉浸屏当前可见状态 */
   private immersiveVisible: boolean = false
   /** 回调 ID 自增计数器 */
   private nextCallbackId: number = 1
 
-  /** 通知栏倒计时服务引用（替代实况窗方案，所有调用均 fire-and-forget 不阻塞计时） */
+  /**
+   * 实况窗服务引用（TIMER 场景）—— 与常驻通知**互为备份**：
+   * 实况窗创建成功后接管展示，`publishCountdownSafe` 会跳过常驻通知（避免通知中心重复）；
+   * 实况窗不可用（未开权益 / 用户关闭 / 内部错误）时自动回退到常驻通知。
+   */
+  private liveViewService: PomodoroLiveViewService = pomodoroLiveViewService
+
+  /** 通知栏倒计时服务引用（实况窗不可用时的降级方案，所有调用均 fire-and-forget 不阻塞计时） */
   private notificationService: PomodoroNotificationService = PomodoroNotificationService.getInstance()
 
   private constructor() {}
@@ -213,11 +227,35 @@ export class PomodoroService {
         Logger.info(PomodoroService.tag, 'restoreSessionIfNeeded: running restored, remaining=' +
           remaining.toString() + 'ms')
 
-        // 重新发布通知栏倒计时（替代实况窗方案）
-        this.publishCountdownSafe(this.context!, session.taskId, session.taskTitle, remaining)
+        // 重新发布通知栏状态通知（实况窗不可用时的兜底；仅状态切换点发布，不按秒刷新）
+        this.publishCountdownSafe(this.context!, session.taskId, session.taskTitle,
+          session.phase, 'running', totalDuration)
+        // 实况窗：进程重启后系统会持久化恢复展示，这里用**真实剩余**接管并校正读数
+        this.syncLiveViewSafe(this.context!, session.taskId, session.taskTitle,
+          session.phase, remaining, false)
+        // 冷启动恢复出来的运行中会话也要有兜底提醒（此后若进程被杀，系统仍能到点提醒）
+        this.registerBackgroundReminder()
       } else {
-        // 会话已过期，清除
-        Logger.info(PomodoroService.tag, 'restoreSessionIfNeeded: session expired, discard')
+        // 会话已过期：
+        // - focus 轮在后台/进程被杀期间到点完成 → 补记统计并触发完成回调，
+        //   否则这轮专注彻底蒸发（用户只看到系统通知，应用内统计/轮数全无记录）
+        // - break 到点完成 → 无需记录
+        if (session.phase === 'focus') {
+          Logger.info(PomodoroService.tag,
+            'restoreSessionIfNeeded: focus round completed in background, crediting stats')
+          await this.incrementFocusStats(session.focusDurationMillis)
+          // 专注-任务联动：后台完成的轮次同样累加任务聚焦统计
+          const focusPayload: FocusCompletedPayload = {
+            taskId: session.taskId,
+            focusMillis: session.focusDurationMillis
+          }
+          eventBus.emit(EventType.FOCUS_COMPLETED, focusPayload as Object)
+          this.completeCallbacks.forEach((cb: PomodoroCompleteCallback): void => {
+            cb(session.phase)
+          })
+        }
+        // 会话在后台已结束：系统恢复出来的实况窗必须立即清掉，否则会一直显示旧倒计时
+        this.endLiveViewSafe()
         await this.clearSession()
       }
     } else if (session.state === 'paused') {
@@ -228,11 +266,15 @@ export class PomodoroService {
         Logger.info(PomodoroService.tag, 'restoreSessionIfNeeded: paused restored, remaining=' +
           remaining.toString() + 'ms')
 
-        // 重新发布通知栏倒计时（显示"已暂停"）
-        this.publishCountdownSafe(this.context!, session.taskId, session.taskTitle, remaining)
-        this.updateCountdownSafe(remaining, '已暂停')
+        // 重新发布通知栏状态通知（显示"已暂停 + 剩余时长"）
+        this.publishCountdownSafe(this.context!, session.taskId, session.taskTitle,
+          session.phase, 'paused', remaining)
+        // 实况窗：恢复为暂停态
+        this.syncLiveViewSafe(this.context!, session.taskId, session.taskTitle,
+          session.phase, remaining, true)
       } else {
         Logger.info(PomodoroService.tag, 'restoreSessionIfNeeded: paused session expired, discard')
+        this.endLiveViewSafe()
         await this.clearSession()
       }
     }
@@ -301,23 +343,23 @@ export class PomodoroService {
   }
 
   /**
-   * 显示沉浸屏（由 TimerCard 调用）
+   * 显示沉浸屏（由 TimerCard / 通知直达调用）
    */
   showImmersive(): void {
     this.immersiveVisible = true
-    if (this.immersiveVisibleCallback !== null) {
-      this.immersiveVisibleCallback(true)
-    }
+    this.immersiveVisibleCallbacks.forEach((cb: PomodoroImmersiveVisibleCallback): void => {
+      cb(true)
+    })
   }
 
   /**
-   * 隐藏沉浸屏（由 ImmersiveScreen 返回手势 / TimerCard 停止时调用）
+   * 隐藏沉浸屏（由 ImmersiveScreen 的 X / 返回手势、TimerCard 停止时调用）
    */
   hideImmersive(): void {
     this.immersiveVisible = false
-    if (this.immersiveVisibleCallback !== null) {
-      this.immersiveVisibleCallback(false)
-    }
+    this.immersiveVisibleCallbacks.forEach((cb: PomodoroImmersiveVisibleCallback): void => {
+      cb(false)
+    })
   }
 
   /**
@@ -328,17 +370,20 @@ export class PomodoroService {
   }
 
   /**
-   * 注册沉浸屏可见性变化回调（由 TaskDetailPage 注册）
+   * 注册沉浸屏可见性变化回调（支持多组件同时订阅）
+   * @returns 回调 ID，注销时传给 offImmersiveVisibleChange
    */
-  onImmersiveVisibleChange(cb: PomodoroImmersiveVisibleCallback): void {
-    this.immersiveVisibleCallback = cb
+  onImmersiveVisibleChange(cb: PomodoroImmersiveVisibleCallback): number {
+    const id: number = this.nextCallbackId++
+    this.immersiveVisibleCallbacks.set(id, cb)
+    return id
   }
 
   /**
-   * 清除沉浸屏可见性变化回调（TaskDetailPage aboutToDisappear 时调用）
+   * 注销沉浸屏可见性变化回调（页面 aboutToDisappear 时调用）
    */
-  clearImmersiveCallback(): void {
-    this.immersiveVisibleCallback = null
+  offImmersiveVisibleChange(id: number): void {
+    this.immersiveVisibleCallbacks.delete(id)
   }
 
   /**
@@ -348,6 +393,7 @@ export class PomodoroService {
     this.tickCallbacks.clear()
     this.stateCallbacks.clear()
     this.completeCallbacks.clear()
+    this.immersiveVisibleCallbacks.clear()
   }
 
   // 核心控制
@@ -409,7 +455,12 @@ export class PomodoroService {
       ', longBreakMin=' + longBreakMinutes.toString() +
       ', cycle=' + cl.toString())
 
-    this.publishCountdownSafe(this.context!, taskId, taskTitle, focusMillis)
+    this.publishCountdownSafe(this.context!, taskId, taskTitle, 'focus', 'running', focusMillis)
+    // 实况窗：开始专注 → 倒计时由**系统计时器**驱动（应用不按秒刷新）
+    this.syncLiveViewSafe(this.context!, taskId, taskTitle, 'focus', focusMillis, false)
+    // 阶段一开始就注册后台兜底：进程在前台被回收 / 崩溃时不会触发 onBackground，
+    // 只靠 onBackground 注册会完全没有提醒（详见 registerBackgroundReminder 注释）
+    this.registerBackgroundReminder()
     this.saveSession()
   }
 
@@ -474,7 +525,12 @@ export class PomodoroService {
       ', isLongBreak=' + isLongBreak.toString() +
       ', round=' + completedCount.toString() + '/' + cycleLen.toString())
 
-    this.publishCountdownSafe(this.context!, taskId, taskTitle, actualBreakMillis)
+    this.publishCountdownSafe(this.context!, taskId, taskTitle, 'break', 'running', actualBreakMillis)
+    // 实况窗：同一实况窗内换阶段（只 update —— 规范只在"终止计时"时才结束，
+    // 且 stop 后立刻以同 id 重建会撞留存期）
+    this.syncLiveViewSafe(this.context!, taskId, taskTitle, 'break', actualBreakMillis, false)
+    // 休息阶段同样注册兜底（stopInternal 已取消上一轮的提醒，此处补新的）
+    this.registerBackgroundReminder()
     this.saveSession()
   }
 
@@ -517,9 +573,13 @@ export class PomodoroService {
     this.notifyStateChange()
     Logger.info(PomodoroService.tag, 'pause: elapsed=' + this.session.elapsedBeforePause.toString())
 
-    // 更新通知栏倒计时状态为"已暂停"
+    // 更新通知栏为"已暂停 + 剩余时长"
     const remaining: number = this.getCurrentRemainingMillis()
-    this.updateCountdownSafe(remaining, '已暂停')
+    this.publishCountdownSafe(this.context!, this.session.taskId, this.session.taskTitle,
+      this.session.phase, 'paused', remaining)
+    // 实况窗：置暂停（辅助区显示「已暂停」，系统计时器停在当前秒）
+    this.syncLiveViewSafe(this.context!, this.session.taskId, this.session.taskTitle,
+      this.session.phase, remaining, true)
     //持久化 session（paused 状态）
     this.saveSession()
   }
@@ -538,21 +598,51 @@ export class PomodoroService {
     this.notifyStateChange()
     Logger.info(PomodoroService.tag, 'resume')
 
-    // 更新通知栏倒计时状态恢复为"专注中/休息中"
-    const remaining: number = this.getCurrentRemainingMillis()
-    const status: string = this.session.phase === 'focus'
-      ? '专注中 ' + this.formatTime(remaining)
-      : '休息中 ' + this.formatTime(remaining)
-    this.updateCountdownSafe(remaining, status)
+    // 恢复通知栏：回到"专注中/休息中 + 本次时长"（用总时长而非剩余，避免通知里的数字看起来卡住）
+    const total: number = this.session.phase === 'focus'
+      ? this.session.focusDurationMillis
+      : this.getActualBreakDuration()
+    this.publishCountdownSafe(this.context!, this.session.taskId, this.session.taskTitle,
+      this.session.phase, 'running', total)
+    // 实况窗恢复：传**剩余量**（不是 total）—— 倒计时必须从真实剩余继续，否则会跳回满值
+    this.syncLiveViewSafe(this.context!, this.session.taskId, this.session.taskTitle,
+      this.session.phase, this.getCurrentRemainingMillis(), false)
+    // pause 会取消后台提醒，恢复计时必须补回来，否则再次退后台就没有兜底了
+    this.registerBackgroundReminder()
     //持久化 session（running 状态）
     this.saveSession()
   }
 
   /**
    * 停止并清除当前会话（不触发完成回调）
+   * 放弃专注时：已专注满 1 分钟的部分时长计入今日专注时长（不计轮次，不触发任务联动）
    */
   stop(): void {
+    if (this.session !== null && this.session.phase === 'focus') {
+      const elapsed: number = this.session.elapsedBeforePause + (Date.now() - this.roundStartTime)
+      const partialMinutes: number = Math.floor(elapsed / 60000)
+      if (partialMinutes >= 1) {
+        this.addPartialFocusMillis(partialMinutes * 60000)
+      }
+    }
     this.stopInternal(true)
+    // 用户主动终止 → 规范要求"立即结束实况窗"（不留存占位）
+    this.endLiveViewSafe()
+  }
+
+  /** 仅累加专注时长（不记轮次）：放弃专注时的部分时长记录 */
+  private async addPartialFocusMillis(millis: number): Promise<void> {
+    if (!this.checkInit()) return
+    try {
+      const stats: PomodoroStats = await this.loadStats()
+      stats.todayFocusMillis += millis
+      stats.lastFocusDate = this.formatDate(Date.now())
+      await StorageManager.saveData(
+        this.context!, CommonConstants.STORAGE_KEY_POMODORO_STATS, stats)
+      Logger.info(PomodoroService.tag, 'addPartialFocusMillis: +' + millis.toString() + 'ms')
+    } catch (e) {
+      Logger.error(PomodoroService.tag, 'addPartialFocusMillis failed: ' + (e as Error).message)
+    }
   }
 
   /**
@@ -627,11 +717,9 @@ export class PomodoroService {
       cb(remaining, currentPhase)
     })
 
-    // 同步更新通知栏倒计时（每秒一次，fire-and-forget 不阻塞 setInterval）
-    const status: string = currentPhase === 'focus'
-      ? '专注中 ' + this.formatTime(remaining)
-      : '休息中 ' + this.formatTime(remaining)
-    this.updateCountdownSafe(remaining, status)
+    // ⚠️ 此处【禁止】刷新通知栏：BASIC_TEXT 通知每次 publish 都会重新弹横幅，
+    //    曾经在这里每秒调一次 updateCountdown，导致一次 25 分钟专注弹约 1500 条横幅。
+    //    通知只在状态切换点更新（见 pause/resume/startFocus/startBreak），倒计时以应用内界面为准。
   }
 
   /**
@@ -651,6 +739,12 @@ export class PomodoroService {
       // 专注完成：累加轮数 + 统计 + 通知 + 震动
       this.session.completedFocusCount += 1
       this.incrementFocusStats()
+      // 专注-任务联动：通知 HomeViewModel 累加该任务的聚焦统计（focusCount/focusMillis）
+      const focusPayload: FocusCompletedPayload = {
+        taskId: this.session.taskId,
+        focusMillis: this.session.focusDurationMillis
+      }
+      eventBus.emit(EventType.FOCUS_COMPLETED, focusPayload as Object)
       this.publishCompleteNotification(true)
       this.vibrate()
 
@@ -683,6 +777,8 @@ export class PomodoroService {
         // 休息结束 → 清除会话，回到 idle（用户需手动开始下一轮）
         this.session = null
         this.notifyStateChange()
+        // 会话终结 → 立即结束实况窗（规范：终止计时须立即结束）
+        this.endLiveViewSafe()
       }
     }
   }
@@ -690,8 +786,32 @@ export class PomodoroService {
   // 后台兜底：reminderAgent
 
   /**
-   * 注册后台提醒（应用退后台时调用）
-   * 即使进程被杀，系统也会在到点时弹出通知
+   * 后台兜底提醒的触发延迟（毫秒）
+   *
+   * 为什么不"到点即触发"：
+   *   本方法现在会在【阶段开始 / 恢复 / 退后台】三处注册，而应用在前台时前台计时器到点
+   *   会自己发完成通知并 cancelReminder()。留 5s 余量，让前台的取消稳稳落在系统触发
+   *   之前，避免"前台 + 代理"同一时刻双通知。
+   *   而应用被冻结/被杀时前台计时器根本不会跑（那正是需要兜底的场景），
+   *   晚 5s 弹出对用户无感知。
+   */
+  private static readonly BG_REMINDER_LEAD_MILLIS: number = 5000
+
+  /**
+   * 注册后台兜底提醒
+   *
+   * 调用时机（三处，缺一不可）：
+   *   ① startFocus / startBreak —— 阶段一开始就注册。
+   *      这是"进程在前台被系统回收 / 应用崩溃"场景的唯一兜底：那两条路径不会触发
+   *      onBackground，只靠 onBackground 注册会静默地没有任何提醒。
+   *   ② resume —— pause 会 cancel，恢复必须补回来。
+   *   ③ EntryAbility.onBackground —— 常规退后台。
+   *
+   * 幂等：注册前先取消旧提醒，避免重复注册在系统侧堆出多条。
+   *
+   * ⚠️ 代理提醒在手机/平板上是【受管控能力】：未在 AGC 申请到"代理提醒"权益时，
+   *    可用提醒数为 0，publishReminder 必然失败（错误码 1700002 Too Many Reminders）。
+   *    这里失败只打日志、不抛异常，用户侧表现为"离开应用后不提醒"。
    */
   registerBackgroundReminder(): void {
     if (this.session === null || this.session.state !== 'running') {
@@ -699,6 +819,11 @@ export class PomodoroService {
       return
     }
     if (!this.checkInit()) return
+    // 与 publishCompleteNotification 的开关语义保持一致：通知关掉就不做后台兜底
+    if (!this.notificationFeedbackEnabled) {
+      Logger.info(PomodoroService.tag, 'registerBackgroundReminder skipped: notification disabled')
+      return
+    }
 
     const totalElapsed: number = this.session.elapsedBeforePause + (Date.now() - this.roundStartTime)
     const totalDuration: number = this.session.phase === 'focus'
@@ -709,35 +834,50 @@ export class PomodoroService {
       return
     }
 
-    const triggerTime: number = new Date(Date.now() + remaining).getTime()
-    const title: string = this.session.phase === 'focus'
-      ? '专注完成'
-      : '休息结束'
-    const text: string = this.session.phase === 'focus'
-      ? '任务『' + this.session.taskTitle + '』专注完成，休息一下吧'
-      : '休息结束，可以开始下一轮专注了'
+    const isFocus: boolean = this.session.phase === 'focus'
+    // 幂等：先取消旧提醒再注册（cancelReminder 内部会把 reminderId 置回 -1）
+    this.cancelReminder()
+
+    const triggerTime: number = Date.now() + remaining + PomodoroService.BG_REMINDER_LEAD_MILLIS
+    // 文案走资源 key：原来这里硬编码中文，英文设备上会整条看到中文
+    const rm: resourceManager.ResourceManager = this.context!.resourceManager
+    const title: string = rm.getStringSync(isFocus
+      ? $r('app.string.pomo_notif_complete_focus_title').id
+      : $r('app.string.pomo_notif_complete_break_title').id)
+    const text: string = isFocus
+      ? rm.getStringSync($r('app.string.pomo_notif_complete_focus_text').id)
+        .replace('%s', this.session.taskTitle)
+      : rm.getStringSync($r('app.string.pomo_notif_complete_break_text').id)
 
     try {
+      const d: Date = new Date(triggerTime)
       const reminder: reminderAgentManager.ReminderRequestCalendar = {
         reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR,
         dateTime: {
-          year: new Date(triggerTime).getFullYear(),
-          month: new Date(triggerTime).getMonth() + 1,
-          day: new Date(triggerTime).getDate(),
-          hour: new Date(triggerTime).getHours(),
-          minute: new Date(triggerTime).getMinutes(),
-          second: new Date(triggerTime).getSeconds()
+          year: d.getFullYear(),
+          month: d.getMonth() + 1,
+          day: d.getDate(),
+          hour: d.getHours(),
+          minute: d.getMinutes(),
+          second: d.getSeconds()
         },
         title: title,
         content: text,
-        notificationId: this.notificationIdBase + (this.session.phase === 'focus' ? 0 : 1),
-        slotType: notificationManager.SlotType.SERVICE_INFORMATION
+        // 刻意复用倒计时通知的 ID（专注 base+0 / 休息 base+1）而不是完成通知的 base+2/+3：
+        // 到点后由代理提醒【覆盖】通知栏里那条已经过时的「🍅 专注中」，
+        // 用户只看到一条「专注完成」，而不是「专注中」+「专注完成」叠成两条。
+        notificationId: this.notificationIdBase + (isFocus ? 0 : 1),
+        slotType: notificationManager.SlotType.SERVICE_INFORMATION,
+        // 点击提醒直达对应任务详情（原来没带 wantAgent，点了只会拉起首页）并恢复全屏番茄钟
+        wantAgent: this.buildReminderWantAgent(this.session.taskId)
       }
       reminderAgentManager.publishReminder(reminder).then((id: number): void => {
         this.reminderId = id
         Logger.info(PomodoroService.tag, 'registerBackgroundReminder: id=' + id.toString() +
-          ', triggerAt=' + triggerTime.toString())
+          ', triggerAt=' + triggerTime.toString() +
+          ', phase=' + (isFocus ? 'focus' : 'break'))
       }).catch((e: Error): void => {
+        // 受管控（1700002）也会走到这里；配合 DeadlineReminderService.verifyReminders 定位
         Logger.warn(PomodoroService.tag, 'registerBackgroundReminder failed: ' + e.message)
       })
     } catch (e) {
@@ -746,7 +886,34 @@ export class PomodoroService {
   }
 
   /**
-   * 取消后台提醒（对外公开，供 EntryAbility.onForeground 回前台时调用）
+   * 构造代理提醒的跳转意图
+   *
+   * 注意：reminderAgentManager.WantAgent 是本模块内自定义的简化结构
+   * （pkgName / abilityName / parameters），不是 @kit.AbilityKit 的 WantAgent 实例。
+   * parameters 与 WantAgentFactory 保持同键（routeName / taskId），
+   * 并带 openImmersive='1' —— EntryAbility 解析后除跳转外还会恢复全屏番茄钟，
+   * 与倒计时通知的点击行为完全一致。
+   */
+  private buildReminderWantAgent(taskId: string): reminderAgentManager.WantAgent {
+    const uiaContext: common.UIAbilityContext = this.context as common.UIAbilityContext
+    const params: Record<string, Object> = {}
+    params['routeName'] = 'TaskDetailPage'
+    params['taskId'] = taskId
+    params['openImmersive'] = '1'
+    const want: reminderAgentManager.WantAgent = {
+      pkgName: uiaContext.abilityInfo.bundleName,
+      abilityName: uiaContext.abilityInfo.name,
+      parameters: params
+    }
+    return want
+  }
+
+  /**
+   * 显式取消后台兜底提醒（对外公开）
+   *
+   * ⚠️ 不要再接回 EntryAbility.onForeground：回前台必须保留兜底提醒，
+   *    否则"前台运行期间进程被回收/崩溃"就完全没有提醒了（见 onForeground 注释）。
+   *    目前无调用方，保留作为需要主动拆除兜底时的出口。
    */
   cancelBackgroundReminder(): void {
     this.cancelReminder()
@@ -778,12 +945,22 @@ export class PomodoroService {
   private async publishCompleteNotification(isFocus: boolean): Promise<void> {
     if (!this.checkInit()) return
     if (this.session === null) return
+    // 受设置"通知权限"开关控制：关闭后不弹系统横幅也不写站内记录
+    if (!this.notificationFeedbackEnabled) {
+      Logger.info(PomodoroService.tag, 'publishCompleteNotification skipped: disabled by settings')
+      return
+    }
 
     try {
-      const title: string = isFocus ? '专注完成' : '休息结束'
+      const rm: resourceManager.ResourceManager = this.context!.resourceManager
+      const titleRes: Resource = isFocus
+        ? $r('app.string.pomo_notif_complete_focus_title')
+        : $r('app.string.pomo_notif_complete_break_title')
+      const title: string = rm.getStringSync(titleRes.id)
       const text: string = isFocus
-        ? '任务『' + this.session.taskTitle + '』已完成一轮专注，休息一下吧'
-        : '休息结束，可以开始下一轮专注了'
+        ? rm.getStringSync($r('app.string.pomo_notif_complete_focus_text').id)
+          .replace('%s', this.session.taskTitle)
+        : rm.getStringSync($r('app.string.pomo_notif_complete_break_text').id)
 
       const content: notificationManager.NotificationContent = {
         notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT,
@@ -822,10 +999,28 @@ export class PomodoroService {
     }
   }
 
+  /** 反馈开关（由 SettingsViewModel 推送）：完成通知/站内记录受通知开关控制，震动受震动开关控制 */
+  private notificationFeedbackEnabled: boolean = true
+  private vibrationFeedbackEnabled: boolean = true
+
   /**
-   * 震动反馈（短震 200ms）
+   * 更新番茄钟反馈开关（由 SettingsViewModel 在加载与用户修改时调用）
+   */
+  setFeedbackEnabled(notificationEnabled: boolean, vibrationEnabled: boolean): void {
+    this.notificationFeedbackEnabled = notificationEnabled
+    this.vibrationFeedbackEnabled = vibrationEnabled
+    Logger.info(PomodoroService.tag, 'setFeedbackEnabled: notif=' + notificationEnabled.toString() +
+      ', vibrate=' + vibrationEnabled.toString())
+  }
+
+  /**
+   * 震动反馈（短震 200ms，受设置"震动反馈"开关控制）
    */
   private vibrate(): void {
+    if (!this.vibrationFeedbackEnabled) {
+      Logger.info(PomodoroService.tag, 'vibrate skipped: disabled by settings')
+      return
+    }
     try {
       vibrator.startVibration({
         type: 'time',
@@ -870,16 +1065,18 @@ export class PomodoroService {
 
   /**
    * 专注完成时累加统计
+   * @param explicitFocusMillis - 显式指定本次专注时长；缺省时取当前会话配置时长
+   *   （冷启动补记场景会话已不可用，必须显式传入）
    */
-  private async incrementFocusStats(): Promise<void> {
+  private async incrementFocusStats(explicitFocusMillis?: number): Promise<void> {
     if (!this.checkInit()) return
     try {
       const stats: PomodoroStats = await this.loadStats()
       stats.todayFocusCount += 1
       // 使用本次会话的实际专注时长（支持自定义时长）
-      const focusMillis: number = this.session !== null
-        ? this.session.focusDurationMillis
-        : this.focusDurationMillis
+      const focusMillis: number = explicitFocusMillis !== undefined
+        ? explicitFocusMillis
+        : (this.session !== null ? this.session.focusDurationMillis : this.focusDurationMillis)
       stats.todayFocusMillis += focusMillis
       stats.lastFocusDate = this.formatDate(Date.now())
       await StorageManager.saveData(
@@ -953,6 +1150,8 @@ export class PomodoroService {
 
   isLongBreakRound(): boolean {
     if (this.session === null) return false
+    // completedFocusCount=0 时 0%N===0 会误判为长休（恢复场景首轮休息错用长休时长/配色）
+    if (this.session.completedFocusCount <= 0) return false
     return this.session.cycleLength > 0 &&
       this.session.completedFocusCount % this.session.cycleLength === 0
   }
@@ -1005,36 +1204,58 @@ export class PomodoroService {
     })
   }
 
-  // 通知栏倒计时辅助方法（fire-and-forget，异常不阻断计时）
+  // 通知栏辅助方法（fire-and-forget，异常不阻断计时）
+  //
+  // ⚠️ 只在【状态切换点】调用（开始专注 / 进入休息 / 暂停 / 恢复 / 冷启动恢复会话）。
+  //    严禁在 onTickInternal 里按秒刷新：BASIC_TEXT 通知每次 publish 都会重新弹横幅，
+  //    按秒刷新会让一次 25 分钟专注弹出约 1500 条系统横幅。
 
   /**
-   * 发布通知栏倒计时（安全包装）
+   * 发布/刷新通知栏常驻通知（安全包装）
    * Promise 链挂 .catch 兜底，异常不会冒泡到调用方
    *
    * @param context - 应用上下文
    * @param taskId - 任务 ID
    * @param taskTitle - 任务标题
-   * @param remainingMillis - 剩余毫秒
+   * @param phase - 阶段：专注 / 休息
+   * @param status - 状态：进行中 / 已暂停
+   * @param spanMillis - 进行中传本次总时长；已暂停传暂停那一刻的剩余时长
    */
-  private publishCountdownSafe(context: Context, taskId: string, taskTitle: string, remainingMillis: number): void {
-    this.notificationService.publishCountdown(context, taskId, taskTitle, remainingMillis)
+  private publishCountdownSafe(context: Context, taskId: string, taskTitle: string,
+    phase: PomoNotifPhase, status: PomoNotifStatus, spanMillis: number): void {
+    // 实况窗已接管展示时跳过常驻通知：否则通知中心会同时出现「实况窗卡片 + 常驻通知」
+    // 两个入口。实况窗创建失败时 isActive() 恒为 false，通知照发（完整降级）。
+    if (this.liveViewService.isActive()) {
+      // 顺手清掉接管前可能已发布的那条常驻通知
+      this.cancelCountdownSafe()
+      return
+    }
+    this.notificationService.publishCountdown(context, taskId, taskTitle, phase, status, spanMillis)
       .catch((e: Error): void => {
         Logger.warn(PomodoroService.tag, 'publishCountdown failed: ' + e.message)
       })
   }
 
   /**
-   * 更新通知栏倒计时（安全包装）
-   * - Promise 链挂 .catch 兜底，异常不会冒泡到 onTickInternal
+   * 同步实况窗（fire-and-forget 安全包装，任何失败只记日志）
    *
-   * @param remainingMillis - 剩余毫秒
-   * @param status - 状态文案
+   * @param remainingMillis - **剩余**毫秒：实况窗倒计时由该值往下走，
+   *   与常驻通知传"阶段总时长"的语义不同（通知不会自己走，实况窗会）
+   * @param paused - 是否暂停（驱动辅助区文案与 timer.isPaused）
    */
-  private updateCountdownSafe(remainingMillis: number, status: string): void {
-    this.notificationService.updateCountdown(remainingMillis, status)
+  private syncLiveViewSafe(context: Context, taskId: string, taskTitle: string,
+    phase: PomodoroPhase, remainingMillis: number, paused: boolean): void {
+    this.liveViewService.ensureRunning(context, taskId, taskTitle, phase, remainingMillis, paused)
       .catch((e: Error): void => {
-        Logger.warn(PomodoroService.tag, 'updateCountdown failed: ' + e.message)
+        Logger.warn(PomodoroService.tag, 'liveView ensureRunning failed: ' + e.message)
       })
+  }
+
+  /** 结束实况窗（fire-and-forget 安全包装） */
+  private endLiveViewSafe(): void {
+    this.liveViewService.end().catch((e: Error): void => {
+      Logger.warn(PomodoroService.tag, 'liveView end failed: ' + e.message)
+    })
   }
 
   /**
@@ -1045,20 +1266,6 @@ export class PomodoroService {
     this.notificationService.cancelCountdown().catch((e: Error): void => {
       Logger.warn(PomodoroService.tag, 'cancelCountdown failed: ' + e.message)
     })
-  }
-
-  /**
-   * 格式化剩余毫秒为 MM:SS（用于通知栏/UI 倒计时显示）
-   *
-   * @param millis - 剩余毫秒
-   */
-  private formatTime(millis: number): string {
-    const totalSeconds: number = Math.max(0, Math.floor(millis / 1000))
-    const minutes: number = Math.floor(totalSeconds / 60)
-    const seconds: number = totalSeconds % 60
-    const minStr: string = minutes.toString().padStart(2, '0')
-    const secStr: string = seconds.toString().padStart(2, '0')
-    return minStr + ':' + secStr
   }
 
   // Session 持久化（冷启动恢复用）

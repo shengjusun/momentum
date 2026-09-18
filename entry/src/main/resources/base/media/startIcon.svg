@@ -1,3 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="288" height="288" viewBox="0 0 288 288">
-  <path d="M78 210L90 104L144 166L198 104L210 210" fill="none" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <!--
+    启动窗口图标（startIcon）  v2：与分层图标前景层同形
+    层级：势线（纯白 100%）为主 >> 四象限十字（半透白 30%）为辅
+  -->
+  <!-- 辅助层：2×2 四象限十字（正交），线宽 3.5 -->
+  <g fill="none" stroke="#FFFFFF" stroke-opacity="0.30" stroke-width="3.5">
+    <line x1="50.5" y1="144" x2="237.5" y2="144"/>
+    <line x1="144" y1="50.5" x2="144" y2="237.5"/>
+  </g>
+  <!-- 主层：三段式上扬势线（终点内收至 212,90，右上留呼吸） -->
+  <path d="M66 206L109 144L144 182L212 90" fill="none" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

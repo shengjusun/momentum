@@ -1,9 +1,11 @@
 /** 全局路由管理器 - 管理导航栈、Tab切换、深链竞态协调 */
 
+import { HdsTabsController } from '@kit.UIDesignKit'
 import { RouteParam } from '../model/Models'
 import { Logger } from './utils/Logger'
 
-// NavPathStack / TabsController 是 ArkUI 全局类型，无需 import
+// NavPathStack 是 ArkUI 全局类型，无需 import
+// HdsTabsController 来自 @kit.UIDesignKit（HDS 页签栏，API 23+），接口与 TabsController 兼容（changeIndex 等）
 
 // 路由跳转参数结构，对应 pushPath 的 NavPathInfo
 interface NavPath {
@@ -44,9 +46,10 @@ interface TabIndexConfig {
 export const globalNavStack: NavPathStack = new NavPathStack()
 
 /**
- * 全局 Tabs 控制器单例
+ * 全局 Tabs 控制器单例（HDS 页签栏控制器）
+ * 供 MainTab 挂载 + 跨页 changeIndex 切 Tab（HomePage / GoalDetailPage / RoutePage）
  */
-export const globalTabsController: TabsController = new TabsController()
+export const globalTabsController: HdsTabsController = new HdsTabsController()
 
 let currentTabIndex: number = 0
 
@@ -334,4 +337,71 @@ export function navigateToWithId(routeName: string, id: string | undefined | nul
   const param: RouteParam = { id: id }
   const pathInfo: NavPathInfo = new NavPathInfo(routeName, param)
   globalNavStack.pushPath(pathInfo)
+}
+
+/**
+ * 栈顶是否已是指定的 (routeName, id) 页面
+ *
+ * 用于通知直达 / 热启动恢复的幂等跳转判断：
+ * 只比路由名不够（不同 id 的同一路由是两个不同页面），必须连 id 一起比。
+ *
+ * @param routeName - 路由名
+ * @param id - 路由参数中的 id
+ * @returns true 表示栈顶就是该页面
+ */
+export function isTopRoute(routeName: string, id: string): boolean {
+  try {
+    const pathStack: NavPathInfo[] = globalNavStack.getPathStack()
+    if (!Array.isArray(pathStack) || pathStack.length === 0) {
+      return false
+    }
+    const top: NavPathInfo = pathStack[pathStack.length - 1]
+    if (top === undefined || top === null || top.name !== routeName) {
+      return false
+    }
+    // 两段式转换：与 TaskDetailPage 读取路由参数保持同一写法（ArkTS 不允许直接断言 unknown）
+    const rawParam: Object = top.param as Object
+    if (rawParam === undefined || rawParam === null) {
+      return false
+    }
+    const paramObj: Record<string, Object> = rawParam as Record<string, Object>
+    return String(paramObj['id'] ?? '') === id
+  } catch (e) {
+    Logger.warn('RouterManager', 'isTopRoute failed: ' + (e as Error).message)
+    return false
+  }
+}
+
+/**
+ * 带 id 的幂等跳转（通知直达 / 热启动恢复专用）
+ *
+ * 栈顶已是同一 (routeName, id) 页面时直接返回，不重复压栈。
+ * 否则每点一次通知都会压一层新的详情页，用户"返回一次"退回到的是上一个同类页面
+ * 而不是点通知之前的那一页（真机复现：番茄钟通知点两次，返回后又看到番茄钟）。
+ *
+ * ⚠️ 命中幂等时【不消费防抖锁】：本次什么都没做，不该影响紧随其后的正常跳转。
+ * ⚠️ 不委托给 navigateToWithId：调用方需要"本次是否真的把页面放到了栈顶"这个确定答案
+ *    （跳转可能被 600ms 防抖拦下），委托会导致返回值不可靠。
+ *
+ * @returns true = 调用结束后目标页确实在栈顶（本次压栈成功，或本来就在栈顶）；false = 未生效
+ */
+export function navigateToWithIdOnce(routeName: string, id: string | undefined | null): boolean {
+  if (!id || id.length === 0) {
+    Logger.warn('RouterManager', 'navigateToWithIdOnce: invalid id, route=' + routeName)
+    return false
+  }
+  if (isTopRoute(routeName, id)) {
+    Logger.info('RouterManager',
+      'navigateToWithIdOnce: top is already ' + routeName + ', skip push, id=' + id)
+    return true
+  }
+  if (!tryAcquireNavLock()) {
+    Logger.warn('RouterManager',
+      'navigateToWithIdOnce: debounced, push skipped, route=' + routeName)
+    return false
+  }
+  const param: RouteParam = { id: id }
+  const pathInfo: NavPathInfo = new NavPathInfo(routeName, param)
+  globalNavStack.pushPath(pathInfo)
+  return true
 }

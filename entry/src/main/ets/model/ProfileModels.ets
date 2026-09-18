@@ -77,6 +77,10 @@ export interface AppSettingsJSON {
   vibrationEnabled: boolean
   /** 云端同步总开关，默认关闭（隐私优先） */
   syncEnabled: boolean
+  /** 截止提醒提前量：L4 任务提前天数（0=截止当天，默认 1） */
+  reminderAdvanceTaskDays: number
+  /** 截止提醒提前量：L1 目标提前天数（0=截止当天，默认 3） */
+  reminderAdvanceGoalDays: number
 }
 
 // 应用设置 Model 类，持久化到 Preferences
@@ -90,6 +94,10 @@ export class AppSettings {
   @Trace vibrationEnabled: boolean = true
   /** 云端同步总开关，默认关闭（隐私优先） */
   @Trace syncEnabled: boolean = false
+  /** 截止提醒提前量：L4 任务提前天数（0=截止当天，默认 1 天） */
+  @Trace reminderAdvanceTaskDays: number = 1
+  /** 截止提醒提前量：L1 目标提前天数（0=截止当天，默认 3 天） */
+  @Trace reminderAdvanceGoalDays: number = 3
 
   constructor() {
   }
@@ -99,7 +107,9 @@ export class AppSettings {
       notificationEnabled: this.notificationEnabled,
       privacyAgreed: this.privacyAgreed,
       vibrationEnabled: this.vibrationEnabled,
-      syncEnabled: this.syncEnabled
+      syncEnabled: this.syncEnabled,
+      reminderAdvanceTaskDays: this.reminderAdvanceTaskDays,
+      reminderAdvanceGoalDays: this.reminderAdvanceGoalDays
     }
   }
 
@@ -114,7 +124,23 @@ export class AppSettings {
       ? json.vibrationEnabled : true
     settings.syncEnabled = typeof json.syncEnabled === 'boolean'
       ? json.syncEnabled : false
+    settings.reminderAdvanceTaskDays = AppSettings.sanitizeAdvanceDays(json.reminderAdvanceTaskDays, 1)
+    settings.reminderAdvanceGoalDays = AppSettings.sanitizeAdvanceDays(json.reminderAdvanceGoalDays, 3)
     return settings
+  }
+
+  /** 提前量字段清洗：仅允许 0/1/3/7，非法值回退默认（防历史/云端脏数据） */
+  static sanitizeAdvanceDays(raw: number | null | undefined, fallback: number): number {
+    if (typeof raw !== 'number' || isNaN(raw)) {
+      return fallback
+    }
+    const allowed: number[] = [0, 1, 3, 7]
+    for (let i: number = 0; i < allowed.length; i++) {
+      if (raw === allowed[i]) {
+        return raw
+      }
+    }
+    return fallback
   }
 }
 

@@ -35,19 +35,43 @@ export class PersistHelper {
   /**
    * 防抖持久化：合并多次连续修改，延迟单次落盘
    * 每次调用重置定时器，到期后执行一次写入并触发 onScheduleFire
+   *
+   * ⚠️ 云同步改造（2026-09-15）：**写入成功才触发 onScheduleFire**
+   *   onScheduleFire 现在负责"打持久化 SYNC_NEEDED 脏标记 + 触发 merge"，
+   *   若落盘失败仍触发，会把未落盘的内存态当成"本地有改动"上传，破坏一致性。
    */
   scheduleSave(): void {
     if (this.saveTimer !== -1) {
       clearTimeout(this.saveTimer)
     }
     this.saveTimer = setTimeout(async (): Promise<void> => {
-      // 先确保本地落盘完成再触发云同步，避免云端读到旧数据
-      await this.persistNow().catch((e: Error): void => {
-        Logger.error(this.tag, 'scheduleSave persistNow failed: ' + e.message)
-      })
+      const persisted: boolean = await this.persistNow()
+      if (!persisted) {
+        Logger.error(this.tag, 'scheduleSave: persist failed, skip onScheduleFire (SYNC_NEEDED not marked)')
+        return
+      }
       if (this.onScheduleFire !== null) {
         this.onScheduleFire()
       }
+    }, this.delay)
+  }
+
+  /**
+   * 防抖持久化，但**不触发** onScheduleFire
+   *
+   * 用途：只影响本机视图状态、不参与云同步语义的字段变更。
+   * 典型场景 `RoutePageViewModel.filterCategory`（分类筛选）——它是纯本机 UI 瞬时状态，
+   * `applyCloudSnapshot` 明确不采纳该字段，走 scheduleSave 只会"打脏标记 → 白跑一轮网络 merge"
+   * （merge 后内容无变化，不会上传，纯粹浪费一次请求）。
+   *
+   * 与 scheduleSave 的唯一区别：**不回调 onScheduleFire**；防抖与单次落盘行为完全一致。
+   */
+  scheduleSaveSilent(): void {
+    if (this.saveTimer !== -1) {
+      clearTimeout(this.saveTimer)
+    }
+    this.saveTimer = setTimeout(async (): Promise<void> => {
+      await this.persistNow()
     }, this.delay)
   }
 
@@ -64,14 +88,16 @@ export class PersistHelper {
   }
 
   /**
-   * 执行实际写入，失败时记录告警日志
-   * Preferences API 无事务，此处仅记录不抛出，避免防抖回调中断
+   * 执行实际写入
+   * @returns true 表示写入成功；false 表示写入抛异常（已记录日志，不向上抛）
    */
-  private async persistNow(): Promise<void> {
+  private async persistNow(): Promise<boolean> {
     try {
       await this.persistFn()
+      return true
     } catch (e) {
       Logger.error(this.tag, 'persistNow failed: ' + (e as Error).message)
+      return false
     }
   }
 

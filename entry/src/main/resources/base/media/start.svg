@@ -12,5 +12,11 @@
   </defs>
   <rect width="1080" height="2340" fill="url(#bg)"/>
   <circle cx="540" cy="980" r="560" fill="url(#glow)"/>
-  <path d="M432 1420L456 940L540 1052L624 940L648 1420" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 辅助层：四象限十字（半透白 30%），按前景层 2.5x 等比映射并平移 (180,650) -->
+  <g fill="none" stroke="#FFFFFF" stroke-opacity="0.30" stroke-width="8.75">
+    <line x1="306.25" y1="1010" x2="773.75" y2="1010"/>
+    <line x1="540" y1="306.25" x2="540" y2="773.75"/>
+  </g>
+  <!-- 主层：三段式上扬势线（终点内收至 710,875，右上留呼吸） -->
+  <path d="M345 1165L452.5 1010L540 1105L710 875" fill="none" stroke="#FFFFFF" stroke-width="90" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

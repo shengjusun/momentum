@@ -14,6 +14,8 @@
  */
 
 import { promptAction } from '@kit.ArkUI'
+import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
+import { DimensConstants } from '../common/constants/DimensConstants'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { notificationCenterService } from '../common/services/NotificationCenterService'
 import { AppNotificationItem } from '../model/NotificationModels'
@@ -24,6 +26,9 @@ import { globalNavStack, ROUTE_NAME, pushNavPath } from '../common/RouterManager
 import { Logger } from '../common/utils/Logger'
 import { safeStringUtil } from '../common/utils/SafeUtils'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
+import { AppActionSheet, AppActionSheetItem } from '../common/components/AppActionSheet'
+import { MotionConstants } from '../common/constants/MotionConstants'
+import { MotionHelper } from '../common/utils/MotionHelper'
 
 /** 通知列表懒加载数据源 */
 class NotificationDataSource implements IDataSource {
@@ -70,7 +75,10 @@ class NotificationDataSource implements IDataSource {
 export struct NotificationPage {
   @Local dataSource: NotificationDataSource = new NotificationDataSource()
   @Local pressedId: string = ''
-  @Local isLoading: boolean = false
+  /** 统一操作面板状态 */
+  @Local showActionSheet: boolean = false
+  @Local actionSheetTitle: string = ''
+  @Local actionSheetItems: AppActionSheetItem[] = []
 
   private readonly tag: string = 'NotificationPage'
 
@@ -114,15 +122,15 @@ export struct NotificationPage {
   }
 
   /**
-   * 直达目标详情（反查 routeVM.goals，目标已删除则提示）
+   * 直达目标详情（反查 routeVM.liveGoals，目标已删除则提示）
    * @param goalId - 目标 ID
    */
   private navigateToGoalDetail(goalId: string): void {
     if (!goalId || goalId.length === 0) return
     let target: GoalCardItem | null = null
-    for (let i: number = 0; i < routeVM.goals.length; i++) {
-      if (routeVM.goals[i].id === goalId) {
-        target = routeVM.goals[i]
+    for (let i: number = 0; i < routeVM.liveGoals.length; i++) {
+      if (routeVM.liveGoals[i].id === goalId) {
+        target = routeVM.liveGoals[i]
         break
       }
     }
@@ -138,15 +146,15 @@ export struct NotificationPage {
   }
 
   /**
-   * 直达任务详情（反查 homeVM.taskList，任务已删除则提示）
+   * 直达任务详情（反查 homeVM.liveTasks，任务已删除则提示）
    * @param taskId - 任务 ID
    */
   private navigateToTaskDetail(taskId: string): void {
     if (!taskId || taskId.length === 0) return
     let target: HomeTodoItem | null = null
-    for (let i: number = 0; i < homeVM.taskList.length; i++) {
-      if (homeVM.taskList[i].id === taskId) {
-        target = homeVM.taskList[i]
+    for (let i: number = 0; i < homeVM.liveTasks.length; i++) {
+      if (homeVM.liveTasks[i].id === taskId) {
+        target = homeVM.liveTasks[i]
         break
       }
     }
@@ -190,24 +198,22 @@ export struct NotificationPage {
    */
   private handleClearAll(): void {
     if (notificationCenterService.notificationList.length === 0) return
-    promptAction.showDialog({
-      title: $r('app.string.notif_clear_title'),
-      message: $r('app.string.notif_clear_message'),
-      buttons: [
-        { text: $r('app.string.common_cancel'), color: $r('app.color.text_tertiary') },
-        { text: $r('app.string.notif_clear_confirm'), color: $r('app.color.error_color') }
-      ]
-    }).then((result: promptAction.ShowDialogSuccessResponse): void => {
-      if (result.index === 1) {
-        notificationCenterService.clearAll().then((): void => {
-          this.refreshList()
-        }).catch((e: Error): void => {
-          Logger.warn(this.tag, 'clearAll failed: ' + e.message)
-        })
+    // 统一 ActionSheet：替代系统 showDialog 兜底样式
+    this.actionSheetTitle = getContext(this).resourceManager.getStringSync($r('app.string.notif_clear_message').id)
+    this.actionSheetItems = [
+      {
+        label: getContext(this).resourceManager.getStringSync($r('app.string.notif_clear_confirm').id),
+        danger: true,
+        action: (): void => {
+          notificationCenterService.clearAll().then((): void => {
+            this.refreshList()
+          }).catch((e: Error): void => {
+            Logger.warn(this.tag, 'clearAll failed: ' + e.message)
+          })
+        }
       }
-    }).catch((e: Error): void => {
-      Logger.warn(this.tag, 'clear dialog failed: ' + e.message)
-    })
+    ]
+    this.showActionSheet = true
   }
 
   /**
@@ -243,7 +249,7 @@ export struct NotificationPage {
       Column()
         .width(8)
         .height(8)
-        .borderRadius(4)
+        .borderRadius(DimensConstants.RADIUS_XS)
         .backgroundColor(item.isRead ? Color.Transparent : $r('app.color.error_color'))
         .margin({ left: 2 })
 
@@ -275,13 +281,13 @@ export struct NotificationPage {
     .padding(14)
     .backgroundColor(this.pressedId === item.id ?
       $r('app.color.bg_tag') : $r('app.color.bg_card'))
-    .borderRadius(16)
+    .borderRadius(DimensConstants.RADIUS_L)
     .alignItems(VerticalAlign.Center)
     .scale({
       x: this.pressedId === item.id ? 0.98 : 1,
       y: this.pressedId === item.id ? 0.98 : 1
     })
-    .animation({ duration: 100, curve: Curve.EaseOut })
+    .animation(MotionConstants.pressParam())
     .onTouch((event: TouchEvent): void => {
       if (event.type === TouchType.Down) {
         this.pressedId = item.id
@@ -305,25 +311,16 @@ export struct NotificationPage {
    * @param item - 通知项
    */
   private showItemActions(item: AppNotificationItem): void {
-    promptAction.showActionMenu({
-      title: safeStringUtil(item.title, ''),
-      buttons: [
-        {
-          text: $r('app.string.notif_delete'),
-          color: $r('app.color.error_color')
-        },
-        {
-          text: $r('app.string.common_cancel'),
-          color: $r('app.color.text_tertiary')
-        }
-      ]
-    }).then((result: promptAction.ActionMenuSuccessResponse): void => {
-      if (result.index === 0) {
-        this.handleDelete(item)
+    // 统一 ActionSheet：替代系统 showActionMenu 兜底样式
+    this.actionSheetTitle = safeStringUtil(item.title, '')
+    this.actionSheetItems = [
+      {
+        label: getContext(this).resourceManager.getStringSync($r('app.string.notif_delete').id),
+        danger: true,
+        action: (): void => { this.handleDelete(item) }
       }
-    }).catch((e: Error): void => {
-      Logger.warn(this.tag, 'action menu failed: ' + e.message)
-    })
+    ]
+    this.showActionSheet = true
   }
 
   @Builder
@@ -359,6 +356,10 @@ export struct NotificationPage {
 
       Text($r('app.string.notif_read_all'))
         .fontSize(CommonConstants.FONT_SIZE_BODY)
+        .stateStyles({
+          pressed: { .backgroundColor($r('app.color.bg_tag')) },
+          normal: { .backgroundColor(Color.Transparent) }
+        })
         .fontColor(notificationCenterService.unreadCount > 0
           ? $r('app.color.primary_color') : $r('app.color.text_tertiary'))
         .padding({ left: 12, right: 12, top: 6, bottom: 6 })
@@ -368,6 +369,10 @@ export struct NotificationPage {
     }
     .width('100%')
     .padding({ left: 8, right: 16, top: 4, bottom: 4 })
+        .stateStyles({
+          pressed: { .backgroundColor($r('app.color.bg_tag')) },
+          normal: { .backgroundColor(Color.Transparent) }
+        })
     .justifyContent(FlexAlign.End)
   }
 
@@ -381,11 +386,13 @@ export struct NotificationPage {
           ListItem() {
             this.NotificationItemBuilder(item)
           }
+          // L1b：通知增删过渡（keyGenerator = item.id，稳定唯一）
+          .transition(MotionHelper.listItem())
         }, (item: AppNotificationItem): string => item.id)
       }
       .width('100%')
       .layoutWeight(1)
-      .padding({ left: 16, right: 16, top: 4, bottom: 12 })
+      .padding({ left: 16, right: 16, top: 4, bottom: safeAreaHelper.getBottomWith(12) })
       .scrollBar(BarState.Auto)
       .edgeEffect(EdgeEffect.Spring)
     }
@@ -395,6 +402,7 @@ export struct NotificationPage {
 
   build() {
     NavDestination() {
+      Stack() {
       Column() {
         CommonTitleBar({
           title: $r('app.string.page_notifications'),
@@ -404,18 +412,8 @@ export struct NotificationPage {
           }
         })
 
-        if (this.isLoading) {
-          Column() {
-            LoadingProgress()
-              .width(40)
-              .height(40)
-              .color($r('app.color.primary_color'))
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-        } else if (notificationCenterService.notificationList.length === 0) {
+        // isLoading 恒为 false（refreshList 为同步刷新），移除死分支
+        if (notificationCenterService.notificationList.length === 0) {
           this.EmptyStateBuilder()
         } else {
           this.NotificationListBuilder()
@@ -424,6 +422,20 @@ export struct NotificationPage {
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.bg_page'))
+
+      // 统一操作面板（替代系统 showActionMenu/showDialog）
+      if (this.showActionSheet) {
+        AppActionSheet({
+          title: this.actionSheetTitle,
+          items: this.actionSheetItems,
+          onDismiss: (): void => {
+            this.showActionSheet = false
+          }
+        })
+      }
+      }
+      .width('100%')
+      .height('100%')
     }
     .hideTitleBar(true)
     .onBackPressed((): boolean => {
@@ -432,14 +444,8 @@ export struct NotificationPage {
     })
     .onShown((): void => {
       this.refreshList()
-      // 进入页面时自动标记全部已读（角标清零）
-      if (notificationCenterService.unreadCount > 0) {
-        notificationCenterService.markAllRead().then((): void => {
-          this.refreshList()
-        }).catch((e: Error): void => {
-          Logger.warn(this.tag, 'onShown markAllRead failed: ' + e.message)
-        })
-      }
+      // 修复：不再进页即自动全部已读——原行为让"全部已读"按钮和单条已读标记形同虚设，
+      // 未读红点进页瞬间消失。改为由用户点击单条或"全部已读"按钮显式标记。
     })
   }
 }

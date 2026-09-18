@@ -1,561 +1,2468 @@
 {
   "string": [
-    { "name": "module_desc", "value": "MyApplication 主模块" },
-    { "name": "ability_desc", "value": "应用入口 Ability" },
-    { "name": "ability_label", "value": "momentum" },
-    { "name": "reason_internet", "value": "用于应用网络请求获取数据" },
-    { "name": "tab_home", "value": "首页" },
-    { "name": "tab_route", "value": "路线" },
-    { "name": "tab_ai", "value": "AI" },
-    { "name": "tab_mine", "value": "我的" },
-    { "name": "page_home", "value": "首页" },
-    { "name": "page_route", "value": "路线" },
-    { "name": "page_ai", "value": "AI" },
-    { "name": "page_profile", "value": "我的" },
-    { "name": "loading", "value": "加载中..." },
-    { "name": "load_failed", "value": "加载失败" },
-    { "name": "retry", "value": "重试" },
-    { "name": "avatar", "value": "头像" },
-    { "name": "common_cancel", "value": "取消" },
-    { "name": "common_close", "value": "关闭" },
-    { "name": "common_confirm", "value": "确定" },
-    { "name": "reason_notification", "value": "用于学习打卡提醒和任务通知" },
-    { "name": "reason_reminder", "value": "用于任务截止日期到期提醒" },
-    { "name": "reason_vibrate", "value": "用于任务完成时的震动反馈提醒" },
-    { "name": "reason_awareness", "value": "用于感知握姿自动调整悬浮按钮位置" },
-    { "name": "app_name", "value": "Momentum" },
-    { "name": "btn_logging_in", "value": "正在登录..." },
-    { "name": "btn_save", "value": "保存" },
-    { "name": "btn_delete", "value": "删除" },
-    { "name": "btn_go_login", "value": "去登录" },
-    { "name": "btn_go_ai", "value": "去 AI 拆解" },
-    { "name": "btn_go_ai_generate", "value": "去 AI 拆解生成" },
-    { "name": "btn_cancel_generate", "value": "✕ 取消生成" },
-    { "name": "btn_confirm_delete", "value": "确认删除" },
-    { "name": "btn_add_step", "value": "+ 添加" },
-    { "name": "btn_mark_complete", "value": "标记完成" },
-    { "name": "btn_completed", "value": "已完成 ✓" },
-    { "name": "btn_sync_now", "value": "立即同步" },
-    { "name": "btn_syncing", "value": "同步中..." },
-    { "name": "btn_exit", "value": "退出" },
-    { "name": "btn_force_exit", "value": "继续退出" },
-    { "name": "btn_go_settings", "value": "去设置" },
-    { "name": "btn_close", "value": "关闭" },
-    { "name": "btn_create_goal", "value": "去创建目标" },
-    { "name": "btn_confirm_plan", "value": "确认使用此方案" },
-    { "name": "empty_route_title", "value": "还没有目标" },
-    { "name": "empty_route_subtitle", "value": "去 AI 拆解，生成你的第一个目标" },
-    { "name": "empty_milestone", "value": "暂无里程碑" },
-    { "name": "empty_steps", "value": "暂无步骤" },
-    { "name": "empty_related_tasks", "value": "暂无关联任务" },
-    { "name": "empty_no_step_hint", "value": "此 AI 拆解任务未生成执行步骤" },
-    { "name": "ai_guide_title", "value": "输入你的目标，AI 将帮你拆解成可执行的任务步骤" },
-    { "name": "ai_guide_step1", "value": "输入你想达成的目标" },
-    { "name": "ai_guide_step2", "value": "AI 智能拆解为可执行步骤" },
-    { "name": "ai_guide_step3", "value": "一键加入路线，开始执行" },
-    { "name": "ai_input_title", "value": "输入你的项目目标" },
-    { "name": "ai_input_placeholder", "value": "例如：开发一个鸿蒙天气应用..." },
-    { "name": "ai_input_collapsed_hint", "value": "AI 拆解目标" },
-    { "name": "ai_select_scenario", "value": "或选择场景" },
-    { "name": "ai_loading_text", "value": "AI 正在努力拆解中..." },
-    { "name": "ai_loading_time_hint", "value": "通常需要 5-15 秒" },
-    { "name": "ai_error_title", "value": "拆解失败" },
-    { "name": "ai_login_required_title", "value": "请先登录" },
-    { "name": "ai_login_required_desc", "value": "登录后即可使用 AI 智能拆解功能" },
-    { "name": "ai_result_summary", "value": "为您拆解了" },
-    { "name": "ai_result_tasks_suffix", "value": "个任务" },
-    { "name": "ai_add_to_route_prefix", "value": "一键加入路线（含 " },
-    { "name": "ai_add_to_route_suffix", "value": " 个任务）" },
-    { "name": "dialog_delete_title", "value": "确认删除" },
-    { "name": "dialog_delete_message", "value": "删除后无法恢复，确认要删除吗？" },
-    { "name": "dialog_delete_task_title", "value": "删除任务" },
-    { "name": "dialog_unsaved_title", "value": "未保存的修改" },
-    { "name": "dialog_unsaved_message", "value": "你有未保存的修改，确定要离开吗？" },
-    { "name": "dialog_logout_title", "value": "退出登录" },
-    { "name": "dialog_logout_message", "value": "退出后云端数据不会丢失，重新登录即可恢复。" },
-    { "name": "dialog_logout_no_sync_message", "value": "云端同步已关闭，退出后将清除本地数据且无法恢复。是否仍要退出？" },
-    { "name": "dialog_api_key_invalid", "value": "API Key 无效" },
-    { "name": "dialog_add_to_route_title", "value": "加入路线" },
-    { "name": "dialog_reset_title", "value": "重置设置" },
-    { "name": "dialog_reset_message", "value": "重置将清空所有本地配置，无法恢复" },
-    { "name": "dialog_sync_failed_title", "value": "数据同步失败" },
-    { "name": "dialog_sync_failed_message", "value": "数据同步失败，退出可能导致数据丢失，是否继续退出？" },
-    { "name": "dialog_goal_action_title", "value": "目标操作" },
-    { "name": "dialog_edit_goal", "value": "编辑目标" },
-    { "name": "dialog_goal_review", "value": "AI 复盘" },
-    { "name": "dialog_goal_review_title", "value": "目标复盘报告" },
-    { "name": "review_loading", "value": "AI 正在分析目标数据，请稍候…" },
-    { "name": "toast_review_failed", "value": "复盘生成失败，请稍后重试" },
-    { "name": "dialog_delete_goal", "value": "删除目标" },
-    { "name": "toast_delete_failed", "value": "删除失败" },
-    { "name": "dialog_task_action_title", "value": "任务操作" },
-    { "name": "dialog_edit_task", "value": "编辑任务" },
-    { "name": "dialog_delete_task", "value": "删除任务" },
-    { "name": "dialog_delete_task_message", "value": "确定要删除这个任务吗？此操作无法撤销。" },
-    { "name": "dialog_cancel", "value": "取消" },
-    { "name": "dialog_confirm", "value": "确定" },
-    { "name": "dialog_leave_edit", "value": "继续编辑" },
-    { "name": "dialog_leave_page", "value": "离开" },
-    { "name": "edit_task_panel_title", "value": "编辑任务" },
-    { "name": "edit_task_name_hint", "value": "任务名称" },
-    { "name": "edit_task_duration_hint", "value": "预估时长（分钟）" },
-    { "name": "edit_task_save", "value": "保存" },
-    { "name": "edit_task_cancel", "value": "取消" },
-    { "name": "toast_task_updated", "value": "任务已更新" },
-    { "name": "home_empty_message", "value": "暂无待办，去 AI 拆解一个吧" },
-    { "name": "home_empty_cta", "value": "去 AI 拆解" },
-    { "name": "category_all", "value": "全部" },
-    { "name": "category_programming", "value": "编程" },
-    { "name": "category_language", "value": "语言" },
-    { "name": "category_fitness", "value": "健身" },
-    { "name": "category_reading", "value": "阅读" },
-    { "name": "category_ai", "value": "AI 生成" },
-    { "name": "settings_not_set", "value": "未设置" },
-    { "name": "settings_notification_on", "value": "开" },
-    { "name": "settings_notification_off", "value": "关" },
-    { "name": "settings_privacy_agreed", "value": "已同意" },
-    { "name": "settings_privacy_not_agreed", "value": "未同意" },
-    { "name": "settings_huawei_user", "value": "华为用户" },
-    { "name": "ai_phase_basic", "value": "基础入门" },
-    { "name": "ai_phase_core", "value": "核心实战" },
-    { "name": "ai_phase_sprint", "value": "冲刺完善" },
-    { "name": "ai_phase_empty", "value": "本阶段暂无具体任务" },
-    { "name": "ai_week_prefix", "value": "第 " },
-    { "name": "ai_week_suffix", "value": " 周" },
-    { "name": "ai_default_task", "value": "任务" },
-    { "name": "ai_description", "value": "由 AI 智能拆解生成" },
-    { "name": "ai_category", "value": "AI 生成" },
-    { "name": "ai_expand_steps", "value": "展开步骤，共" },
-    { "name": "ai_collapse_steps", "value": "收起步骤" },
-    { "name": "ai_icon", "value": "AI 拆解图标" },
-    { "name": "ai_key_invalid", "value": "Key 无效" },
-    { "name": "task_unnamed_step", "value": "未命名步骤" },
-    { "name": "task_priority_high", "value": "高" },
-    { "name": "task_priority_low", "value": "低" },
-    { "name": "acc_milestone_tag", "value": "里程碑标签" },
-    { "name": "acc_l2_task_card", "value": "任务卡片" },
-    { "name": "acc_related_task", "value": "关联任务" },
-    { "name": "acc_goal_header", "value": "目标信息" },
-    { "name": "acc_add_todo", "value": "添加到待办" },
-    { "name": "acc_edit_goal", "value": "编辑目标" },
-    { "name": "acc_delete_goal", "value": "删除目标" },
-    { "name": "acc_back_button", "value": "返回按钮" },
-    { "name": "toast_save_success", "value": "保存成功" },
-    { "name": "toast_save_failed", "value": "保存失败" },
-    { "name": "toast_delete_success", "value": "删除成功" },
-    { "name": "toast_add_success", "value": "已加入待办" },
-    { "name": "toast_copy_success", "value": "已复制到剪贴板" },
-    { "name": "toast_api_key_saved", "value": "API Key 保存成功" },
-    { "name": "toast_api_key_invalid", "value": "API Key 无效，请检查" },
-    { "name": "toast_login_required", "value": "请先登录应用" },
-    { "name": "toast_input_required", "value": "请先输入目标" },
-    { "name": "toast_no_tasks_to_add", "value": "暂无任务可添加" },
-    { "name": "toast_cancelled", "value": "已取消生成" },
-    { "name": "toast_step_empty", "value": "步骤内容不能为空" },
-    { "name": "toast_step_updated", "value": "步骤已更新" },
-    { "name": "toast_step_added", "value": "步骤已添加" },
-    { "name": "toast_step_deleted", "value": "步骤已删除" },
-    { "name": "toast_task_completed", "value": "已完成！" },
-    { "name": "toast_task_uncompleted", "value": "已取消完成" },
-    { "name": "toast_task_extract_failed", "value": "任务提取失败：未找到任务" },
-    { "name": "toast_task_already_in_todo", "value": "该任务已在待办中" },
-    { "name": "toast_goal_updated", "value": "目标已更新" },
-    { "name": "toast_goal_deleted", "value": "目标已删除" },
-    { "name": "toast_task_deleted", "value": "任务已删除" },
-    { "name": "toast_sync_success", "value": "同步成功" },
-    { "name": "toast_sync_error", "value": "同步异常" },
-    { "name": "toast_sync_disabled", "value": "云端同步已关闭，请在设置中开启" },
-    { "name": "toast_reset_done", "value": "已重置所有设置" },
-    { "name": "toast_update_failed_retry", "value": "更新失败，请重试" },
-    { "name": "toast_delete_failed_retry", "value": "删除失败，请重试" },
-    { "name": "toast_privacy_agreed", "value": "已同意隐私协议" },
-    { "name": "toast_privacy_revoked", "value": "已撤销隐私协议" },
-    { "name": "toast_notification_failed", "value": "通知设置失败" },
-    { "name": "toast_notification_error", "value": "通知设置异常" },
-    { "name": "page_goal_detail", "value": "目标详情" },
-    { "name": "page_task_detail", "value": "任务详情" },
-    { "name": "page_goal_history", "value": "目标历史" },
-    { "name": "page_settings", "value": "设置" },
-    { "name": "settings_api_key_label", "value": "请输入 DeepSeek API Key" },
-    { "name": "settings_advanced", "value": "高级设置" },
-    { "name": "settings_reset", "value": "重置设置" },
-    { "name": "settings_about", "value": "关于应用" },
-    { "name": "settings_privacy", "value": "隐私协议" },
-    { "name": "settings_privacy_hint", "value": "查看协议详情 >" },
-    { "name": "settings_delete_all_data", "value": "删除所有数据" },
-    { "name": "settings_delete_all_data_desc", "value": "清除本地与云端全部业务数据，不可恢复" },
-    { "name": "dialog_delete_all_title", "value": "删除所有数据？" },
-    { "name": "dialog_delete_all_message", "value": "将永久删除本机与云端存储的全部目标、任务、AI 拆解、专注统计与通知记录，删除后无法恢复。登录状态与基础设置将保留。" },
-    { "name": "toast_delete_all_success", "value": "已删除所有数据" },
-    { "name": "toast_delete_all_failed", "value": "删除失败，请重试" },
-    { "name": "settings_notification", "value": "通知权限" },
-    { "name": "settings_notification_desc", "value": "控制应用通知开关" },
-    { "name": "settings_version", "value": "版本号" },
-    { "name": "settings_current_prefix", "value": "当前：" },
-    { "name": "settings_app_settings", "value": "应用设置" },
-    { "name": "loading_data", "value": "正在加载..." },
-    { "name": "loading_ai", "value": "AI正在拆解..." },
-    { "name": "privacy_agree_prefix", "value": "登录即表示同意" },
-    { "name": "privacy_link", "value": "《隐私协议》" },
-    { "name": "privacy_agree_title", "value": "隐私协议" },
-    { "name": "privacy_agree_ack", "value": "我已知晓" },
-    { "name": "privacy_gate_notice", "value": "请仔细阅读并同意《隐私协议》后继续使用。您的数据默认仅保存在本机。" },
-    { "name": "privacy_gate_agree", "value": "同意并继续" },
-    { "name": "privacy_gate_disagree", "value": "不同意并退出" },
-    { "name": "priority_high", "value": "高" },
-    { "name": "priority_medium", "value": "中" },
-    { "name": "priority_low", "value": "低" },
-    { "name": "login_slogan", "value": "目标管理，从每一步开始" },
-    { "name": "login_not_logged_in", "value": "未登录" },
-    { "name": "login_please_login", "value": "请在启动页完成登录" },
-    { "name": "login_already_logged_in", "value": "已登录" },
-    { "name": "login_brand_name_cn", "value": "势能" },
-    { "name": "login_value_prop", "value": "AI 驱动，掌控你的时间" },
-    { "name": "login_btn_huawei", "value": "华为账号一键登录" },
-    { "name": "login_privacy_check_prefix", "value": "我已阅读并同意" },
-    { "name": "login_privacy_link_user", "value": "《用户协议》" },
-    { "name": "login_privacy_check_and", "value": "和" },
-    { "name": "profile_data_overview_title", "value": "任务数据纵览" },
-    { "name": "profile_overview_ring_label", "value": "平均进度" },
-    { "name": "profile_stat_todo", "value": "待开始" },
-    { "name": "profile_stat_pending", "value": "未完成" },
-    { "name": "profile_stat_in_progress", "value": "进行中" },
-    { "name": "profile_stat_completed", "value": "已完成" },
-    { "name": "profile_empty_overview_hint", "value": "暂无项目数据，去 AI 拆解创建你的第一个目标吧！" },
-    { "name": "goal_history_empty", "value": "暂无目标，去 AI 页面创建一个吧" },
-    { "name": "goal_history_empty_completed", "value": "该状态暂无已完结的目标" },
-    { "name": "goal_history_empty_in_progress", "value": "该状态暂无进行中的目标" },
-    { "name": "home_greeting_suffix", "value": "，同学" },
-    { "name": "home_encourage_text", "value": "今天也要加油哦" },
-    { "name": "home_estimated_prefix", "value": "预估 " },
-    { "name": "home_items_suffix", "value": " 项" },
-    { "name": "home_delete_task_title", "value": "删除任务" },
-    { "name": "home_swipe_delete", "value": "删除" },
-    { "name": "home_suggestion_button", "value": "AI 排序建议" },
-    { "name": "suggestion_sheet_title", "value": "今日排序建议" },
-    { "name": "suggestion_loading", "value": "AI 正在分析今日待办，请稍候…" },
-    { "name": "toast_suggestion_failed", "value": "建议生成失败，请稍后重试" },
-    { "name": "toast_suggestion_empty", "value": "暂无待办任务，先去添加任务吧" },
-    { "name": "route_my_route", "value": "我的路线" },
-    { "name": "route_milestone_completed_suffix", "value": " 里程碑已完成" },
-    { "name": "route_recommended_tasks", "value": "推荐任务（" },
-    { "name": "route_added", "value": "已加入" },
-    { "name": "route_add_todo", "value": "加入待办" },
-    { "name": "route_expand_steps", "value": "展开执行步骤" },
-    { "name": "route_collapse_steps", "value": "收起执行步骤" },
-    { "name": "route_expand_tasks", "value": "展开任务列表" },
-    { "name": "route_collapse_tasks", "value": "收起任务列表" },
-    { "name": "route_expand_milestone", "value": "展开里程碑" },
-    { "name": "route_collapse_milestone", "value": "收起里程碑" },
-    { "name": "route_already_in_todo", "value": "已加入待办" },
-    { "name": "route_not_completed", "value": "未完成" },
-    { "name": "route_task_data_error", "value": "目标数据异常" },
-    { "name": "route_week_prefix", "value": "第" },
-    { "name": "route_week_suffix", "value": "周" },
-    { "name": "route_total_steps_prefix", "value": "共 " },
-    { "name": "route_total_steps_suffix", "value": " 步" },
-    { "name": "route_estimated_prefix", "value": "预计 " },
-    { "name": "route_estimated_suffix", "value": " min" },
-    { "name": "goal_detail_milestone_progress", "value": "里程碑进度" },
-    { "name": "goal_detail_no_milestone", "value": "该目标尚未生成里程碑进度" },
-    { "name": "goal_detail_task_breakdown", "value": "任务拆解（" },
-    { "name": "goal_detail_task_label", "value": "任务" },
-    { "name": "goal_detail_view_task_detail", "value": "查看任务详情" },
-    { "name": "goal_detail_click_expand", "value": "点击展开步骤" },
-    { "name": "goal_detail_related_tasks", "value": "关联任务" },
-    { "name": "goal_detail_related_hint", "value": "在 AI 拆解时已自动关联，可在首页查看" },
-    { "name": "goal_detail_edit_goal", "value": "编辑目标" },
-    { "name": "goal_detail_goal_name", "value": "目标名称" },
-    { "name": "goal_detail_goal_name_hint", "value": "请输入目标名称" },
-    { "name": "goal_detail_description", "value": "描述" },
-    { "name": "goal_detail_description_hint", "value": "请输入描述" },
-    { "name": "goal_detail_category", "value": "分类" },
-    { "name": "goal_detail_category_hint", "value": "如：编程、健身、阅读" },
-    { "name": "goal_detail_goal_name_empty", "value": "目标名称不能为空" },
-    { "name": "goal_detail_estimated_time", "value": "预计耗时" },
-    { "name": "goal_detail_milestone_label", "value": "里程碑" },
-    { "name": "goal_detail_related_task_label", "value": "关联任务" },
-    { "name": "goal_detail_completed", "value": "已完成" },
-    { "name": "goal_detail_in_progress", "value": "进行中" },
-    { "name": "goal_detail_completed_prefix", "value": "已完成 " },
-    { "name": "goal_detail_mark_complete", "value": "标记完成" },
-    { "name": "goal_detail_mark_incomplete", "value": "标记未完成" },
-    { "name": "goal_detail_no_milestone_dialog", "value": "该目标尚未生成里程碑进度。是否前往 AI 拆解重新生成？" },
-    { "name": "goal_detail_add_todo", "value": "+ 待办" },
-    { "name": "task_detail_execution_steps", "value": "执行步骤" },
-    { "name": "task_detail_steps_count_prefix", "value": "共 " },
-    { "name": "task_detail_steps_count_suffix", "value": " 步" },
-    { "name": "task_detail_unlinked_task", "value": "未关联到 AI 拆解任务" },
-    { "name": "task_detail_unlinked_hint", "value": "此任务为旧数据，无法展示拆解步骤" },
-    { "name": "task_detail_expired_link", "value": "关联任务已失效" },
-    { "name": "task_detail_expired_hint", "value": "可能已从路线页删除，无法展示步骤" },
-    { "name": "task_detail_estimated_time", "value": "预计耗时" },
-    { "name": "task_detail_created_at", "value": "创建于" },
-    { "name": "task_detail_add_step_hint", "value": "添加新步骤..." },
-    { "name": "task_detail_edit_step_hint", "value": "编辑步骤..." },
-    { "name": "task_detail_edit_step_placeholder", "value": "编辑步骤..." },
-    { "name": "task_detail_add_step_input", "value": "添加步骤输入框" },
-    { "name": "task_detail_add_step_button", "value": "添加步骤按钮" },
-    { "name": "task_detail_mark_complete_button", "value": "标记任务完成按钮" },
-    { "name": "task_detail_confirm_edit_acc", "value": "确认编辑" },
-    { "name": "task_detail_cancel_edit_acc", "value": "取消编辑" },
-    { "name": "task_detail_edit_step_acc", "value": "编辑步骤" },
-    { "name": "task_detail_delete_step_acc", "value": "删除步骤" },
-    { "name": "task_detail_complete_prefix_acc", "value": "完成：" },
-    { "name": "task_detail_unnamed_step", "value": "未命名步骤" },
-    { "name": "task_detail_priority_high_cn", "value": "高" },
-    { "name": "task_detail_priority_low_cn", "value": "低" },
-    { "name": "task_detail_unknown_status", "value": "未知" },
-    { "name": "task_detail_min_step_warning", "value": "删除失败（至少保留一个步骤）" },
-    { "name": "task_detail_delete_step_message", "value": "确定要删除此步骤吗？删除后无法恢复。" },
-    { "name": "task_detail_confirm_edit", "value": "确认编辑" },
-    { "name": "task_detail_cancel_edit", "value": "取消编辑" },
-    { "name": "task_detail_edit_step", "value": "编辑步骤" },
-    { "name": "task_detail_delete_step", "value": "删除步骤" },
-    { "name": "task_detail_update_failed_retry", "value": "更新失败，请重试" },
-    { "name": "task_detail_add_failed_retry", "value": "添加失败，请重试" },
-    { "name": "task_detail_step_update_failed_retry", "value": "步骤更新失败，请重试" },
-    { "name": "task_detail_delete_failed_prefix", "value": "删除失败：" },
-    { "name": "task_detail_update_failed_prefix", "value": "更新失败：" },
-    { "name": "sync_not_synced", "value": "未同步" },
-    { "name": "sync_just_now", "value": "刚刚同步" },
-    { "name": "sync_minutes_ago_suffix", "value": " 分钟前同步" },
-    { "name": "sync_hours_ago_suffix", "value": " 小时前同步" },
-    { "name": "sync_days_ago_suffix", "value": " 天前同步" },
-    { "name": "default_unnamed", "value": "未命名" },
-    { "name": "default_unnamed_task", "value": "未命名任务" },
-    { "name": "default_unnamed_goal", "value": "未命名目标" },
-    { "name": "default_unnamed_milestone", "value": "未命名里程碑" },
-    { "name": "default_no_description", "value": "暂无描述" },
-    { "name": "default_unknown", "value": "未知" },
-    { "name": "default_other_category", "value": "其他" },
-    { "name": "goal_detail_from_prefix", "value": "来自：" },
-    { "name": "goal_detail_status_label", "value": "状态：" },
-    { "name": "goal_detail_progress_label", "value": "进度：" },
-    { "name": "goal_detail_week_prefix_space", "value": "第 " },
-    { "name": "goal_detail_week_suffix_space", "value": " 周" },
-    { "name": "goal_detail_completed_count_prefix", "value": "已完成 " },
-    { "name": "goal_detail_delete_task_message", "value": "确定要删除此任务吗？相关的待办记录也将被删除。删除后无法恢复。" },
-    { "name": "goal_detail_status_update_failed", "value": "状态更新失败，请重试" },
-    { "name": "goal_detail_update_failed_prefix", "value": "更新失败：" },
-    { "name": "goal_detail_task_data_invalid", "value": "任务数据无效" },
-    { "name": "goal_detail_task_not_found", "value": "任务已不存在，请返回首页刷新" },
-    { "name": "goal_detail_navigate_failed_prefix", "value": "跳转失败：" },
-    { "name": "goal_detail_added_to_todo_prefix", "value": "已加入今日待办：" },
-    { "name": "goal_detail_extract_failed_prefix", "value": "提取失败：" },
-    { "name": "goal_detail_from_goal_prefix", "value": "从目标\"" },
-    { "name": "goal_detail_from_goal_suffix", "value": "\"拆解" },
-    { "name": "toast_deleted_prefix", "value": "已删除\"" },
-    { "name": "privacy_content", "value": "感谢您使用 Momentum！\n\n1. 我们仅收集必要的账号信息（昵称、头像）用于登录和展示。\n2. 您的目标和任务数据仅存储在本地设备上，不会上传至服务器（云同步功能需您手动开启）。\n3. 我们不会将您的任何信息分享给第三方。\n4. 您可以随时在设置中删除所有数据。\n\n如有疑问，请联系开发者。" },
-    { "name": "scenario_1_text", "value": "鸿蒙应用开发" },
-    { "name": "scenario_1_prompt", "value": "从零开始学习 HarmonyOS NEXT 应用开发，3 个月内完成一个完整的天气 App" },
-    { "name": "scenario_2_text", "value": "期末复习计划" },
-    { "name": "scenario_2_prompt", "value": "大学英语期末考试复习，2 周内掌握所有高频词汇和作文模板" },
-    { "name": "scenario_3_text", "value": "算法面试准备" },
-    { "name": "scenario_3_prompt", "value": "准备字节跳动算法面试，1 个月内刷完 LeetCode 热题 HOT 100" },
-    { "name": "scenario_4_text", "value": "健身减脂计划" },
-    { "name": "scenario_4_prompt", "value": "12 周健身减脂计划，配合科学饮食，目标减重 10 公斤" },
-    { "name": "scenario_accessibility_prefix", "value": "场景：" },
-    { "name": "ai_onboarding_title", "value": "欢迎使用 AI 智能拆解" },
-    { "name": "ai_onboarding_dismiss", "value": "知道了，开始使用" },
-    { "name": "ai_onboarding_step1_desc", "value": "在输入框中描述你想要达成的目标" },
-    { "name": "ai_onboarding_step2_desc", "value": "点击“开始拆解”让 AI 将目标分解为可执行步骤" },
-    { "name": "ai_onboarding_step3_desc", "value": "将拆解结果一键加入路线，开始行动" },
-    { "name": "ai_task_fallback_prefix", "value": "任务" },
-    { "name": "ai_default_goal_name", "value": "AI 生成目标" },
-    { "name": "ai_edit_task", "value": "微调" },
-    { "name": "ai_delete_task", "value": "删除" },
-    { "name": "ai_delete_confirm_title", "value": "删除任务" },
-    { "name": "ai_delete_confirm_message", "value": "确定要删除这条 AI 生成的任务吗？此操作无法撤销。" },
-    { "name": "ai_edit_task_title", "value": "编辑任务" },
-    { "name": "ai_edit_task_name_hint", "value": "任务名称" },
-    { "name": "ai_edit_task_time_hint", "value": "预估时间（分钟）" },
-    { "name": "toast_task_name_required", "value": "任务名称不能为空" },
-    { "name": "dialog_api_key_go_settings", "value": "可前往「高级设置」配置自定义 Key" },
-    { "name": "dialog_add_to_route_confirm_prefix", "value": "确认将 “" },
-    { "name": "dialog_add_to_route_confirm_suffix", "value": "” 生成到路线页？\n\n包含 " },
-    { "name": "dialog_add_to_route_confirm_task_suffix", "value": " 个任务（每个任务可在目标详情页加入待办）" },
-    { "name": "toast_goal_add_failed_prefix", "value": "目标入库失败：" },
-    { "name": "toast_goal_add_failed_suffix", "value": "（已中止）" },
-    { "name": "toast_goal_added_prefix", "value": "已生成项目到路线：" },
-    { "name": "toast_goal_added_task_infix", "value": "（含 " },
-    { "name": "toast_goal_added_task_suffix", "value": " 个任务，可在目标详情页加入待办）" },
-    { "name": "home_toast_operation_failed_prefix", "value": "操作失败：" },
-    { "name": "home_toast_task_detail_unavailable", "value": "任务详情暂不可用" },
-    { "name": "route_deadline_prefix", "value": "截止 " },
-    { "name": "route_accessibility_goal_prefix", "value": "目标：" },
-    { "name": "route_accessibility_progress_infix", "value": "，进度" },
-    { "name": "route_accessibility_milestone_completed_suffix", "value": "个里程碑已完成" },
-    { "name": "goal_detail_dialog_delete_confirm_prefix", "value": "确定要删除目标\"" },
-    { "name": "goal_detail_dialog_delete_confirm_suffix", "value": "\"吗？\n此操作将删除该目标下的所有任务、步骤和待办记录。" },
-    { "name": "login_toast_welcome_prefix", "value": "欢迎，" },
-    { "name": "login_toast_login_failed_prefix", "value": "登录失败：" },
-    { "name": "login_toast_user_cancelled", "value": "用户取消" },
-    { "name": "login_toast_login_error_prefix", "value": "登录异常：" },
-    { "name": "route_recommended_tasks_suffix", "value": "）" },
-    { "name": "goal_detail_task_breakdown_suffix", "value": "）" },
-    { "name": "goal_detail_add_milestone_btn", "value": "+ 手动添加" },
-    { "name": "goal_detail_add_task_btn", "value": "+ 手动添加" },
-    { "name": "goal_detail_add_milestone_title", "value": "添加里程碑" },
-    { "name": "goal_detail_add_task_title", "value": "添加任务" },
-    { "name": "goal_detail_add_milestone_name_label", "value": "里程碑标题" },
-    { "name": "goal_detail_add_milestone_name_hint", "value": "请输入里程碑标题" },
-    { "name": "goal_detail_add_milestone_desc_label", "value": "里程碑描述" },
-    { "name": "goal_detail_add_milestone_desc_hint", "value": "请输入里程碑描述（可选）" },
-    { "name": "goal_detail_add_milestone_week_label", "value": "周数" },
-    { "name": "goal_detail_add_milestone_week_hint", "value": "请输入周数（默认 1）" },
-    { "name": "goal_detail_add_task_name_label", "value": "任务名称" },
-    { "name": "goal_detail_add_task_name_hint", "value": "请输入任务名称" },
-    { "name": "goal_detail_no_l2_task", "value": "该目标尚未生成任务拆解，可手动添加或去 AI 拆解" },
-    { "name": "toast_milestone_added", "value": "里程碑已添加" },
-    { "name": "toast_task_added", "value": "任务已添加" },
-    { "name": "toast_input_empty", "value": "内容不能为空" },
-    { "name": "chat_send", "value": "发送" },
-    { "name": "chat_input_placeholder", "value": "输入你的目标，或对上一轮结果微调..." },
-    { "name": "chat_loading_hint", "value": "AI 正在思考..." },
-    { "name": "ai_image_max_reached", "value": "最多只能选择 3 张图片" },
-    { "name": "ai_image_pick_failed", "value": "图片选择失败，请重试" },
-    { "name": "chat_plan_confirmed", "value": "已加入路线 ✓" },
-    { "name": "chat_add_all_to_todo", "value": "全部加入待办" },
-    { "name": "chat_added_all_to_todo", "value": "已全部加入待办 ✓" },
-    { "name": "toast_confirm_plan_first", "value": "请先确认此方案" },
-    { "name": "toast_tasks_already_in_todo", "value": "全部任务已在待办中" },
-    { "name": "chat_tasks_count_prefix", "value": "共 " },
-    { "name": "chat_tasks_count_suffix", "value": " 个任务" },
-    { "name": "chat_empty_hint", "value": "开始与 AI 助手对话，拆解你的目标" },
-    { "name": "home_items_prefix", "value": "共 " },
-    { "name": "greeting_dawn", "value": "凌晨好" },
-    { "name": "greeting_morning", "value": "早上好" },
-    { "name": "greeting_noon", "value": "中午好" },
-    { "name": "greeting_afternoon", "value": "下午好" },
-    { "name": "greeting_evening", "value": "晚上好" },
-    { "name": "greeting_night", "value": "晚上好" },
-    { "name": "default_nickname", "value": "华为用户" },
-    { "name": "default_signature", "value": "每天进步一点点" },
-    { "name": "unit_minutes", "value": "分钟" },
-    { "name": "acc_default_avatar", "value": "默认头像" },
-    { "name": "acc_notification_toggle", "value": "通知权限开关" },
-    { "name": "acc_expand_advanced", "value": "展开高级设置" },
-    { "name": "acc_hide_password", "value": "隐藏密码" },
-    { "name": "acc_show_password", "value": "显示密码" },
-    { "name": "acc_save_api_key", "value": "保存 API Key" },
-    { "name": "acc_reset_settings", "value": "重置所有设置为默认值" },
-    { "name": "acc_go_login", "value": "去登录按钮" },
-    { "name": "acc_loading", "value": "加载中" },
-    { "name": "acc_cancel_generate", "value": "取消生成按钮" },
-    { "name": "acc_add_to_route", "value": "一键加入路线按钮" },
-    { "name": "acc_expand_edit", "value": "展开编辑按钮" },
-    { "name": "acc_goal_input", "value": "目标输入框，最多 200 字" },
-    { "name": "acc_char_count_prefix", "value": "字数：" },
-    { "name": "acc_start_ai", "value": "开始 AI 拆解按钮" },
-    { "name": "acc_dismiss_onboarding", "value": "关闭引导，开始使用" },
-    { "name": "acc_delete", "value": "删除" },
-    { "name": "acc_progress", "value": "进度" },
-    { "name": "acc_category_filter_prefix", "value": "分类筛选：" },
-    { "name": "acc_empty_illustration", "value": "空状态插图" },
-    { "name": "eisenhower_entry_button", "value": "四象限" },
-    { "name": "eisenhower_sheet_title", "value": "待办项" },
-    { "name": "eisenhower_sheet_subtitle", "value": "按重要度与紧急度划分待办优先级" },
-    { "name": "eisenhower_q1_title", "value": "重要且紧急" },
-    { "name": "eisenhower_q1_desc", "value": "立即做" },
-    { "name": "eisenhower_q2_title", "value": "重要不紧急" },
-    { "name": "eisenhower_q2_desc", "value": "计划做" },
-    { "name": "eisenhower_q3_title", "value": "紧急不重要" },
-    { "name": "eisenhower_q3_desc", "value": "快速做" },
-    { "name": "eisenhower_q4_title", "value": "不紧急不重要" },
-    { "name": "eisenhower_q4_desc", "value": "尽量减少" },
-    { "name": "eisenhower_empty_quadrant", "value": "暂无任务" },
-    { "name": "eisenhower_total_prefix", "value": "共 " },
-    { "name": "eisenhower_total_suffix", "value": " 项待决策" },
-    { "name": "page_login", "value": "登陆" },
-    { "name": "form_todo_card_name", "value": "今日待办" },
-    { "name": "form_todo_card_desc", "value": "展示今日待办完成率和任务列表" },
-    { "name": "reason_gesture_detection", "value": "用于只能调整悬浮按钮位置" },
-    { "name": "reason_real_time_activity", "value": "用于番茄钟专注时在锁屏和状态栏显示倒计时实况窗" },
-    { "name": "home_title", "value": "首页" },
-    { "name": "home_search_placeholder", "value": "搜索感兴趣的内容" },
-    { "name": "home_refresh", "value": "刷新" },
-    { "name": "mine_title", "value": "我的" },
-    { "name": "mine_user_name", "value": "未登录用户" },
-    { "name": "mine_user_desc", "value": "点击登录享受更多服务" },
-    { "name": "mine_group_account", "value": "账号管理" },
-    { "name": "mine_item_profile", "value": "个人资料" },
-    { "name": "mine_item_security", "value": "账号与安全" },
-    { "name": "mine_item_privacy", "value": "隐私中心" },
-    { "name": "mine_group_app", "value": "应用设置" },
-    { "name": "mine_item_notify", "value": "消息通知" },
-    { "name": "mine_item_theme", "value": "主题模式" },
-    { "name": "mine_item_about", "value": "关于我们" },
-    { "name": "mine_item_clear_cache", "value": "清除缓存" },
-    { "name": "mine_logout", "value": "退出登录" },
-    { "name": "state_loading", "value": "加载中..." },
-    { "name": "state_empty_title", "value": "暂无数据" },
-    { "name": "state_empty_desc", "value": "暂时没有内容，下拉刷新试试" },
-    { "name": "state_error_title", "value": "加载失败" },
-    { "name": "state_error_desc", "value": "网络异常，请检查后重试" },
-    { "name": "state_retry", "value": "重试" },
-    { "name": "state_create", "value": "去创建" },
-    { "name": "card_view_more", "value": "查看更多" },
-    { "name": "logout_confirm_title", "value": "确认退出" },
-    { "name": "logout_confirm_msg", "value": "退出后将无法享受个性化服务，确定退出吗？" },
-    { "name": "btn_login", "value": "华为账号登录" },
-    { "name": "btn_generate", "value": "开始 AI 拆解" },
-    { "name": "btn_generating", "value": "AI 拆解中..." },
-    { "name": "btn_add_to_route", "value": "一键加入路线" },
-    { "name": "btn_add_to_today", "value": "加入待办" },
-    { "name": "btn_back", "value": "< 返回" },
-    { "name": "btn_edit", "value": "编辑" },
-    { "name": "btn_logout", "value": "退出登录" },
-    { "name": "btn_generate_another", "value": "重新拆解" },
-    { "name": "btn_expand_edit", "value": "展开编辑" },
-    { "name": "btn_confirm_join", "value": "确认加入" },
-    { "name": "btn_reset_confirm", "value": "确认重置" },
-    { "name": "empty_home_title", "value": "今日待办空空如也" },
-    { "name": "empty_home_subtitle", "value": "去 AI 拆解，让智能规划你的学习" },
-    { "name": "empty_home_action", "value": "去 AI 生成计划" },
-    { "name": "home_today_todo", "value": "今日待办" },
-    { "name": "home_today_completion_rate", "value": "今日完成率" },
-    { "name": "home_today_completion", "value": "今日完成率" },
-    { "name": "home_today_study_duration", "value": "今日累计时长" },
-    { "name": "home_completed_count", "value": "已完成" },
-    { "name": "home_pending_count", "value": "待完成" },
-    { "name": "home_total_count", "value": "总任务" },
-    { "name": "route_goals_count_prefix", "value": "共 " },
-    { "name": "route_goals_count_suffix", "value": " 个目标" },
-    { "name": "route_avg_completion", "value": "平均完成率" },
-    { "name": "route_total_goals", "value": "总目标" },
-    { "name": "route_completed_goals", "value": "已完成" },
-    { "name": "route_in_progress", "value": "进行中" },
-    { "name": "route_active_goals", "value": "活跃目标" },
-    { "name": "task_detail_step_deleted_temp", "value": "步骤已删除（退出页面后内容将会丢失）" },
-    { "name": "task_detail_step_updated_temp", "value": "步骤已更新（退出页面后内容将会丢失）" },
-    { "name": "task_detail_step_added_temp", "value": "步骤已添加（退出页面后内容将会丢失）" },
-    { "name": "task_detail_toast_step_updated", "value": "步骤已临时更新" },
-    { "name": "task_detail_toast_step_added", "value": "步骤已临时添加" },
-    { "name": "task_detail_toast_step_deleted", "value": "步骤已临时删除" },
-    { "name": "back_press_exit_toast", "value": "再按一次退出应用" },
-    { "name": "acc_quadrant_card", "value": "象限卡片，共 %d 个任务，长按可拖拽排序，点击查看详情" },
-    { "name": "acc_quadrant_task", "value": "任务" },
-    { "name": "acc_login_huawei_button", "value": "华为账号一键登录" },
-    { "name": "acc_login_privacy_checkbox", "value": "同意用户协议与隐私政策" },
-    { "name": "acc_goal_history_filter_pending", "value": "筛选未开始的目标" },
-    { "name": "acc_goal_history_filter_in_progress", "value": "筛选进行中的目标" },
-    { "name": "acc_goal_history_filter_completed", "value": "筛选已完结的目标" },
-    { "name": "acc_goal_history_card", "value": "目标历史卡片" },
-    { "name": "acc_goal_history_back", "value": "返回" },
-    { "name": "page_notifications", "value": "通知中心" },
-    { "name": "notif_empty", "value": "暂无通知" },
-    { "name": "notif_clear_title", "value": "清空通知" },
-    { "name": "notif_clear_message", "value": "确定要清空所有通知吗？" },
-    { "name": "notif_clear_confirm", "value": "清空" },
-    { "name": "notif_clear_all", "value": "清空" },
-    { "name": "notif_read_all", "value": "全部已读" },
-    { "name": "notif_delete", "value": "删除" },
-    { "name": "notif_target_deleted", "value": "关联内容已删除" },
-    { "name": "acc_notification_entry", "value": "通知中心" },
-    { "name": "goal_detail_deadline_label", "value": "截止日期" },
-    { "name": "goal_detail_no_deadline", "value": "未设置截止日期" },
-    { "name": "ai_plan_side_title", "value": "AI 拆解方案" },
-    { "name": "ai_plan_side_empty", "value": "与 AI 对话后，最新的拆解方案会显示在这里" }
+    {
+      "name": "module_desc",
+      "value": "Momentum 主模块"
+    },
+    {
+      "name": "ability_desc",
+      "value": "应用入口 Ability"
+    },
+    {
+      "name": "ability_label",
+      "value": "起势"
+    },
+    {
+      "name": "reason_internet",
+      "value": "用于应用网络请求获取数据"
+    },
+    {
+      "name": "tab_home",
+      "value": "首页"
+    },
+    {
+      "name": "tab_route",
+      "value": "路线"
+    },
+    {
+      "name": "tab_ai",
+      "value": "AI"
+    },
+    {
+      "name": "tab_mine",
+      "value": "我的"
+    },
+    {
+      "name": "page_home",
+      "value": "首页"
+    },
+    {
+      "name": "page_route",
+      "value": "路线"
+    },
+    {
+      "name": "page_ai",
+      "value": "AI"
+    },
+    {
+      "name": "page_profile",
+      "value": "我的"
+    },
+    {
+      "name": "loading",
+      "value": "加载中..."
+    },
+    {
+      "name": "load_failed",
+      "value": "加载失败"
+    },
+    {
+      "name": "retry",
+      "value": "重试"
+    },
+    {
+      "name": "avatar",
+      "value": "头像"
+    },
+    {
+      "name": "common_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "common_close",
+      "value": "关闭"
+    },
+    {
+      "name": "common_confirm",
+      "value": "确定"
+    },
+    {
+      "name": "reason_keep_background",
+      "value": "AI 拆解任务需要后台持续运行以完成请求"
+    },
+    {
+      "name": "reason_notification",
+      "value": "用于学习打卡提醒和任务通知"
+    },
+    {
+      "name": "reason_reminder",
+      "value": "用于任务截止日期到期提醒"
+    },
+    {
+      "name": "reason_vibrate",
+      "value": "用于任务完成时的震动反馈提醒"
+    },
+    {
+      "name": "reason_awareness",
+      "value": "用于感知握姿自动调整悬浮按钮位置"
+    },
+    {
+      "name": "app_name",
+      "value": "起势"
+    },
+    {
+      "name": "task_edit_quadrant_preview",
+      "value": "将自动归入"
+    },
+    {
+      "name": "error_generic_toast",
+      "value": "操作失败，请稍后重试"
+    },
+    {
+      "name": "home_moved_to_prefix",
+      "value": "已移至 "
+    },
+    {
+      "name": "home_quadrant_current_suffix",
+      "value": "（当前）"
+    },
+    {
+      "name": "pomo_stop_confirm_message",
+      "value": "确定停止本次专注吗？当前轮次将不会计入完成次数。"
+    },
+    {
+      "name": "btn_logging_in",
+      "value": "正在登录..."
+    },
+    {
+      "name": "btn_save",
+      "value": "保存"
+    },
+    {
+      "name": "btn_delete",
+      "value": "删除"
+    },
+    {
+      "name": "btn_go_login",
+      "value": "去登录"
+    },
+    {
+      "name": "btn_go_ai",
+      "value": "去 AI 拆解"
+    },
+    {
+      "name": "btn_go_ai_generate",
+      "value": "去 AI 拆解生成"
+    },
+    {
+      "name": "btn_cancel_generate",
+      "value": "✕ 取消生成"
+    },
+    {
+      "name": "btn_confirm_delete",
+      "value": "确认删除"
+    },
+    {
+      "name": "btn_add_step",
+      "value": "+ 添加"
+    },
+    {
+      "name": "btn_mark_complete",
+      "value": "标记完成"
+    },
+    {
+      "name": "btn_completed",
+      "value": "已完成 ✓"
+    },
+    {
+      "name": "btn_sync_now",
+      "value": "立即同步"
+    },
+    {
+      "name": "btn_syncing",
+      "value": "同步中..."
+    },
+    {
+      "name": "btn_exit",
+      "value": "退出"
+    },
+    {
+      "name": "btn_force_exit",
+      "value": "继续退出"
+    },
+    {
+      "name": "btn_go_settings",
+      "value": "去设置"
+    },
+    {
+      "name": "btn_close",
+      "value": "关闭"
+    },
+    {
+      "name": "btn_create_goal",
+      "value": "去创建目标"
+    },
+    {
+      "name": "btn_confirm_plan",
+      "value": "确认使用此方案"
+    },
+    {
+      "name": "empty_route_title",
+      "value": "还没有目标"
+    },
+    {
+      "name": "empty_route_subtitle",
+      "value": "说一个目标，AI 帮你拆成一条可执行的路线"
+    },
+    {
+      "name": "empty_route_manual",
+      "value": "手动创建"
+    },
+    {
+      "name": "empty_milestone",
+      "value": "暂无里程碑"
+    },
+    {
+      "name": "empty_steps",
+      "value": "暂无步骤"
+    },
+    {
+      "name": "empty_related_tasks",
+      "value": "暂无关联任务"
+    },
+    {
+      "name": "empty_no_step_hint",
+      "value": "此 AI 拆解任务未生成执行步骤"
+    },
+    {
+      "name": "ai_guide_title",
+      "value": "输入你的目标，AI 将帮你拆解成可执行的任务步骤"
+    },
+    {
+      "name": "ai_guide_step1",
+      "value": "输入你想达成的目标"
+    },
+    {
+      "name": "ai_guide_step2",
+      "value": "AI 智能拆解为可执行步骤"
+    },
+    {
+      "name": "ai_guide_step3",
+      "value": "一键加入路线，开始执行"
+    },
+    {
+      "name": "ai_input_title",
+      "value": "输入你的项目目标"
+    },
+    {
+      "name": "ai_input_placeholder",
+      "value": "例如：开发一个鸿蒙天气应用..."
+    },
+    {
+      "name": "ai_input_collapsed_hint",
+      "value": "AI 拆解目标"
+    },
+    {
+      "name": "ai_select_scenario",
+      "value": "或选择场景"
+    },
+    {
+      "name": "ai_loading_text",
+      "value": "AI 正在努力拆解中..."
+    },
+    {
+      "name": "ai_loading_time_hint",
+      "value": "通常需要 5-15 秒"
+    },
+    {
+      "name": "ai_error_title",
+      "value": "拆解失败"
+    },
+    {
+      "name": "ai_login_required_title",
+      "value": "请先登录"
+    },
+    {
+      "name": "ai_login_required_desc",
+      "value": "登录后即可使用 AI 智能拆解功能"
+    },
+    {
+      "name": "ai_result_summary",
+      "value": "为您拆解了"
+    },
+    {
+      "name": "ai_result_tasks_suffix",
+      "value": "个任务"
+    },
+    {
+      "name": "ai_add_to_route_prefix",
+      "value": "一键加入路线（含 "
+    },
+    {
+      "name": "ai_add_to_route_suffix",
+      "value": " 个任务）"
+    },
+    {
+      "name": "dialog_delete_title",
+      "value": "确认删除"
+    },
+    {
+      "name": "dialog_delete_message",
+      "value": "删除后无法恢复，确认要删除吗？"
+    },
+    {
+      "name": "dialog_delete_task_title",
+      "value": "删除任务"
+    },
+    {
+      "name": "dialog_unsaved_title",
+      "value": "未保存的修改"
+    },
+    {
+      "name": "dialog_unsaved_message",
+      "value": "你有未保存的修改，确定要离开吗？"
+    },
+    {
+      "name": "dialog_logout_title",
+      "value": "退出登录"
+    },
+    {
+      "name": "dialog_logout_message",
+      "value": "退出后云端数据不会丢失，重新登录即可恢复。"
+    },
+    {
+      "name": "dialog_logout_no_sync_message",
+      "value": "云端同步已关闭，退出后将清除本地数据且无法恢复。是否仍要退出？"
+    },
+    {
+      "name": "dialog_api_key_invalid",
+      "value": "API Key 无效"
+    },
+    {
+      "name": "dialog_add_to_route_title",
+      "value": "加入路线"
+    },
+    {
+      "name": "dialog_reset_title",
+      "value": "重置设置"
+    },
+    {
+      "name": "dialog_reset_message",
+      "value": "重置将清空所有本地配置，无法恢复"
+    },
+    {
+      "name": "dialog_sync_failed_title",
+      "value": "数据同步失败"
+    },
+    {
+      "name": "dialog_sync_failed_message",
+      "value": "数据同步失败，退出可能导致数据丢失，是否继续退出？"
+    },
+    {
+      "name": "dialog_goal_action_title",
+      "value": "目标操作"
+    },
+    {
+      "name": "dialog_edit_goal",
+      "value": "编辑目标"
+    },
+    {
+      "name": "dialog_goal_review",
+      "value": "AI 复盘"
+    },
+    {
+      "name": "dialog_goal_review_title",
+      "value": "目标复盘报告"
+    },
+    {
+      "name": "review_loading",
+      "value": "AI 正在分析目标数据，请稍候…"
+    },
+    {
+      "name": "toast_review_failed",
+      "value": "复盘生成失败，请稍后重试"
+    },
+    {
+      "name": "dialog_delete_goal",
+      "value": "删除目标"
+    },
+    {
+      "name": "toast_delete_failed",
+      "value": "删除失败"
+    },
+    {
+      "name": "dialog_task_action_title",
+      "value": "任务操作"
+    },
+    {
+      "name": "dialog_edit_task",
+      "value": "编辑任务"
+    },
+    {
+      "name": "dialog_delete_task",
+      "value": "删除任务"
+    },
+    {
+      "name": "dialog_delete_task_message",
+      "value": "确定要删除这个任务吗？此操作无法撤销。"
+    },
+    {
+      "name": "dialog_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "dialog_confirm",
+      "value": "确定"
+    },
+    {
+      "name": "dialog_leave_edit",
+      "value": "继续编辑"
+    },
+    {
+      "name": "dialog_leave_page",
+      "value": "离开"
+    },
+    {
+      "name": "edit_task_panel_title",
+      "value": "编辑任务"
+    },
+    {
+      "name": "edit_task_name_hint",
+      "value": "任务名称"
+    },
+    {
+      "name": "edit_task_duration_hint",
+      "value": "预估时长（分钟）"
+    },
+    {
+      "name": "edit_task_save",
+      "value": "保存"
+    },
+    {
+      "name": "edit_task_cancel",
+      "value": "取消"
+    },
+    {
+      "name": "toast_task_updated",
+      "value": "任务已更新"
+    },
+    {
+      "name": "home_empty_message",
+      "value": "今天还没有安排"
+    },
+    {
+      "name": "home_completed_section_title",
+      "value": "已完成"
+    },
+    {
+      "name": "home_completed_undo_hint",
+      "value": "点击恢复"
+    },
+    {
+      "name": "home_deadline_overdue",
+      "value": " 已逾期"
+    },
+    {
+      "name": "task_focus_summary",
+      "value": "已专注 "
+    },
+    {
+      "name": "task_focus_count_unit",
+      "value": " 轮"
+    },
+    {
+      "name": "home_empty_cta",
+      "value": "去拆解"
+    },
+    {
+      "name": "category_all",
+      "value": "全部"
+    },
+    {
+      "name": "category_programming",
+      "value": "编程"
+    },
+    {
+      "name": "category_language",
+      "value": "语言"
+    },
+    {
+      "name": "category_fitness",
+      "value": "健身"
+    },
+    {
+      "name": "category_reading",
+      "value": "阅读"
+    },
+    {
+      "name": "category_ai",
+      "value": "AI 生成"
+    },
+    {
+      "name": "settings_not_set",
+      "value": "未设置"
+    },
+    {
+      "name": "settings_notification_on",
+      "value": "开"
+    },
+    {
+      "name": "settings_notification_off",
+      "value": "关"
+    },
+    {
+      "name": "settings_privacy_agreed",
+      "value": "已同意"
+    },
+    {
+      "name": "settings_privacy_not_agreed",
+      "value": "未同意"
+    },
+    {
+      "name": "settings_huawei_user",
+      "value": "华为用户"
+    },
+    {
+      "name": "ai_phase_basic",
+      "value": "基础入门"
+    },
+    {
+      "name": "ai_phase_core",
+      "value": "核心实战"
+    },
+    {
+      "name": "ai_phase_sprint",
+      "value": "冲刺完善"
+    },
+    {
+      "name": "ai_phase_empty",
+      "value": "本阶段暂无具体任务"
+    },
+    {
+      "name": "ai_week_prefix",
+      "value": "第 "
+    },
+    {
+      "name": "ai_week_suffix",
+      "value": " 周"
+    },
+    {
+      "name": "ai_duration_weeks",
+      "value": " 周"
+    },
+    {
+      "name": "ai_duration_days",
+      "value": " 天"
+    },
+    {
+      "name": "ai_default_task",
+      "value": "任务"
+    },
+    {
+      "name": "ai_description",
+      "value": "由 AI 智能拆解生成"
+    },
+    {
+      "name": "ai_category",
+      "value": "AI 生成"
+    },
+    {
+      "name": "ai_expand_steps",
+      "value": "展开步骤，共"
+    },
+    {
+      "name": "ai_collapse_steps",
+      "value": "收起步骤"
+    },
+    {
+      "name": "ai_icon",
+      "value": "AI 拆解图标"
+    },
+    {
+      "name": "ai_key_invalid",
+      "value": "Key 无效"
+    },
+    {
+      "name": "task_unnamed_step",
+      "value": "未命名步骤"
+    },
+    {
+      "name": "task_priority_high",
+      "value": "高"
+    },
+    {
+      "name": "task_priority_low",
+      "value": "低"
+    },
+    {
+      "name": "acc_milestone_tag",
+      "value": "里程碑标签"
+    },
+    {
+      "name": "acc_l2_task_card",
+      "value": "任务卡片"
+    },
+    {
+      "name": "acc_related_task",
+      "value": "关联任务"
+    },
+    {
+      "name": "acc_goal_header",
+      "value": "目标信息"
+    },
+    {
+      "name": "acc_add_todo",
+      "value": "添加到待办"
+    },
+    {
+      "name": "acc_edit_goal",
+      "value": "编辑目标"
+    },
+    {
+      "name": "acc_delete_goal",
+      "value": "删除目标"
+    },
+    {
+      "name": "acc_back_button",
+      "value": "返回按钮"
+    },
+    {
+      "name": "toast_save_success",
+      "value": "保存成功"
+    },
+    {
+      "name": "toast_save_failed",
+      "value": "保存失败"
+    },
+    {
+      "name": "toast_delete_success",
+      "value": "删除成功"
+    },
+    {
+      "name": "toast_add_success",
+      "value": "已加入待办"
+    },
+    {
+      "name": "toast_copy_success",
+      "value": "已复制到剪贴板"
+    },
+    {
+      "name": "toast_api_key_saved",
+      "value": "API Key 保存成功"
+    },
+    {
+      "name": "toast_api_key_invalid",
+      "value": "API Key 无效，请检查"
+    },
+    {
+      "name": "toast_login_required",
+      "value": "请先登录应用"
+    },
+    {
+      "name": "toast_input_required",
+      "value": "请先输入目标"
+    },
+    {
+      "name": "toast_no_tasks_to_add",
+      "value": "暂无任务可添加"
+    },
+    {
+      "name": "toast_cancelled",
+      "value": "已取消生成"
+    },
+    {
+      "name": "toast_step_empty",
+      "value": "步骤内容不能为空"
+    },
+    {
+      "name": "toast_step_updated",
+      "value": "步骤已更新"
+    },
+    {
+      "name": "toast_step_added",
+      "value": "步骤已添加"
+    },
+    {
+      "name": "toast_step_deleted",
+      "value": "步骤已删除"
+    },
+    {
+      "name": "toast_task_completed",
+      "value": "已完成！"
+    },
+    {
+      "name": "toast_task_uncompleted",
+      "value": "已取消完成"
+    },
+    {
+      "name": "toast_task_extract_failed",
+      "value": "任务提取失败：未找到任务"
+    },
+    {
+      "name": "toast_task_already_in_todo",
+      "value": "该任务已在待办中"
+    },
+    {
+      "name": "toast_goal_updated",
+      "value": "目标已更新"
+    },
+    {
+      "name": "toast_goal_deleted",
+      "value": "目标已删除"
+    },
+    {
+      "name": "toast_task_deleted",
+      "value": "任务已删除"
+    },
+    {
+      "name": "toast_sync_success",
+      "value": "同步成功"
+    },
+    {
+      "name": "toast_sync_error",
+      "value": "同步异常"
+    },
+    {
+      "name": "toast_sync_disabled",
+      "value": "云端同步已关闭，请在设置中开启"
+    },
+    {
+      "name": "toast_sync_upload_pending",
+      "value": "本地已拉取远端数据，但改动暂未上传，网络恢复后会自动重试"
+    },
+    {
+      "name": "toast_reset_done",
+      "value": "已重置所有设置"
+    },
+    {
+      "name": "toast_update_failed_retry",
+      "value": "更新失败，请重试"
+    },
+    {
+      "name": "toast_delete_failed_retry",
+      "value": "删除失败，请重试"
+    },
+    {
+      "name": "toast_privacy_agreed",
+      "value": "已同意隐私协议"
+    },
+    {
+      "name": "toast_privacy_revoked",
+      "value": "已撤销隐私协议"
+    },
+    {
+      "name": "toast_notification_failed",
+      "value": "通知设置失败"
+    },
+    {
+      "name": "toast_notification_error",
+      "value": "通知设置异常"
+    },
+    {
+      "name": "page_goal_detail",
+      "value": "目标详情"
+    },
+    {
+      "name": "page_task_detail",
+      "value": "任务详情"
+    },
+    {
+      "name": "page_goal_history",
+      "value": "目标历史"
+    },
+    {
+      "name": "page_settings",
+      "value": "设置"
+    },
+    {
+      "name": "settings_api_key_label",
+      "value": "请输入 DeepSeek API Key"
+    },
+    {
+      "name": "settings_advanced",
+      "value": "高级设置"
+    },
+    {
+      "name": "settings_reset",
+      "value": "重置设置"
+    },
+    {
+      "name": "settings_about",
+      "value": "关于应用"
+    },
+    {
+      "name": "settings_privacy",
+      "value": "隐私协议"
+    },
+    {
+      "name": "settings_privacy_hint",
+      "value": "查看协议详情 >"
+    },
+    {
+      "name": "settings_notification",
+      "value": "通知权限"
+    },
+    {
+      "name": "settings_notification_desc",
+      "value": "控制应用通知开关"
+    },
+    {
+      "name": "settings_advance_task_label",
+      "value": "任务提醒提前量"
+    },
+    {
+      "name": "settings_advance_goal_label",
+      "value": "目标提醒提前量"
+    },
+    {
+      "name": "advance_option_same_day",
+      "value": "截止当天"
+    },
+    {
+      "name": "advance_option_1d",
+      "value": "1 天前"
+    },
+    {
+      "name": "advance_option_3d",
+      "value": "3 天前"
+    },
+    {
+      "name": "advance_option_1w",
+      "value": "1 周前"
+    },
+    {
+      "name": "settings_version",
+      "value": "版本号"
+    },
+    {
+      "name": "settings_current_prefix",
+      "value": "当前："
+    },
+    {
+      "name": "settings_app_settings",
+      "value": "应用设置"
+    },
+    {
+      "name": "loading_data",
+      "value": "正在加载..."
+    },
+    {
+      "name": "loading_ai",
+      "value": "AI正在拆解..."
+    },
+    {
+      "name": "privacy_agree_prefix",
+      "value": "登录即表示同意"
+    },
+    {
+      "name": "privacy_link",
+      "value": "《隐私协议》"
+    },
+    {
+      "name": "privacy_agree_title",
+      "value": "隐私协议"
+    },
+    {
+      "name": "privacy_agree_ack",
+      "value": "我已知晓"
+    },
+    {
+      "name": "priority_high",
+      "value": "高"
+    },
+    {
+      "name": "priority_medium",
+      "value": "中"
+    },
+    {
+      "name": "priority_low",
+      "value": "低"
+    },
+    {
+      "name": "login_slogan",
+      "value": "目标管理，从每一步开始"
+    },
+    {
+      "name": "login_not_logged_in",
+      "value": "未登录"
+    },
+    {
+      "name": "login_please_login",
+      "value": "请在启动页完成登录"
+    },
+    {
+      "name": "login_already_logged_in",
+      "value": "已登录"
+    },
+    {
+      "name": "login_brand_name_sub",
+      "value": "Momentum"
+    },
+    {
+      "name": "login_value_prop",
+      "value": "AI 驱动，掌控你的时间"
+    },
+    {
+      "name": "login_btn_huawei",
+      "value": "华为账号一键登录"
+    },
+    {
+      "name": "login_privacy_check_prefix",
+      "value": "我已阅读并同意"
+    },
+    {
+      "name": "login_privacy_link_user",
+      "value": "《用户协议》"
+    },
+    {
+      "name": "login_privacy_check_and",
+      "value": "和"
+    },
+    {
+      "name": "profile_data_overview_title",
+      "value": "任务数据纵览"
+    },
+    {
+      "name": "profile_stat_todo",
+      "value": "待开始"
+    },
+    {
+      "name": "profile_stat_pending",
+      "value": "未完成"
+    },
+    {
+      "name": "profile_stat_in_progress",
+      "value": "进行中"
+    },
+    {
+      "name": "profile_stat_completed",
+      "value": "已完成"
+    },
+    {
+      "name": "profile_empty_overview_hint",
+      "value": "暂无项目数据，去 AI 拆解创建你的第一个目标吧！"
+    },
+    {
+      "name": "goal_history_empty",
+      "value": "暂无目标，去 AI 页面创建一个吧"
+    },
+    {
+      "name": "goal_history_empty_overdue",
+      "value": "暂无逾期目标"
+    },
+    {
+      "name": "goal_history_empty_completed",
+      "value": "该状态暂无已完结的目标"
+    },
+    {
+      "name": "goal_history_empty_in_progress",
+      "value": "该状态暂无进行中的目标"
+    },
+    {
+      "name": "home_greeting_suffix",
+      "value": "，同学"
+    },
+    {
+      "name": "home_encourage_text",
+      "value": "今天也要加油哦"
+    },
+    {
+      "name": "home_estimated_prefix",
+      "value": "预估 "
+    },
+    {
+      "name": "home_items_suffix",
+      "value": " 项"
+    },
+    {
+      "name": "home_delete_task_title",
+      "value": "删除任务"
+    },
+    {
+      "name": "home_swipe_delete",
+      "value": "删除"
+    },
+    {
+      "name": "home_suggestion_button",
+      "value": "AI 排序建议"
+    },
+    {
+      "name": "suggestion_sheet_title",
+      "value": "今日排序建议"
+    },
+    {
+      "name": "suggestion_loading",
+      "value": "AI 正在分析今日待办，请稍候…"
+    },
+    {
+      "name": "toast_suggestion_failed",
+      "value": "建议生成失败，请稍后重试"
+    },
+    {
+      "name": "toast_suggestion_empty",
+      "value": "暂无待办任务，先去添加任务吧"
+    },
+    {
+      "name": "route_my_route",
+      "value": "我的路线"
+    },
+    {
+      "name": "route_milestone_completed_suffix",
+      "value": " 里程碑已完成"
+    },
+    {
+      "name": "route_recommended_tasks",
+      "value": "推荐任务（"
+    },
+    {
+      "name": "route_added",
+      "value": "已加入"
+    },
+    {
+      "name": "route_add_todo",
+      "value": "加入待办"
+    },
+    {
+      "name": "route_expand_steps",
+      "value": "展开执行步骤"
+    },
+    {
+      "name": "route_collapse_steps",
+      "value": "收起执行步骤"
+    },
+    {
+      "name": "route_expand_tasks",
+      "value": "展开任务列表"
+    },
+    {
+      "name": "route_collapse_tasks",
+      "value": "收起任务列表"
+    },
+    {
+      "name": "route_expand_milestone",
+      "value": "展开里程碑"
+    },
+    {
+      "name": "route_collapse_milestone",
+      "value": "收起里程碑"
+    },
+    {
+      "name": "route_already_in_todo",
+      "value": "已加入待办"
+    },
+    {
+      "name": "route_not_completed",
+      "value": "未完成"
+    },
+    {
+      "name": "route_task_data_error",
+      "value": "目标数据异常"
+    },
+    {
+      "name": "route_week_prefix",
+      "value": "第"
+    },
+    {
+      "name": "route_week_suffix",
+      "value": "周"
+    },
+    {
+      "name": "route_total_steps_prefix",
+      "value": "共 "
+    },
+    {
+      "name": "route_total_steps_suffix",
+      "value": " 步"
+    },
+    {
+      "name": "route_estimated_prefix",
+      "value": "预计 "
+    },
+    {
+      "name": "route_estimated_suffix",
+      "value": " min"
+    },
+    {
+      "name": "goal_detail_milestone_progress",
+      "value": "里程碑进度"
+    },
+    {
+      "name": "goal_detail_no_milestone",
+      "value": "该目标尚未生成里程碑进度"
+    },
+    {
+      "name": "goal_detail_task_breakdown",
+      "value": "任务拆解（"
+    },
+    {
+      "name": "goal_detail_task_label",
+      "value": "任务"
+    },
+    {
+      "name": "goal_detail_view_task_detail",
+      "value": "查看任务详情"
+    },
+    {
+      "name": "goal_detail_click_expand",
+      "value": "点击展开步骤"
+    },
+    {
+      "name": "goal_detail_related_tasks",
+      "value": "关联任务"
+    },
+    {
+      "name": "goal_detail_related_hint",
+      "value": "在 AI 拆解时已自动关联，可在首页查看"
+    },
+    {
+      "name": "goal_detail_edit_goal",
+      "value": "编辑目标"
+    },
+    {
+      "name": "goal_detail_goal_name",
+      "value": "目标名称"
+    },
+    {
+      "name": "goal_detail_goal_name_hint",
+      "value": "请输入目标名称"
+    },
+    {
+      "name": "goal_detail_description",
+      "value": "描述"
+    },
+    {
+      "name": "goal_detail_description_hint",
+      "value": "请输入描述"
+    },
+    {
+      "name": "goal_detail_category",
+      "value": "分类"
+    },
+    {
+      "name": "goal_detail_category_hint",
+      "value": "如：编程、健身、阅读"
+    },
+    {
+      "name": "goal_detail_goal_name_empty",
+      "value": "目标名称不能为空"
+    },
+    {
+      "name": "goal_detail_estimated_time",
+      "value": "预计耗时"
+    },
+    {
+      "name": "goal_detail_milestone_label",
+      "value": "里程碑"
+    },
+    {
+      "name": "goal_detail_related_task_label",
+      "value": "关联任务"
+    },
+    {
+      "name": "goal_detail_completed",
+      "value": "已完成"
+    },
+    {
+      "name": "goal_detail_in_progress",
+      "value": "进行中"
+    },
+    {
+      "name": "goal_detail_completed_prefix",
+      "value": "已完成 "
+    },
+    {
+      "name": "goal_detail_mark_complete",
+      "value": "标记完成"
+    },
+    {
+      "name": "goal_detail_mark_incomplete",
+      "value": "标记未完成"
+    },
+    {
+      "name": "goal_detail_no_milestone_dialog",
+      "value": "该目标尚未生成里程碑进度。是否前往 AI 拆解重新生成？"
+    },
+    {
+      "name": "goal_detail_add_todo",
+      "value": "+ 待办"
+    },
+    {
+      "name": "task_detail_execution_steps",
+      "value": "执行步骤"
+    },
+    {
+      "name": "task_detail_steps_count_prefix",
+      "value": "共 "
+    },
+    {
+      "name": "task_detail_steps_count_suffix",
+      "value": " 步"
+    },
+    {
+      "name": "task_detail_unlinked_task",
+      "value": "未关联到 AI 拆解任务"
+    },
+    {
+      "name": "task_detail_unlinked_hint",
+      "value": "此任务为旧数据，无法展示拆解步骤"
+    },
+    {
+      "name": "task_detail_expired_link",
+      "value": "关联任务已失效"
+    },
+    {
+      "name": "task_detail_expired_hint",
+      "value": "可能已从路线页删除，无法展示步骤"
+    },
+    {
+      "name": "task_detail_estimated_time",
+      "value": "预计耗时"
+    },
+    {
+      "name": "task_detail_created_at",
+      "value": "创建于"
+    },
+    {
+      "name": "task_detail_add_step_hint",
+      "value": "添加新步骤..."
+    },
+    {
+      "name": "task_detail_edit_step_hint",
+      "value": "编辑步骤..."
+    },
+    {
+      "name": "task_detail_edit_step_placeholder",
+      "value": "编辑步骤..."
+    },
+    {
+      "name": "task_detail_add_step_input",
+      "value": "添加步骤输入框"
+    },
+    {
+      "name": "task_detail_add_step_button",
+      "value": "添加步骤按钮"
+    },
+    {
+      "name": "task_detail_mark_complete_button",
+      "value": "标记任务完成按钮"
+    },
+    {
+      "name": "task_detail_confirm_edit_acc",
+      "value": "确认编辑"
+    },
+    {
+      "name": "task_detail_cancel_edit_acc",
+      "value": "取消编辑"
+    },
+    {
+      "name": "task_detail_edit_step_acc",
+      "value": "编辑步骤"
+    },
+    {
+      "name": "task_detail_delete_step_acc",
+      "value": "删除步骤"
+    },
+    {
+      "name": "task_detail_complete_prefix_acc",
+      "value": "完成："
+    },
+    {
+      "name": "task_detail_unnamed_step",
+      "value": "未命名步骤"
+    },
+    {
+      "name": "task_detail_priority_high_cn",
+      "value": "高"
+    },
+    {
+      "name": "task_detail_priority_low_cn",
+      "value": "低"
+    },
+    {
+      "name": "task_detail_unknown_status",
+      "value": "未知"
+    },
+    {
+      "name": "task_detail_min_step_warning",
+      "value": "删除失败（至少保留一个步骤）"
+    },
+    {
+      "name": "task_detail_delete_step_message",
+      "value": "确定要删除此步骤吗？删除后无法恢复。"
+    },
+    {
+      "name": "task_detail_confirm_edit",
+      "value": "确认编辑"
+    },
+    {
+      "name": "task_detail_cancel_edit",
+      "value": "取消编辑"
+    },
+    {
+      "name": "task_detail_edit_step",
+      "value": "编辑步骤"
+    },
+    {
+      "name": "task_detail_delete_step",
+      "value": "删除步骤"
+    },
+    {
+      "name": "task_detail_update_failed_retry",
+      "value": "更新失败，请重试"
+    },
+    {
+      "name": "task_detail_add_failed_retry",
+      "value": "添加失败，请重试"
+    },
+    {
+      "name": "task_detail_step_update_failed_retry",
+      "value": "步骤更新失败，请重试"
+    },
+    {
+      "name": "task_detail_delete_failed_prefix",
+      "value": "删除失败："
+    },
+    {
+      "name": "task_detail_update_failed_prefix",
+      "value": "更新失败："
+    },
+    {
+      "name": "sync_not_synced",
+      "value": "未同步"
+    },
+    {
+      "name": "sync_just_now",
+      "value": "刚刚同步"
+    },
+    {
+      "name": "sync_minutes_ago_suffix",
+      "value": " 分钟前同步"
+    },
+    {
+      "name": "sync_hours_ago_suffix",
+      "value": " 小时前同步"
+    },
+    {
+      "name": "sync_days_ago_suffix",
+      "value": " 天前同步"
+    },
+    {
+      "name": "default_unnamed",
+      "value": "未命名"
+    },
+    {
+      "name": "default_unnamed_task",
+      "value": "未命名任务"
+    },
+    {
+      "name": "default_unnamed_goal",
+      "value": "未命名目标"
+    },
+    {
+      "name": "default_unnamed_milestone",
+      "value": "未命名里程碑"
+    },
+    {
+      "name": "default_no_description",
+      "value": "暂无描述"
+    },
+    {
+      "name": "default_unknown",
+      "value": "未知"
+    },
+    {
+      "name": "default_other_category",
+      "value": "其他"
+    },
+    {
+      "name": "goal_detail_from_prefix",
+      "value": "来自："
+    },
+    {
+      "name": "goal_detail_status_label",
+      "value": "状态："
+    },
+    {
+      "name": "goal_detail_progress_label",
+      "value": "进度："
+    },
+    {
+      "name": "goal_detail_week_prefix_space",
+      "value": "第 "
+    },
+    {
+      "name": "goal_detail_week_suffix_space",
+      "value": " 周"
+    },
+    {
+      "name": "goal_detail_completed_count_prefix",
+      "value": "已完成 "
+    },
+    {
+      "name": "goal_detail_delete_task_message",
+      "value": "确定要删除此任务吗？相关的待办记录也将被删除。删除后无法恢复。"
+    },
+    {
+      "name": "goal_detail_status_update_failed",
+      "value": "状态更新失败，请重试"
+    },
+    {
+      "name": "goal_detail_update_failed_prefix",
+      "value": "更新失败："
+    },
+    {
+      "name": "goal_detail_task_data_invalid",
+      "value": "任务数据无效"
+    },
+    {
+      "name": "goal_detail_task_not_found",
+      "value": "任务已不存在，请返回首页刷新"
+    },
+    {
+      "name": "goal_detail_navigate_failed_prefix",
+      "value": "跳转失败："
+    },
+    {
+      "name": "goal_detail_added_to_todo_prefix",
+      "value": "已加入今日待办："
+    },
+    {
+      "name": "goal_detail_extract_failed_prefix",
+      "value": "提取失败："
+    },
+    {
+      "name": "goal_detail_from_goal_prefix",
+      "value": "从目标\""
+    },
+    {
+      "name": "goal_detail_from_goal_suffix",
+      "value": "\"拆解"
+    },
+    {
+      "name": "toast_deleted_prefix",
+      "value": "已删除\""
+    },
+    {
+      "name": "privacy_content",
+      "value": "感谢您使用起势！\n\n1. 账号信息：我们收集您的华为帐号虚拟标识（OpenID、UnionID）以及昵称与头像，仅用于登录、身份展示与数据归属标识。\n2. 目标与任务数据：默认保存在您的设备本地；登录后为支持多设备同步会自动开启云同步（可在设置中随时关闭），数据将上传至华为云，仅您本人可见。\n3. 推送与实况窗：番茄钟运行期间会创建系统实况窗，向锁屏与状态栏展示当前阶段、剩余时间与关联任务名称；该展示经由华为推送服务通道，应用会获取推送 Token（设备与应用维度的标识）。\n4. 问题反馈与举报：您提交的反馈/举报内容、联系方式（选填）、您的华为账号标识及运行诊断信息（应用版本、设备型号、系统版本、数据规模统计，不含具体内容）会上传至云端，仅用于问题定位与产品改进，不会公开展示给其他用户。\n5. AI 服务：AI 目标拆解、复盘与待办建议由已备案的第三方大模型（DeepSeek）提供；我们会发送您输入的内容，以及目标与任务的统计数据（进度、状态、优先级、预估耗时等；任务以「任务1/任务2」序号匿名标识，不含名称）用于生成建议。详见《用户协议》第三条。\n6. 我们不会将您的任何信息出售或分享给无关第三方；您可以随时在设置中删除所有数据，也可通过《用户协议》中的联系方式联系我们。\n\n如有疑问，请联系开发者（见《用户协议》联系方式）。"
+    },
+    {
+      "name": "scenario_1_text",
+      "value": "学完鸿蒙开发"
+    },
+    {
+      "name": "scenario_1_prompt",
+      "value": "从零开始学习 HarmonyOS NEXT 应用开发，3 个月内完成一个完整的天气 App"
+    },
+    {
+      "name": "scenario_2_text",
+      "value": "2 周搞定期末复习"
+    },
+    {
+      "name": "scenario_2_prompt",
+      "value": "大学英语期末考试复习，2 周内掌握所有高频词汇和作文模板"
+    },
+    {
+      "name": "scenario_3_text",
+      "value": "1 月刷完 HOT 100"
+    },
+    {
+      "name": "scenario_3_prompt",
+      "value": "准备字节跳动算法面试，1 个月内刷完 LeetCode 热题 HOT 100"
+    },
+    {
+      "name": "scenario_4_text",
+      "value": "12 周减脂 10 斤"
+    },
+    {
+      "name": "scenario_4_prompt",
+      "value": "12 周健身减脂计划，配合科学饮食，目标减重 10 公斤"
+    },
+    {
+      "name": "scenario_5_text",
+      "value": "规划 5 天青岛旅行"
+    },
+    {
+      "name": "scenario_5_prompt",
+      "value": "规划一次 5 天的青岛旅行，包含每日行程、预算明细与必备物品清单"
+    },
+    {
+      "name": "scenario_6_text",
+      "value": "21 天早起打卡"
+    },
+    {
+      "name": "scenario_6_prompt",
+      "value": "养成 6:30 早起的习惯，制定 21 天打卡计划，包含睡前准备与激励奖励"
+    },
+    {
+      "name": "scenario_accessibility_prefix",
+      "value": "场景："
+    },
+    {
+      "name": "ai_onboarding_title",
+      "value": "欢迎使用 AI 智能拆解"
+    },
+    {
+      "name": "ai_onboarding_dismiss",
+      "value": "知道了，开始使用"
+    },
+    {
+      "name": "ai_onboarding_step1_desc",
+      "value": "在输入框中描述你想要达成的目标"
+    },
+    {
+      "name": "ai_onboarding_step2_desc",
+      "value": "点击“开始拆解”让 AI 将目标分解为可执行步骤"
+    },
+    {
+      "name": "ai_onboarding_step3_desc",
+      "value": "将拆解结果一键加入路线，开始行动"
+    },
+    {
+      "name": "ai_task_fallback_prefix",
+      "value": "任务"
+    },
+    {
+      "name": "ai_default_goal_name",
+      "value": "AI 生成目标"
+    },
+    {
+      "name": "ai_edit_task",
+      "value": "微调"
+    },
+    {
+      "name": "ai_delete_task",
+      "value": "删除"
+    },
+    {
+      "name": "ai_delete_confirm_title",
+      "value": "删除任务"
+    },
+    {
+      "name": "ai_delete_confirm_message",
+      "value": "确定要删除这条 AI 生成的任务吗？此操作无法撤销。"
+    },
+    {
+      "name": "ai_edit_task_title",
+      "value": "编辑任务"
+    },
+    {
+      "name": "ai_edit_task_name_hint",
+      "value": "任务名称"
+    },
+    {
+      "name": "ai_edit_task_time_hint",
+      "value": "预估时间（分钟）"
+    },
+    {
+      "name": "toast_task_name_required",
+      "value": "任务名称不能为空"
+    },
+    {
+      "name": "dialog_api_key_go_settings",
+      "value": "可前往「高级设置」配置自定义 Key"
+    },
+    {
+      "name": "dialog_add_to_route_confirm_prefix",
+      "value": "确认将 “"
+    },
+    {
+      "name": "dialog_add_to_route_confirm_suffix",
+      "value": "” 生成到路线页？\n\n包含 "
+    },
+    {
+      "name": "dialog_add_to_route_confirm_task_suffix",
+      "value": " 个任务（每个任务可在目标详情页加入待办）"
+    },
+    {
+      "name": "toast_goal_add_failed_prefix",
+      "value": "目标入库失败："
+    },
+    {
+      "name": "toast_goal_add_failed_suffix",
+      "value": "（已中止）"
+    },
+    {
+      "name": "toast_goal_added_prefix",
+      "value": "已生成项目到路线："
+    },
+    {
+      "name": "toast_goal_added_task_infix",
+      "value": "（含 "
+    },
+    {
+      "name": "toast_goal_added_task_suffix",
+      "value": " 个任务，可在目标详情页加入待办）"
+    },
+    {
+      "name": "home_toast_operation_failed_prefix",
+      "value": "操作失败："
+    },
+    {
+      "name": "home_toast_task_detail_unavailable",
+      "value": "任务详情暂不可用"
+    },
+    {
+      "name": "route_deadline_prefix",
+      "value": "截止 "
+    },
+    {
+      "name": "route_accessibility_goal_prefix",
+      "value": "目标："
+    },
+    {
+      "name": "route_accessibility_progress_infix",
+      "value": "，进度"
+    },
+    {
+      "name": "route_accessibility_milestone_completed_suffix",
+      "value": "个里程碑已完成"
+    },
+    {
+      "name": "goal_detail_dialog_delete_confirm_prefix",
+      "value": "确定要删除目标\""
+    },
+    {
+      "name": "goal_detail_dialog_delete_confirm_suffix",
+      "value": "\"吗？\n此操作将删除该目标下的所有任务、步骤和待办记录。"
+    },
+    {
+      "name": "login_toast_welcome_prefix",
+      "value": "欢迎，"
+    },
+    {
+      "name": "login_toast_login_failed_prefix",
+      "value": "登录失败："
+    },
+    {
+      "name": "login_toast_user_cancelled",
+      "value": "用户取消"
+    },
+    {
+      "name": "login_toast_login_error_prefix",
+      "value": "登录异常："
+    },
+    {
+      "name": "route_recommended_tasks_suffix",
+      "value": "）"
+    },
+    {
+      "name": "goal_detail_task_breakdown_suffix",
+      "value": "）"
+    },
+    {
+      "name": "goal_detail_add_milestone_btn",
+      "value": "+ 手动添加"
+    },
+    {
+      "name": "goal_detail_add_task_btn",
+      "value": "+ 手动添加"
+    },
+    {
+      "name": "goal_detail_add_milestone_title",
+      "value": "添加里程碑"
+    },
+    {
+      "name": "goal_detail_add_task_title",
+      "value": "添加任务"
+    },
+    {
+      "name": "goal_detail_add_milestone_name_label",
+      "value": "里程碑标题"
+    },
+    {
+      "name": "goal_detail_add_milestone_name_hint",
+      "value": "请输入里程碑标题"
+    },
+    {
+      "name": "goal_detail_add_milestone_desc_label",
+      "value": "里程碑描述"
+    },
+    {
+      "name": "goal_detail_add_milestone_desc_hint",
+      "value": "请输入里程碑描述（可选）"
+    },
+    {
+      "name": "goal_detail_add_milestone_week_label",
+      "value": "周数"
+    },
+    {
+      "name": "goal_detail_add_milestone_week_hint",
+      "value": "请输入周数（默认 1）"
+    },
+    {
+      "name": "goal_detail_add_task_name_label",
+      "value": "任务名称"
+    },
+    {
+      "name": "goal_detail_add_task_name_hint",
+      "value": "请输入任务名称"
+    },
+    {
+      "name": "goal_detail_no_l2_task",
+      "value": "该目标尚未生成任务拆解，可手动添加或去 AI 拆解"
+    },
+    {
+      "name": "toast_milestone_added",
+      "value": "里程碑已添加"
+    },
+    {
+      "name": "toast_task_added",
+      "value": "任务已添加"
+    },
+    {
+      "name": "toast_input_empty",
+      "value": "内容不能为空"
+    },
+    {
+      "name": "chat_send",
+      "value": "发送"
+    },
+    {
+      "name": "chat_input_placeholder",
+      "value": "输入你的目标，或对上一轮结果微调..."
+    },
+    {
+      "name": "chat_input_count",
+      "value": "%d/%max"
+    },
+    {
+      "name": "chat_loading_hint",
+      "value": "AI 正在思考..."
+    },
+    {
+      "name": "dev_skill_test_label",
+      "value": "[Dev] 小艺模拟："
+    },
+    {
+      "name": "dev_skill_test_1",
+      "value": "创建减脂目标"
+    },
+    {
+      "name": "dev_skill_test_2",
+      "value": "制定学习计划"
+    },
+    {
+      "name": "ai_image_max_reached",
+      "value": "最多只能选择 3 张图片"
+    },
+    {
+      "name": "ai_image_pick_failed",
+      "value": "图片选择失败，请重试"
+    },
+    {
+      "name": "chat_plan_confirmed",
+      "value": "已加入路线 ✓"
+    },
+    {
+      "name": "chat_add_all_to_todo",
+      "value": "全部加入待办"
+    },
+    {
+      "name": "chat_added_all_to_todo",
+      "value": "已全部加入待办 ✓"
+    },
+    {
+      "name": "toast_confirm_plan_first",
+      "value": "请先确认此方案"
+    },
+    {
+      "name": "toast_tasks_already_in_todo",
+      "value": "全部任务已在待办中"
+    },
+    {
+      "name": "chat_tasks_count_prefix",
+      "value": "共 "
+    },
+    {
+      "name": "chat_tasks_count_suffix",
+      "value": " 个任务"
+    },
+    {
+      "name": "chat_empty_hint",
+      "value": "开始与 AI 助手对话，拆解你的目标"
+    },
+    {
+      "name": "home_items_prefix",
+      "value": "共 "
+    },
+    {
+      "name": "greeting_dawn",
+      "value": "凌晨好"
+    },
+    {
+      "name": "greeting_morning",
+      "value": "早上好"
+    },
+    {
+      "name": "greeting_noon",
+      "value": "中午好"
+    },
+    {
+      "name": "greeting_afternoon",
+      "value": "下午好"
+    },
+    {
+      "name": "greeting_evening",
+      "value": "晚上好"
+    },
+    {
+      "name": "greeting_night",
+      "value": "晚上好"
+    },
+    {
+      "name": "default_nickname",
+      "value": "华为用户"
+    },
+    {
+      "name": "default_signature",
+      "value": "每天进步一点点"
+    },
+    {
+      "name": "unit_minutes",
+      "value": "分钟"
+    },
+    {
+      "name": "acc_default_avatar",
+      "value": "默认头像"
+    },
+    {
+      "name": "acc_notification_toggle",
+      "value": "通知权限开关"
+    },
+    {
+      "name": "acc_expand_advanced",
+      "value": "展开高级设置"
+    },
+    {
+      "name": "acc_hide_password",
+      "value": "隐藏密码"
+    },
+    {
+      "name": "acc_show_password",
+      "value": "显示密码"
+    },
+    {
+      "name": "acc_save_api_key",
+      "value": "保存 API Key"
+    },
+    {
+      "name": "acc_reset_settings",
+      "value": "重置所有设置为默认值"
+    },
+    {
+      "name": "acc_go_login",
+      "value": "去登录按钮"
+    },
+    {
+      "name": "acc_loading",
+      "value": "加载中"
+    },
+    {
+      "name": "acc_cancel_generate",
+      "value": "取消生成按钮"
+    },
+    {
+      "name": "acc_add_to_route",
+      "value": "一键加入路线按钮"
+    },
+    {
+      "name": "acc_expand_edit",
+      "value": "展开编辑按钮"
+    },
+    {
+      "name": "acc_goal_input",
+      "value": "目标输入框，最多 200 字"
+    },
+    {
+      "name": "acc_char_count_prefix",
+      "value": "字数："
+    },
+    {
+      "name": "acc_start_ai",
+      "value": "开始 AI 拆解按钮"
+    },
+    {
+      "name": "acc_dismiss_onboarding",
+      "value": "关闭引导，开始使用"
+    },
+    {
+      "name": "acc_delete",
+      "value": "删除"
+    },
+    {
+      "name": "acc_progress",
+      "value": "进度"
+    },
+    {
+      "name": "acc_category_filter_prefix",
+      "value": "分类筛选："
+    },
+    {
+      "name": "eisenhower_entry_button",
+      "value": "四象限"
+    },
+    {
+      "name": "eisenhower_sheet_title",
+      "value": "待办项"
+    },
+    {
+      "name": "eisenhower_sheet_subtitle",
+      "value": "按重要度与紧急度划分待办优先级"
+    },
+    {
+      "name": "eisenhower_q1_title",
+      "value": "重要且紧急"
+    },
+    {
+      "name": "eisenhower_q1_desc",
+      "value": "立即做"
+    },
+    {
+      "name": "eisenhower_q2_title",
+      "value": "重要不紧急"
+    },
+    {
+      "name": "eisenhower_q2_desc",
+      "value": "计划做"
+    },
+    {
+      "name": "eisenhower_q3_title",
+      "value": "紧急不重要"
+    },
+    {
+      "name": "eisenhower_q3_desc",
+      "value": "快速做"
+    },
+    {
+      "name": "eisenhower_q4_title",
+      "value": "不紧急不重要"
+    },
+    {
+      "name": "eisenhower_q4_desc",
+      "value": "尽量减少"
+    },
+    {
+      "name": "eisenhower_empty_quadrant",
+      "value": "暂无任务"
+    },
+    {
+      "name": "eisenhower_total_prefix",
+      "value": "共 "
+    },
+    {
+      "name": "eisenhower_total_suffix",
+      "value": " 项待决策"
+    },
+    {
+      "name": "page_login",
+      "value": "登陆"
+    },
+    {
+      "name": "form_todo_card_name",
+      "value": "今日待办"
+    },
+    {
+      "name": "form_todo_card_desc",
+      "value": "展示今日待办完成率和任务列表"
+    },
+    {
+      "name": "reason_gesture_detection",
+      "value": "用于智能调整悬浮按钮位置"
+    },
+    {
+      "name": "reason_real_time_activity",
+      "value": "用于番茄钟专注时在锁屏和状态栏显示倒计时实况窗"
+    },
+    {
+      "name": "reason_distributed_sync",
+      "value": "用于发现附近可穿戴设备并发起番茄钟跨端流转"
+    },
+    {
+      "name": "home_title",
+      "value": "首页"
+    },
+    {
+      "name": "home_search_placeholder",
+      "value": "搜索感兴趣的内容"
+    },
+    {
+      "name": "home_refresh",
+      "value": "刷新"
+    },
+    {
+      "name": "mine_title",
+      "value": "我的"
+    },
+    {
+      "name": "mine_user_name",
+      "value": "未登录用户"
+    },
+    {
+      "name": "mine_user_desc",
+      "value": "点击登录享受更多服务"
+    },
+    {
+      "name": "mine_group_account",
+      "value": "账号管理"
+    },
+    {
+      "name": "mine_item_profile",
+      "value": "个人资料"
+    },
+    {
+      "name": "mine_item_security",
+      "value": "账号与安全"
+    },
+    {
+      "name": "mine_item_privacy",
+      "value": "隐私中心"
+    },
+    {
+      "name": "mine_group_app",
+      "value": "应用设置"
+    },
+    {
+      "name": "mine_item_notify",
+      "value": "消息通知"
+    },
+    {
+      "name": "mine_item_theme",
+      "value": "主题模式"
+    },
+    {
+      "name": "mine_item_about",
+      "value": "关于我们"
+    },
+    {
+      "name": "mine_item_clear_cache",
+      "value": "清除缓存"
+    },
+    {
+      "name": "mine_logout",
+      "value": "退出登录"
+    },
+    {
+      "name": "state_loading",
+      "value": "加载中..."
+    },
+    {
+      "name": "state_empty_title",
+      "value": "暂无数据"
+    },
+    {
+      "name": "state_empty_desc",
+      "value": "暂时没有内容，下拉刷新试试"
+    },
+    {
+      "name": "state_error_title",
+      "value": "加载失败"
+    },
+    {
+      "name": "state_error_desc",
+      "value": "网络异常，请检查后重试"
+    },
+    {
+      "name": "state_retry",
+      "value": "重试"
+    },
+    {
+      "name": "state_create",
+      "value": "去创建"
+    },
+    {
+      "name": "card_view_more",
+      "value": "查看更多"
+    },
+    {
+      "name": "logout_confirm_title",
+      "value": "确认退出"
+    },
+    {
+      "name": "logout_confirm_msg",
+      "value": "退出后将无法享受个性化服务，确定退出吗？"
+    },
+    {
+      "name": "btn_login",
+      "value": "华为账号登录"
+    },
+    {
+      "name": "btn_generate",
+      "value": "开始 AI 拆解"
+    },
+    {
+      "name": "btn_generating",
+      "value": "AI 拆解中..."
+    },
+    {
+      "name": "btn_add_to_route",
+      "value": "一键加入路线"
+    },
+    {
+      "name": "btn_add_to_today",
+      "value": "加入待办"
+    },
+    {
+      "name": "btn_back",
+      "value": "< 返回"
+    },
+    {
+      "name": "btn_edit",
+      "value": "编辑"
+    },
+    {
+      "name": "btn_logout",
+      "value": "退出登录"
+    },
+    {
+      "name": "btn_generate_another",
+      "value": "重新拆解"
+    },
+    {
+      "name": "btn_expand_edit",
+      "value": "展开编辑"
+    },
+    {
+      "name": "btn_confirm_join",
+      "value": "确认加入"
+    },
+    {
+      "name": "btn_reset_confirm",
+      "value": "确认重置"
+    },
+    {
+      "name": "empty_home_title",
+      "value": "今日待办空空如也"
+    },
+    {
+      "name": "empty_home_subtitle",
+      "value": "去 AI 拆解，让智能规划你的学习"
+    },
+    {
+      "name": "empty_home_action",
+      "value": "去 AI 生成计划"
+    },
+    {
+      "name": "home_today_todo",
+      "value": "今日待办"
+    },
+    {
+      "name": "home_today_completion_rate",
+      "value": "今日完成率"
+    },
+    {
+      "name": "home_today_completion",
+      "value": "今日完成率"
+    },
+    {
+      "name": "home_today_study_duration",
+      "value": "今日累计时长"
+    },
+    {
+      "name": "home_completed_count",
+      "value": "已完成"
+    },
+    {
+      "name": "home_pending_count",
+      "value": "待完成"
+    },
+    {
+      "name": "home_total_count",
+      "value": "总任务"
+    },
+    {
+      "name": "route_goals_count_prefix",
+      "value": "共 "
+    },
+    {
+      "name": "route_goals_count_suffix",
+      "value": " 个目标"
+    },
+    {
+      "name": "route_avg_completion",
+      "value": "平均完成率"
+    },
+    {
+      "name": "route_total_goals",
+      "value": "总目标"
+    },
+    {
+      "name": "route_completed_goals",
+      "value": "已完成"
+    },
+    {
+      "name": "route_in_progress",
+      "value": "进行中"
+    },
+    {
+      "name": "route_active_goals",
+      "value": "活跃目标"
+    },
+    {
+      "name": "task_detail_step_deleted_temp",
+      "value": "步骤已删除（退出页面后内容将会丢失）"
+    },
+    {
+      "name": "task_detail_step_updated_temp",
+      "value": "步骤已更新（退出页面后内容将会丢失）"
+    },
+    {
+      "name": "task_detail_step_added_temp",
+      "value": "步骤已添加（退出页面后内容将会丢失）"
+    },
+    {
+      "name": "task_detail_toast_step_updated",
+      "value": "步骤已临时更新"
+    },
+    {
+      "name": "task_detail_toast_step_added",
+      "value": "步骤已临时添加"
+    },
+    {
+      "name": "task_detail_toast_step_deleted",
+      "value": "步骤已临时删除"
+    },
+    {
+      "name": "back_press_exit_toast",
+      "value": "再按一次退出应用"
+    },
+    {
+      "name": "acc_quadrant_card",
+      "value": "象限卡片，共 %d 个任务，长按可拖拽排序，点击查看详情"
+    },
+    {
+      "name": "acc_quadrant_task",
+      "value": "任务"
+    },
+    {
+      "name": "acc_login_huawei_button",
+      "value": "华为账号一键登录"
+    },
+    {
+      "name": "acc_login_privacy_checkbox",
+      "value": "同意用户协议与隐私政策"
+    },
+    {
+      "name": "acc_goal_history_filter_pending",
+      "value": "筛选未开始的目标"
+    },
+    {
+      "name": "acc_goal_history_filter_in_progress",
+      "value": "筛选进行中的目标"
+    },
+    {
+      "name": "acc_goal_history_filter_completed",
+      "value": "筛选已完结的目标"
+    },
+    {
+      "name": "acc_goal_history_card",
+      "value": "目标历史卡片"
+    },
+    {
+      "name": "acc_goal_history_back",
+      "value": "返回"
+    },
+    {
+      "name": "page_notifications",
+      "value": "通知中心"
+    },
+    {
+      "name": "notif_empty",
+      "value": "暂无通知"
+    },
+    {
+      "name": "notif_clear_title",
+      "value": "清空通知"
+    },
+    {
+      "name": "notif_clear_message",
+      "value": "确定要清空所有通知吗？"
+    },
+    {
+      "name": "notif_clear_confirm",
+      "value": "清空"
+    },
+    {
+      "name": "notif_clear_all",
+      "value": "清空"
+    },
+    {
+      "name": "notif_read_all",
+      "value": "全部已读"
+    },
+    {
+      "name": "notif_delete",
+      "value": "删除"
+    },
+    {
+      "name": "notif_target_deleted",
+      "value": "关联内容已删除"
+    },
+    {
+      "name": "acc_notification_entry",
+      "value": "通知中心"
+    },
+    {
+      "name": "goal_detail_deadline_label",
+      "value": "截止日期"
+    },
+    {
+      "name": "goal_detail_priority_label",
+      "value": "优先级"
+    },
+    {
+      "name": "goal_detail_deadline_clear",
+      "value": "清除"
+    },
+    {
+      "name": "goal_detail_estimated_time_label",
+      "value": "预计耗时（可选）"
+    },
+    {
+      "name": "goal_detail_estimated_time_hint",
+      "value": "如 30"
+    },
+    {
+      "name": "duration_unit_min",
+      "value": " 分钟"
+    },
+    {
+      "name": "duration_unit_hour",
+      "value": " 小时"
+    },
+    {
+      "name": "duration_unit_day",
+      "value": " 天"
+    },
+    {
+      "name": "duration_preset_half_day",
+      "value": "半天"
+    },
+    {
+      "name": "goal_detail_no_deadline",
+      "value": "未设置截止日期"
+    },
+    {
+      "name": "settings_fab_title",
+      "value": "悬浮快捷按钮"
+    },
+    {
+      "name": "settings_fab_desc",
+      "value": "首页与路线页右下角的添加按钮；长按可隐藏，在此重新开启"
+    },
+    {
+      "name": "settings_section_general",
+      "value": "通用"
+    },
+    {
+      "name": "settings_section_sync",
+      "value": "云同步"
+    },
+    {
+      "name": "settings_section_notification",
+      "value": "通知与提醒"
+    },
+    {
+      "name": "settings_section_data",
+      "value": "数据"
+    },
+    {
+      "name": "settings_vibration",
+      "value": "震动反馈"
+    },
+    {
+      "name": "settings_vibration_desc",
+      "value": "任务、步骤完成与番茄钟结束时的震动提示"
+    },
+    {
+      "name": "toast_fab_hidden",
+      "value": "已隐藏，可在「设置 → 悬浮快捷按钮」中重新开启"
+    },
+    {
+      "name": "home_add_todo_title",
+      "value": "添加待办"
+    },
+    {
+      "name": "home_add_todo_placeholder",
+      "value": "要做什么？"
+    },
+    {
+      "name": "home_add_todo_quadrant_label",
+      "value": "放在哪一格"
+    },
+    {
+      "name": "empty_route_filtered_title",
+      "value": "该分类下还没有目标"
+    },
+    {
+      "name": "empty_route_filtered_subtitle",
+      "value": "换个分类看看，或把目标归到这一类"
+    },
+    {
+      "name": "empty_route_filtered_action",
+      "value": "查看全部"
+    },
+    {
+      "name": "empty_route_placeholder",
+      "value": "说说你想达成什么…"
+    },
+    {
+      "name": "empty_route_howto_title",
+      "value": "起势怎么用"
+    },
+    {
+      "name": "empty_route_step1",
+      "value": "说一句你想达成的事"
+    },
+    {
+      "name": "empty_route_step2",
+      "value": "AI 拆成一条可执行的路线"
+    },
+    {
+      "name": "empty_route_step3",
+      "value": "每天推进一点，进度自动累积"
+    },
+    {
+      "name": "empty_route_examples_title",
+      "value": "试试这些"
+    },
+    {
+      "name": "empty_route_example1",
+      "value": "3 个月跑完半马"
+    },
+    {
+      "name": "empty_route_example2",
+      "value": "30 天读完 3 本书"
+    },
+    {
+      "name": "empty_route_example3",
+      "value": "6 个月通过 CET-6"
+    },
+    {
+      "name": "liveview_title_focus",
+      "value": "专注中"
+    },
+    {
+      "name": "liveview_title_break",
+      "value": "休息中"
+    },
+    {
+      "name": "liveview_state_running",
+      "value": "计时中"
+    },
+    {
+      "name": "liveview_state_paused",
+      "value": "已暂停"
+    },
+    {
+      "name": "btn_complete_all_steps",
+      "value": "完成全部步骤"
+    },
+    {
+      "name": "btn_completed_undo",
+      "value": "已完成 · 取消"
+    },
+    {
+      "name": "task_detail_steps_progress_prefix",
+      "value": "已完成 "
+    },
+    {
+      "name": "task_detail_steps_progress_suffix",
+      "value": " 步"
+    },
+    {
+      "name": "task_detail_complete_all_hint",
+      "value": "会一并完成上面所有步骤"
+    }
   ]
 }

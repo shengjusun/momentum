@@ -5,6 +5,7 @@
  */
 
 import { Logger } from '../utils/Logger'
+import { TaskPriority } from '../../model/BaseTypes'
 
 /**
  * 事件类型枚举
@@ -22,8 +23,24 @@ export enum EventType {
   GOAL_RENAMED = 'GOAL_RENAMED',
   /** 任务信息被更新（payload: TaskInfoUpdatedPayload） */
   TASK_INFO_UPDATED = 'TASK_INFO_UPDATED',
+  /** 番茄钟专注轮完成（payload: FocusCompletedPayload） */
+  FOCUS_COMPLETED = 'FOCUS_COMPLETED',
   /** 任务完成状态被反向同步（payload: TaskCompletionSyncedPayload） */
   TASK_COMPLETION_SYNCED = 'TASK_COMPLETION_SYNCED',
+  /** 目标达成（progress 首次达 100，仅用户本机操作链触发；payload: GoalCompletedPayload） */
+  GOAL_COMPLETED = 'GOAL_COMPLETED',
+  /**
+   * 目标进度（progress）实际发生变化（payload: GoalProgressChangedPayload）
+   *
+   * 为什么要单独一个事件（2026-09-17）：
+   *   路线页的 `goalDataSource` 是 `filteredGoals` 的**独立快照**，LazyForEach 只在
+   *   收到数据源通知时才重读数据。原先唯一的同步触发是 `@Local goalCount` 变化，
+   *   而 `goalCount` 只统计**数量**、`filteredGoals`(@Computed) 也**不依赖单个目标的
+   *   progress** ⇒ **仅进度变化时路线页根本不会重渲染**，卡片上的进度环永远停在旧值
+   *   （症状：在目标详情/任务详情里勾完步骤，回到路线页进度环没动 —— "不同步"根因）。
+   *   这里由写 progress 的**唯一出口**主动广播，路线页订阅后重同步数据源。
+   */
+  GOAL_PROGRESS_CHANGED = 'GOAL_PROGRESS_CHANGED',
   /** 请求所有 VM 清空内存数据（payload: void） */
   CLEAR_ALL_REQUESTED = 'CLEAR_ALL_REQUESTED',
   /** 请求所有 VM 刷盘（payload: void） */
@@ -48,6 +65,18 @@ export interface TaskInfoUpdatedPayload {
   taskId: string
   newTitle: string
   newEstimatedTime: number
+  /** 新优先级；缺省表示本次不变更（向后兼容旧调用方） */
+  newPriority?: TaskPriority
+  /** 新截止时间戳（毫秒），0=清除截止；缺省表示本次不变更 */
+  newDeadline?: number
+}
+
+/** FOCUS_COMPLETED 事件载荷（番茄钟专注轮完成 → 任务聚焦统计联动） */
+export interface FocusCompletedPayload {
+  /** L2 任务 ID（对应 L4 待办的 relatedTaskId） */
+  taskId: string
+  /** 本次专注时长（毫秒） */
+  focusMillis: number
 }
 
 /** TASK_COMPLETION_SYNCED 事件载荷 */
@@ -64,6 +93,32 @@ export interface GoalRemovedPayload {
 /** TASK_REMOVED 事件载荷 */
 export interface TaskRemovedPayload {
   taskId: string
+}
+
+/** GOAL_COMPLETED 事件载荷 */
+export interface GoalCompletedPayload {
+  goalId: string
+}
+
+/**
+ * GOAL_PROGRESS_CHANGED 事件载荷
+ * progress 为变化后的最新值（0-100），供订阅方按需比对/展示
+ */
+export interface GoalProgressChangedPayload {
+  goalId: string
+  progress: number
+}
+
+/** 工厂函数：构造 GoalProgressChangedPayload */
+export function buildGoalProgressChangedPayload(goalId: string, progress: number): GoalProgressChangedPayload {
+  const payload: GoalProgressChangedPayload = { goalId: goalId, progress: progress }
+  return payload
+}
+
+/** 工厂函数：构造 GoalCompletedPayload */
+export function buildGoalCompletedPayload(goalId: string): GoalCompletedPayload {
+  const payload: GoalCompletedPayload = { goalId: goalId }
+  return payload
 }
 
 /** 工厂函数：构造 GoalRemovedPayload */

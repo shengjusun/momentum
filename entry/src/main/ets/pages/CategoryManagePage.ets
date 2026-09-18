@@ -11,12 +11,14 @@
  */
 
 import { promptAction } from '@kit.ArkUI'
+import { DimensConstants } from '../common/constants/DimensConstants'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { Logger } from '../common/utils/Logger'
 import { routeVM } from '../viewmodel/RoutePageViewModel'
 import { globalNavStack } from '../common/RouterManager'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
+import { MotionHelper } from '../common/utils/MotionHelper'
 
 /** 分类统计项 */
 class CategoryCount {
@@ -48,8 +50,8 @@ export struct CategoryManagePage {
    */
   private buildCategoryList(): CategoryCount[] {
     const list: CategoryCount[] = []
-    for (let i: number = 0; i < routeVM.goals.length; i++) {
-      const cat: string = routeVM.goals[i].category.trim()
+    for (let i: number = 0; i < routeVM.liveGoals.length; i++) {
+      const cat: string = routeVM.liveGoals[i].category.trim()
       if (cat.length === 0) continue
       let found: boolean = false
       for (let j: number = 0; j < list.length; j++) {
@@ -139,7 +141,7 @@ export struct CategoryManagePage {
         .padding({ top: 40, bottom: 40 })
         .alignItems(HorizontalAlign.Center)
         .backgroundColor($r('app.color.bg_card'))
-        .borderRadius(16)
+        .borderRadius(DimensConstants.RADIUS_L)
       } else {
         Column({ space: 0 }) {
           ForEach(this.buildCategoryList(), (item: CategoryCount): void => {
@@ -156,7 +158,7 @@ export struct CategoryManagePage {
                   .fontColor($r('app.color.text_primary'))
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text(item.count.toString() + ' 个目标')
+                Text(item.count.toString() + getContext(this).resourceManager.getStringSync($r('app.string.chat_tasks_count_suffix').id))
                   .fontSize(CommonConstants.FONT_SIZE_XS)
                   .fontColor($r('app.color.text_tertiary'))
               }
@@ -169,7 +171,7 @@ export struct CategoryManagePage {
                 .textAlign(TextAlign.Center)
                 .constraintSize({ minWidth: 44, minHeight: 44 })
                 .padding({ left: 10, right: 10 })
-                .borderRadius(12)
+                .borderRadius(DimensConstants.RADIUS_M)
                 .backgroundColor($r('app.color.primary_color_bg'))
                 .onClick((): void => {
                   this.openRename(item.name)
@@ -181,7 +183,7 @@ export struct CategoryManagePage {
                 .textAlign(TextAlign.Center)
                 .constraintSize({ minWidth: 44, minHeight: 44 })
                 .padding({ left: 10, right: 10 })
-                .borderRadius(12)
+                .borderRadius(DimensConstants.RADIUS_M)
                 .backgroundColor($r('app.color.bg_tag'))
                 .onClick((): void => {
                   this.openMerge(item.name)
@@ -201,7 +203,7 @@ export struct CategoryManagePage {
         }
         .width('100%')
         .backgroundColor($r('app.color.bg_card'))
-        .borderRadius(16)
+        .borderRadius(DimensConstants.RADIUS_L)
       }
     }
     .width('100%')
@@ -224,7 +226,7 @@ export struct CategoryManagePage {
             .fontColor([$r('app.color.text_secondary')])
             .width(32)
             .height(32)
-            .borderRadius(16)
+            .borderRadius(DimensConstants.RADIUS_L)
             .backgroundColor($r('app.color.bg_tag'))
             .onClick((): void => {
               this.closeDialog()
@@ -247,7 +249,7 @@ export struct CategoryManagePage {
         })
           .fontSize(CommonConstants.FONT_SIZE_BODY)
           .height(44)
-          .borderRadius(10)
+          .borderRadius(DimensConstants.RADIUS_M)
           .backgroundColor($r('app.color.bg_tag'))
           .margin({ top: 16 })
           .onChange((value: string): void => {
@@ -283,13 +285,16 @@ export struct CategoryManagePage {
       .width('85%')
       .padding(20)
       .backgroundColor($r('app.color.bg_card'))
-      .borderRadius(16)
+      .borderRadius(DimensConstants.RADIUS_L)
+      // 位移/缩放只能挂内层卡片：遮罩是同一棵树的背景层，跟着移动会带出错误的空间暗示
+      .transition(MotionHelper.dialogCard())
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .backgroundColor($r('app.color.overlay_mask'))
+    .transition(MotionHelper.overlayFade())
   }
 
   build() {

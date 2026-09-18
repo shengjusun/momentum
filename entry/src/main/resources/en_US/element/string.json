@@ -1,561 +1,3408 @@
 {
   "string": [
-    { "name": "module_desc", "value": "MyApplication main module" },
-    { "name": "ability_desc", "value": "Application entry Ability" },
-    { "name": "ability_label", "value": "Momentum" },
-    { "name": "reason_internet", "value": "For network requests to fetch data" },
-    { "name": "tab_home", "value": "Home" },
-    { "name": "tab_route", "value": "Route" },
-    { "name": "tab_ai", "value": "AI" },
-    { "name": "tab_mine", "value": "Mine" },
-    { "name": "page_home", "value": "Home" },
-    { "name": "page_route", "value": "Route" },
-    { "name": "page_ai", "value": "AI Breakdown" },
-    { "name": "page_profile", "value": "Profile" },
-    { "name": "loading", "value": "Loading..." },
-    { "name": "load_failed", "value": "Load failed" },
-    { "name": "retry", "value": "Retry" },
-    { "name": "avatar", "value": "Avatar" },
-    { "name": "common_cancel", "value": "Cancel" },
-    { "name": "common_close", "value": "Close" },
-    { "name": "common_confirm", "value": "Confirm" },
-    { "name": "reason_notification", "value": "For study check-in reminders and task notifications" },
-    { "name": "reason_reminder", "value": "For task deadline reminders" },
-    { "name": "reason_vibrate", "value": "For vibration feedback when tasks are completed" },
-    { "name": "reason_awareness", "value": "For sensing grip posture to auto-adjust floating button position" },
-    { "name": "app_name", "value": "Momentum" },
-    { "name": "btn_logging_in", "value": "Logging in..." },
-    { "name": "btn_save", "value": "Save" },
-    { "name": "btn_delete", "value": "Delete" },
-    { "name": "btn_go_login", "value": "Go to Login" },
-    { "name": "btn_go_ai", "value": "Go to AI" },
-    { "name": "btn_go_ai_generate", "value": "Go to AI Breakdown" },
-    { "name": "btn_cancel_generate", "value": "Cancel" },
-    { "name": "btn_confirm_delete", "value": "Confirm Delete" },
-    { "name": "btn_add_step", "value": "Add" },
-    { "name": "btn_mark_complete", "value": "Mark Complete" },
-    { "name": "btn_completed", "value": "Completed" },
-    { "name": "btn_sync_now", "value": "Sync Now" },
-    { "name": "btn_syncing", "value": "Syncing..." },
-    { "name": "btn_exit", "value": "Exit" },
-    { "name": "btn_force_exit", "value": "Force Exit" },
-    { "name": "btn_go_settings", "value": "Go to Settings" },
-    { "name": "btn_close", "value": "Close" },
-    { "name": "btn_create_goal", "value": "Create Goal" },
-    { "name": "btn_confirm_plan", "value": "Confirm Plan" },
-    { "name": "empty_route_title", "value": "No goals yet" },
-    { "name": "empty_route_subtitle", "value": "Use AI to break down and generate your first goal" },
-    { "name": "empty_milestone", "value": "No milestones" },
-    { "name": "empty_steps", "value": "No steps yet" },
-    { "name": "empty_related_tasks", "value": "No related tasks" },
-    { "name": "empty_no_step_hint", "value": "Add your first step below" },
-    { "name": "ai_guide_title", "value": "Enter your goal, AI will break it down into executable steps" },
-    { "name": "ai_guide_step1", "value": "Enter the goal you want to achieve" },
-    { "name": "ai_guide_step2", "value": "AI intelligently breaks it down into executable steps" },
-    { "name": "ai_guide_step3", "value": "Add to route with one click and start executing" },
-    { "name": "ai_input_title", "value": "Enter your project goal" },
-    { "name": "ai_input_placeholder", "value": "e.g., develop a HarmonyOS weather app..." },
-    { "name": "ai_input_collapsed_hint", "value": "AI goal breakdown" },
-    { "name": "ai_select_scenario", "value": "Or select a scenario" },
-    { "name": "ai_loading_text", "value": "AI is breaking down..." },
-    { "name": "ai_loading_time_hint", "value": "Usually takes 5-15 seconds" },
-    { "name": "ai_error_title", "value": "Breakdown failed" },
-    { "name": "ai_login_required_title", "value": "Please log in first" },
-    { "name": "ai_login_required_desc", "value": "Log in to use AI breakdown" },
-    { "name": "ai_result_summary", "value": "Broke down" },
-    { "name": "ai_result_tasks_suffix", "value": " tasks for you" },
-    { "name": "ai_add_to_route_prefix", "value": "Add to route (" },
-    { "name": "ai_add_to_route_suffix", "value": " tasks)" },
-    { "name": "dialog_delete_title", "value": "Confirm delete" },
-    { "name": "dialog_delete_message", "value": "Deleted data cannot be recovered. Confirm deletion?" },
-    { "name": "dialog_delete_task_title", "value": "Delete task" },
-    { "name": "dialog_unsaved_title", "value": "Unsaved changes" },
-    { "name": "dialog_unsaved_message", "value": "You have unsaved changes. Are you sure you want to leave?" },
-    { "name": "dialog_logout_title", "value": "Log Out" },
-    { "name": "dialog_logout_message", "value": "Cloud data will not be lost after logout. Log in again to restore." },
-    { "name": "dialog_logout_no_sync_message", "value": "Cloud sync is disabled. Logging out will clear local data and it cannot be recovered. Continue?" },
-    { "name": "dialog_api_key_invalid", "value": "Invalid API Key" },
-    { "name": "dialog_add_to_route_title", "value": "Add to Route" },
-    { "name": "dialog_reset_title", "value": "Reset Settings" },
-    { "name": "dialog_reset_message", "value": "Reset will clear all local configurations and cannot be undone" },
-    { "name": "dialog_sync_failed_title", "value": "Data Sync Failed" },
-    { "name": "dialog_sync_failed_message", "value": "Data sync failed. Exiting may cause data loss. Continue?" },
-    { "name": "dialog_goal_action_title", "value": "Goal actions" },
-    { "name": "dialog_edit_goal", "value": "Edit goal" },
-    { "name": "dialog_goal_review", "value": "AI Review" },
-    { "name": "dialog_goal_review_title", "value": "Goal Review Report" },
-    { "name": "review_loading", "value": "AI is analyzing your goal data, please wait..." },
-    { "name": "toast_review_failed", "value": "Review generation failed, please try again" },
-    { "name": "dialog_delete_goal", "value": "Delete goal" },
-    { "name": "toast_delete_failed", "value": "Delete failed" },
-    { "name": "dialog_task_action_title", "value": "Task actions" },
-    { "name": "dialog_edit_task", "value": "Edit task" },
-    { "name": "dialog_delete_task", "value": "Delete task" },
-    { "name": "dialog_delete_task_message", "value": "Are you sure you want to delete this task? This cannot be undone." },
-    { "name": "dialog_cancel", "value": "Cancel" },
-    { "name": "dialog_confirm", "value": "Confirm" },
-    { "name": "dialog_leave_edit", "value": "Keep editing" },
-    { "name": "dialog_leave_page", "value": "Leave" },
-    { "name": "edit_task_panel_title", "value": "Edit task" },
-    { "name": "edit_task_name_hint", "value": "Task name" },
-    { "name": "edit_task_duration_hint", "value": "Estimated duration (minutes)" },
-    { "name": "edit_task_save", "value": "Save" },
-    { "name": "edit_task_cancel", "value": "Cancel" },
-    { "name": "toast_task_updated", "value": "Task updated" },
-    { "name": "home_empty_message", "value": "No todos yet. Let AI break down a goal!" },
-    { "name": "home_empty_cta", "value": "Go to AI" },
-    { "name": "category_all", "value": "All" },
-    { "name": "category_programming", "value": "Programming" },
-    { "name": "category_language", "value": "Language" },
-    { "name": "category_fitness", "value": "Fitness" },
-    { "name": "category_reading", "value": "Reading" },
-    { "name": "category_ai", "value": "AI Generated" },
-    { "name": "settings_not_set", "value": "Not set" },
-    { "name": "settings_notification_on", "value": "On" },
-    { "name": "settings_notification_off", "value": "Off" },
-    { "name": "settings_privacy_agreed", "value": "Agreed" },
-    { "name": "settings_privacy_not_agreed", "value": "Not agreed" },
-    { "name": "settings_huawei_user", "value": "Huawei User" },
-    { "name": "ai_phase_basic", "value": "Basic" },
-    { "name": "ai_phase_core", "value": "Core" },
-    { "name": "ai_phase_sprint", "value": "Sprint" },
-    { "name": "ai_phase_empty", "value": "No tasks in this phase" },
-    { "name": "ai_week_prefix", "value": "Week " },
-    { "name": "ai_week_suffix", "value": "" },
-    { "name": "ai_default_task", "value": "Task" },
-    { "name": "ai_description", "value": "Generated by AI" },
-    { "name": "ai_category", "value": "AI Generated" },
-    { "name": "ai_expand_steps", "value": "Expand steps, " },
-    { "name": "ai_collapse_steps", "value": "Collapse steps" },
-    { "name": "ai_icon", "value": "AI breakdown icon" },
-    { "name": "ai_key_invalid", "value": "Invalid Key" },
-    { "name": "task_unnamed_step", "value": "unnamed step" },
-    { "name": "task_priority_high", "value": "High" },
-    { "name": "task_priority_low", "value": "Low" },
-    { "name": "acc_milestone_tag", "value": "Milestone tag" },
-    { "name": "acc_l2_task_card", "value": "Task card" },
-    { "name": "acc_related_task", "value": "Related task" },
-    { "name": "acc_goal_header", "value": "Goal info" },
-    { "name": "acc_add_todo", "value": "Add to todo" },
-    { "name": "acc_edit_goal", "value": "Edit goal" },
-    { "name": "acc_delete_goal", "value": "Delete goal" },
-    { "name": "acc_back_button", "value": "Back button" },
-    { "name": "toast_save_success", "value": "Saved" },
-    { "name": "toast_save_failed", "value": "Save failed" },
-    { "name": "toast_delete_success", "value": "Deleted" },
-    { "name": "toast_add_success", "value": "Added to todo" },
-    { "name": "toast_copy_success", "value": "Copied to clipboard" },
-    { "name": "toast_api_key_saved", "value": "API Key saved" },
-    { "name": "toast_api_key_invalid", "value": "Invalid API Key, please check" },
-    { "name": "toast_login_required", "value": "Please log in first" },
-    { "name": "toast_input_required", "value": "Please enter a goal first" },
-    { "name": "toast_no_tasks_to_add", "value": "No tasks to add" },
-    { "name": "toast_cancelled", "value": "Generation cancelled" },
-    { "name": "toast_step_empty", "value": "Step cannot be empty" },
-    { "name": "toast_step_updated", "value": "Step updated" },
-    { "name": "toast_step_added", "value": "Step added" },
-    { "name": "toast_step_deleted", "value": "Step deleted" },
-    { "name": "toast_task_completed", "value": "Task completed" },
-    { "name": "toast_task_uncompleted", "value": "Task reopened" },
-    { "name": "toast_task_extract_failed", "value": "Task extraction failed: no task found" },
-    { "name": "toast_task_already_in_todo", "value": "Task already in todo" },
-    { "name": "toast_goal_updated", "value": "Goal updated" },
-    { "name": "toast_goal_deleted", "value": "Goal deleted" },
-    { "name": "toast_task_deleted", "value": "Task deleted" },
-    { "name": "toast_sync_success", "value": "Synced" },
-    { "name": "toast_sync_error", "value": "Sync error" },
-    { "name": "toast_sync_disabled", "value": "Cloud sync is disabled. Please enable it in Settings" },
-    { "name": "toast_reset_done", "value": "All settings reset" },
-    { "name": "toast_update_failed_retry", "value": "Update failed, try again" },
-    { "name": "toast_delete_failed_retry", "value": "Delete failed, try again" },
-    { "name": "toast_privacy_agreed", "value": "Privacy policy agreed" },
-    { "name": "toast_privacy_revoked", "value": "Privacy policy revoked" },
-    { "name": "toast_notification_failed", "value": "Notification setup failed" },
-    { "name": "toast_notification_error", "value": "Notification setup error" },
-    { "name": "page_goal_detail", "value": "Goal Detail" },
-    { "name": "page_task_detail", "value": "Task Detail" },
-    { "name": "page_goal_history", "value": "Goal History" },
-    { "name": "page_settings", "value": "Settings" },
-    { "name": "settings_api_key_label", "value": "Enter DeepSeek API Key" },
-    { "name": "settings_advanced", "value": "Advanced Settings" },
-    { "name": "settings_reset", "value": "Reset Settings" },
-    { "name": "settings_about", "value": "About" },
-    { "name": "settings_privacy", "value": "Privacy Policy" },
-    { "name": "settings_privacy_hint", "value": "View policy details >" },
-    { "name": "settings_delete_all_data", "value": "Delete All Data" },
-    { "name": "settings_delete_all_data_desc", "value": "Erase all local and cloud data. This cannot be undone." },
-    { "name": "dialog_delete_all_title", "value": "Delete all data?" },
-    { "name": "dialog_delete_all_message", "value": "This will permanently erase all goals, tasks, AI breakdowns, focus stats and notifications stored on this device and in the cloud. This cannot be undone. Your login and basic settings will be kept." },
-    { "name": "toast_delete_all_success", "value": "All data deleted" },
-    { "name": "toast_delete_all_failed", "value": "Failed to delete, please retry" },
-    { "name": "settings_notification", "value": "Notification Permission" },
-    { "name": "settings_notification_desc", "value": "Toggle app notifications" },
-    { "name": "settings_version", "value": "Version" },
-    { "name": "settings_current_prefix", "value": "Current: " },
-    { "name": "settings_app_settings", "value": "App Settings" },
-    { "name": "loading_data", "value": "Loading..." },
-    { "name": "loading_ai", "value": "AI is breaking down..." },
-    { "name": "privacy_agree_prefix", "value": "By logging in, you agree to" },
-    { "name": "privacy_link", "value": "Privacy Policy" },
-    { "name": "privacy_agree_title", "value": "Privacy Policy" },
-    { "name": "privacy_agree_ack", "value": "I understand" },
-    { "name": "privacy_gate_notice", "value": "Please read and agree to the Privacy Policy to continue. Your data stays on this device by default." },
-    { "name": "privacy_gate_agree", "value": "Agree and Continue" },
-    { "name": "privacy_gate_disagree", "value": "Disagree and Exit" },
-    { "name": "priority_high", "value": "High" },
-    { "name": "priority_medium", "value": "Medium" },
-    { "name": "priority_low", "value": "Low" },
-    { "name": "login_slogan", "value": "Goal management, step by step" },
-    { "name": "login_not_logged_in", "value": "Not logged in" },
-    { "name": "login_please_login", "value": "Please log in on the splash screen" },
-    { "name": "login_already_logged_in", "value": "Logged in" },
-    { "name": "login_brand_name_cn", "value": "Momentum" },
-    { "name": "login_value_prop", "value": "AI-driven, master your time" },
-    { "name": "login_btn_huawei", "value": "Huawei Account Login" },
-    { "name": "login_privacy_check_prefix", "value": "I have read and agree to" },
-    { "name": "login_privacy_link_user", "value": "User Agreement" },
-    { "name": "login_privacy_check_and", "value": "and" },
-    { "name": "profile_data_overview_title", "value": "Task Data Overview" },
-    { "name": "profile_overview_ring_label", "value": "Avg Progress" },
-    { "name": "profile_stat_todo", "value": "To Start" },
-    { "name": "profile_stat_pending", "value": "Pending" },
-    { "name": "profile_stat_in_progress", "value": "In Progress" },
-    { "name": "profile_stat_completed", "value": "Completed" },
-    { "name": "profile_empty_overview_hint", "value": "No project data yet. Let AI break down your first goal!" },
-    { "name": "goal_history_empty", "value": "No goals yet. Create one in AI page" },
-    { "name": "goal_history_empty_completed", "value": "No completed goals in this status" },
-    { "name": "goal_history_empty_in_progress", "value": "No in-progress goals in this status" },
-    { "name": "home_greeting_suffix", "value": ", friend" },
-    { "name": "home_encourage_text", "value": "Keep it up today!" },
-    { "name": "home_estimated_prefix", "value": "Est. " },
-    { "name": "home_items_suffix", "value": " items" },
-    { "name": "home_delete_task_title", "value": "Delete Task" },
-    { "name": "home_swipe_delete", "value": "Delete" },
-    { "name": "home_suggestion_button", "value": "AI Suggestion" },
-    { "name": "suggestion_sheet_title", "value": "Today's Priority Suggestion" },
-    { "name": "suggestion_loading", "value": "AI is analyzing today's todos, please wait..." },
-    { "name": "toast_suggestion_failed", "value": "Suggestion generation failed, please try again" },
-    { "name": "toast_suggestion_empty", "value": "No pending todos yet, add tasks first" },
-    { "name": "route_my_route", "value": "My Route" },
-    { "name": "route_milestone_completed_suffix", "value": " milestones completed" },
-    { "name": "route_recommended_tasks", "value": "Recommended tasks (" },
-    { "name": "route_added", "value": "Added" },
-    { "name": "route_add_todo", "value": "Add to todo" },
-    { "name": "route_expand_steps", "value": "Expand steps" },
-    { "name": "route_collapse_steps", "value": "Collapse steps" },
-    { "name": "route_expand_tasks", "value": "Expand tasks" },
-    { "name": "route_collapse_tasks", "value": "Collapse tasks" },
-    { "name": "route_expand_milestone", "value": "Expand milestone" },
-    { "name": "route_collapse_milestone", "value": "Collapse milestone" },
-    { "name": "route_already_in_todo", "value": "Already in todo" },
-    { "name": "route_not_completed", "value": "Not completed" },
-    { "name": "route_task_data_error", "value": "Goal data error" },
-    { "name": "route_week_prefix", "value": "Week " },
-    { "name": "route_week_suffix", "value": "" },
-    { "name": "route_total_steps_prefix", "value": "Total " },
-    { "name": "route_total_steps_suffix", "value": " steps" },
-    { "name": "route_estimated_prefix", "value": "Est. " },
-    { "name": "route_estimated_suffix", "value": " min" },
-    { "name": "goal_detail_milestone_progress", "value": "Milestone Progress" },
-    { "name": "goal_detail_no_milestone", "value": "No milestone progress generated for this goal" },
-    { "name": "goal_detail_task_breakdown", "value": "Task Breakdown (" },
-    { "name": "goal_detail_task_label", "value": "Tasks" },
-    { "name": "goal_detail_view_task_detail", "value": "View Task Detail" },
-    { "name": "goal_detail_click_expand", "value": "Click to expand steps" },
-    { "name": "goal_detail_related_tasks", "value": "Related Tasks" },
-    { "name": "goal_detail_related_hint", "value": "Auto-linked during AI breakdown. View on home page." },
-    { "name": "goal_detail_edit_goal", "value": "Edit Goal" },
-    { "name": "goal_detail_goal_name", "value": "Goal Name" },
-    { "name": "goal_detail_goal_name_hint", "value": "Enter goal name" },
-    { "name": "goal_detail_description", "value": "Description" },
-    { "name": "goal_detail_description_hint", "value": "Enter description" },
-    { "name": "goal_detail_category", "value": "Category" },
-    { "name": "goal_detail_category_hint", "value": "e.g., Programming, Fitness, Reading" },
-    { "name": "goal_detail_goal_name_empty", "value": "Goal name cannot be empty" },
-    { "name": "goal_detail_estimated_time", "value": "Estimated Time" },
-    { "name": "goal_detail_milestone_label", "value": "Milestone" },
-    { "name": "goal_detail_related_task_label", "value": "Related Task" },
-    { "name": "goal_detail_completed", "value": "Completed" },
-    { "name": "goal_detail_in_progress", "value": "In Progress" },
-    { "name": "goal_detail_completed_prefix", "value": "Completed " },
-    { "name": "goal_detail_mark_complete", "value": "Mark Complete" },
-    { "name": "goal_detail_mark_incomplete", "value": "Mark Incomplete" },
-    { "name": "goal_detail_no_milestone_dialog", "value": "No milestone progress yet. Go to AI to regenerate?" },
-    { "name": "goal_detail_add_todo", "value": "+ Todo" },
-    { "name": "task_detail_execution_steps", "value": "Steps" },
-    { "name": "task_detail_steps_count_prefix", "value": "" },
-    { "name": "task_detail_steps_count_suffix", "value": " steps" },
-    { "name": "task_detail_unlinked_task", "value": "Unlinked task" },
-    { "name": "task_detail_unlinked_hint", "value": "This todo cannot be traced to a goal. Consider re-adding." },
-    { "name": "task_detail_expired_link", "value": "Link expired" },
-    { "name": "task_detail_expired_hint", "value": "The linked goal/task was deleted. Steps cannot be shown." },
-    { "name": "task_detail_estimated_time", "value": "Est." },
-    { "name": "task_detail_created_at", "value": "Created" },
-    { "name": "task_detail_add_step_hint", "value": "Add a step..." },
-    { "name": "task_detail_edit_step_hint", "value": "Edit step..." },
-    { "name": "task_detail_edit_step_placeholder", "value": "Edit step..." },
-    { "name": "task_detail_add_step_input", "value": "Step input" },
-    { "name": "task_detail_add_step_button", "value": "Add step button" },
-    { "name": "task_detail_mark_complete_button", "value": "Mark task complete" },
-    { "name": "task_detail_confirm_edit_acc", "value": "Confirm edit" },
-    { "name": "task_detail_cancel_edit_acc", "value": "Cancel edit" },
-    { "name": "task_detail_edit_step_acc", "value": "Edit step" },
-    { "name": "task_detail_delete_step_acc", "value": "Delete step" },
-    { "name": "task_detail_complete_prefix_acc", "value": "Toggle " },
-    { "name": "task_detail_unnamed_step", "value": "unnamed step" },
-    { "name": "task_detail_priority_high_cn", "value": "High" },
-    { "name": "task_detail_priority_low_cn", "value": "Low" },
-    { "name": "task_detail_unknown_status", "value": "Unknown" },
-    { "name": "task_detail_min_step_warning", "value": "At least 1 step is required." },
-    { "name": "task_detail_delete_step_message", "value": "Are you sure you want to delete this step? This cannot be undone." },
-    { "name": "task_detail_confirm_edit", "value": "Confirm Edit" },
-    { "name": "task_detail_cancel_edit", "value": "Cancel Edit" },
-    { "name": "task_detail_edit_step", "value": "Edit Step" },
-    { "name": "task_detail_delete_step", "value": "Delete Step" },
-    { "name": "task_detail_update_failed_retry", "value": "Update failed, try again" },
-    { "name": "task_detail_add_failed_retry", "value": "Add step failed, try again" },
-    { "name": "task_detail_step_update_failed_retry", "value": "Step operation failed, try again" },
-    { "name": "task_detail_delete_failed_prefix", "value": "Delete failed: " },
-    { "name": "task_detail_update_failed_prefix", "value": "Update failed: " },
-    { "name": "sync_not_synced", "value": "Not synced" },
-    { "name": "sync_just_now", "value": "Just synced" },
-    { "name": "sync_minutes_ago_suffix", "value": " min ago" },
-    { "name": "sync_hours_ago_suffix", "value": " hours ago" },
-    { "name": "sync_days_ago_suffix", "value": " days ago" },
-    { "name": "default_unnamed", "value": "Unnamed" },
-    { "name": "default_unnamed_task", "value": "Unnamed task" },
-    { "name": "default_unnamed_goal", "value": "Unnamed goal" },
-    { "name": "default_unnamed_milestone", "value": "Unnamed milestone" },
-    { "name": "default_no_description", "value": "No description" },
-    { "name": "default_unknown", "value": "Unknown" },
-    { "name": "default_other_category", "value": "Other" },
-    { "name": "goal_detail_from_prefix", "value": "From: " },
-    { "name": "goal_detail_status_label", "value": "Status: " },
-    { "name": "goal_detail_progress_label", "value": "Progress: " },
-    { "name": "goal_detail_week_prefix_space", "value": "Week " },
-    { "name": "goal_detail_week_suffix_space", "value": "" },
-    { "name": "goal_detail_completed_count_prefix", "value": "Completed " },
-    { "name": "goal_detail_delete_task_message", "value": "Are you sure you want to delete this task? Related todo records will also be deleted. This cannot be undone." },
-    { "name": "goal_detail_status_update_failed", "value": "Status update failed, try again" },
-    { "name": "goal_detail_update_failed_prefix", "value": "Update failed: " },
-    { "name": "goal_detail_task_data_invalid", "value": "Task data invalid" },
-    { "name": "goal_detail_task_not_found", "value": "Task no longer exists. Please refresh home page." },
-    { "name": "goal_detail_navigate_failed_prefix", "value": "Navigation failed: " },
-    { "name": "goal_detail_added_to_todo_prefix", "value": "Added to today's todo: " },
-    { "name": "goal_detail_extract_failed_prefix", "value": "Extract failed: " },
-    { "name": "goal_detail_from_goal_prefix", "value": "From goal \"" },
-    { "name": "goal_detail_from_goal_suffix", "value": "\"" },
-    { "name": "toast_deleted_prefix", "value": "Deleted \"" },
-    { "name": "privacy_content", "value": "Thank you for using Momentum!\n\n1. We only collect necessary account info (nickname, avatar) for login and display.\n2. Your goal and task data is stored locally and will not be uploaded (cloud sync is opt-in).\n3. We will not share your information with third parties.\n4. You can delete all data anytime in Settings.\n\nFor questions, contact the developer." },
-    { "name": "scenario_1_text", "value": "HarmonyOS App Development" },
-    { "name": "scenario_1_prompt", "value": "Learn HarmonyOS NEXT app development from scratch, complete a weather app in 3 months" },
-    { "name": "scenario_2_text", "value": "Final Exam Review" },
-    { "name": "scenario_2_prompt", "value": "College English final exam review, master high-frequency vocabulary and essay templates in 2 weeks" },
-    { "name": "scenario_3_text", "value": "Algorithm Interview Prep" },
-    { "name": "scenario_3_prompt", "value": "Prepare for ByteDance algorithm interview, finish LeetCode Hot 100 in 1 month" },
-    { "name": "scenario_4_text", "value": "Fitness & Fat Loss" },
-    { "name": "scenario_4_prompt", "value": "12-week fitness & fat loss plan with scientific diet, target 10kg weight loss" },
-    { "name": "scenario_accessibility_prefix", "value": "Scenario: " },
-    { "name": "ai_onboarding_title", "value": "Welcome to AI Breakdown" },
-    { "name": "ai_onboarding_dismiss", "value": "Got it, start" },
-    { "name": "ai_onboarding_step1_desc", "value": "Describe the goal you want to achieve in the input box" },
-    { "name": "ai_onboarding_step2_desc", "value": "Click \"Start Breakdown\" to let AI break your goal into steps" },
-    { "name": "ai_onboarding_step3_desc", "value": "Add the result to your route with one click and start acting" },
-    { "name": "ai_task_fallback_prefix", "value": "Task" },
-    { "name": "ai_default_goal_name", "value": "AI Generated Goal" },
-    { "name": "ai_edit_task", "value": "Tweak" },
-    { "name": "ai_delete_task", "value": "Delete" },
-    { "name": "ai_delete_confirm_title", "value": "Delete Task" },
-    { "name": "ai_delete_confirm_message", "value": "Are you sure you want to delete this AI-generated task? This cannot be undone." },
-    { "name": "ai_edit_task_title", "value": "Edit Task" },
-    { "name": "ai_edit_task_name_hint", "value": "Task name" },
-    { "name": "ai_edit_task_time_hint", "value": "Estimated time (minutes)" },
-    { "name": "toast_task_name_required", "value": "Task name cannot be empty" },
-    { "name": "dialog_api_key_go_settings", "value": "Go to Advanced Settings to configure a custom Key" },
-    { "name": "dialog_add_to_route_confirm_prefix", "value": "Add \"" },
-    { "name": "dialog_add_to_route_confirm_suffix", "value": "\" to route?\n\nContains " },
-    { "name": "dialog_add_to_route_confirm_task_suffix", "value": " tasks (each can be added to todo in goal detail)" },
-    { "name": "toast_goal_add_failed_prefix", "value": "Goal save failed: " },
-    { "name": "toast_goal_add_failed_suffix", "value": " (aborted)" },
-    { "name": "toast_goal_added_prefix", "value": "Added to route: " },
-    { "name": "toast_goal_added_task_infix", "value": " (" },
-    { "name": "toast_goal_added_task_suffix", "value": " tasks, add to todo in goal detail)" },
-    { "name": "home_toast_operation_failed_prefix", "value": "Operation failed: " },
-    { "name": "home_toast_task_detail_unavailable", "value": "Task detail unavailable" },
-    { "name": "route_deadline_prefix", "value": "Due " },
-    { "name": "route_accessibility_goal_prefix", "value": "Goal: " },
-    { "name": "route_accessibility_progress_infix", "value": ", progress " },
-    { "name": "route_accessibility_milestone_completed_suffix", "value": " milestones completed" },
-    { "name": "goal_detail_dialog_delete_confirm_prefix", "value": "Are you sure you want to delete goal \"" },
-    { "name": "goal_detail_dialog_delete_confirm_suffix", "value": "\"?\nThis will delete all tasks, steps, and todo records under this goal." },
-    { "name": "login_toast_welcome_prefix", "value": "Welcome, " },
-    { "name": "login_toast_login_failed_prefix", "value": "Login failed: " },
-    { "name": "login_toast_user_cancelled", "value": "User cancelled" },
-    { "name": "login_toast_login_error_prefix", "value": "Login error: " },
-    { "name": "route_recommended_tasks_suffix", "value": ")" },
-    { "name": "goal_detail_task_breakdown_suffix", "value": ")" },
-    { "name": "goal_detail_add_milestone_btn", "value": "+ Add" },
-    { "name": "goal_detail_add_task_btn", "value": "+ Add" },
-    { "name": "goal_detail_add_milestone_title", "value": "Add Milestone" },
-    { "name": "goal_detail_add_task_title", "value": "Add Task" },
-    { "name": "goal_detail_add_milestone_name_label", "value": "Milestone Title" },
-    { "name": "goal_detail_add_milestone_name_hint", "value": "Enter milestone title" },
-    { "name": "goal_detail_add_milestone_desc_label", "value": "Milestone Description" },
-    { "name": "goal_detail_add_milestone_desc_hint", "value": "Enter milestone description (optional)" },
-    { "name": "goal_detail_add_milestone_week_label", "value": "Week" },
-    { "name": "goal_detail_add_milestone_week_hint", "value": "Enter week (default 1)" },
-    { "name": "goal_detail_add_task_name_label", "value": "Task Name" },
-    { "name": "goal_detail_add_task_name_hint", "value": "Enter task name" },
-    { "name": "goal_detail_no_l2_task", "value": "No task breakdown yet. Add manually or use AI." },
-    { "name": "toast_milestone_added", "value": "Milestone added" },
-    { "name": "toast_task_added", "value": "Task added" },
-    { "name": "toast_input_empty", "value": "Content cannot be empty" },
-    { "name": "chat_send", "value": "Send" },
-    { "name": "chat_input_placeholder", "value": "Enter your goal, or tweak the previous result..." },
-    { "name": "chat_loading_hint", "value": "AI is thinking..." },
-    { "name": "ai_image_max_reached", "value": "You can select up to 3 images" },
-    { "name": "ai_image_pick_failed", "value": "Image selection failed, please retry" },
-    { "name": "chat_plan_confirmed", "value": "Added to route" },
-    { "name": "chat_add_all_to_todo", "value": "Add all to todo" },
-    { "name": "chat_added_all_to_todo", "value": "All added to todo ✓" },
-    { "name": "toast_confirm_plan_first", "value": "Please confirm this plan first" },
-    { "name": "toast_tasks_already_in_todo", "value": "All tasks are already in todo" },
-    { "name": "chat_tasks_count_prefix", "value": "Total " },
-    { "name": "chat_tasks_count_suffix", "value": " tasks" },
-    { "name": "chat_empty_hint", "value": "Start chatting with AI to break down your goal" },
-    { "name": "home_items_prefix", "value": "Total " },
-    { "name": "greeting_dawn", "value": "Good dawn" },
-    { "name": "greeting_morning", "value": "Good morning" },
-    { "name": "greeting_noon", "value": "Good noon" },
-    { "name": "greeting_afternoon", "value": "Good afternoon" },
-    { "name": "greeting_evening", "value": "Good evening" },
-    { "name": "greeting_night", "value": "Good night" },
-    { "name": "default_nickname", "value": "Huawei User" },
-    { "name": "default_signature", "value": "Improve a little every day" },
-    { "name": "unit_minutes", "value": "min" },
-    { "name": "acc_default_avatar", "value": "Default avatar" },
-    { "name": "acc_notification_toggle", "value": "Notification toggle" },
-    { "name": "acc_expand_advanced", "value": "Expand advanced settings" },
-    { "name": "acc_hide_password", "value": "Hide password" },
-    { "name": "acc_show_password", "value": "Show password" },
-    { "name": "acc_save_api_key", "value": "Save API Key" },
-    { "name": "acc_reset_settings", "value": "Reset all settings to default" },
-    { "name": "acc_go_login", "value": "Go to login button" },
-    { "name": "acc_loading", "value": "Loading" },
-    { "name": "acc_cancel_generate", "value": "Cancel generation button" },
-    { "name": "acc_add_to_route", "value": "Add to route button" },
-    { "name": "acc_expand_edit", "value": "Expand edit button" },
-    { "name": "acc_goal_input", "value": "Goal input, up to 200 chars" },
-    { "name": "acc_char_count_prefix", "value": "Chars: " },
-    { "name": "acc_start_ai", "value": "Start AI breakdown button" },
-    { "name": "acc_dismiss_onboarding", "value": "Close onboarding" },
-    { "name": "acc_delete", "value": "Delete" },
-    { "name": "acc_progress", "value": "Progress" },
-    { "name": "acc_category_filter_prefix", "value": "Category filter: " },
-    { "name": "acc_empty_illustration", "value": "Empty illustration" },
-    { "name": "eisenhower_entry_button", "value": "Matrix" },
-    { "name": "eisenhower_sheet_title", "value": "Todo Items" },
-    { "name": "eisenhower_sheet_subtitle", "value": "Prioritize todos by importance and urgency" },
-    { "name": "eisenhower_q1_title", "value": "Important & Urgent" },
-    { "name": "eisenhower_q1_desc", "value": "Do now" },
-    { "name": "eisenhower_q2_title", "value": "Important, Not Urgent" },
-    { "name": "eisenhower_q2_desc", "value": "Schedule" },
-    { "name": "eisenhower_q3_title", "value": "Urgent, Not Important" },
-    { "name": "eisenhower_q3_desc", "value": "Quick do" },
-    { "name": "eisenhower_q4_title", "value": "Not Urgent, Not Important" },
-    { "name": "eisenhower_q4_desc", "value": "Minimize" },
-    { "name": "eisenhower_empty_quadrant", "value": "No tasks" },
-    { "name": "eisenhower_total_prefix", "value": "Total " },
-    { "name": "eisenhower_total_suffix", "value": " to decide" },
-    { "name": "page_login", "value": "Login" },
-    { "name": "form_todo_card_name", "value": "Today's Todo" },
-    { "name": "form_todo_card_desc", "value": "Show today's todo completion rate and task list" },
-    { "name": "reason_gesture_detection", "value": "For adjusting floating button position" },
-    { "name": "reason_real_time_activity", "value": "For showing Pomodoro countdown live activity on lock screen and status bar" },
-    { "name": "home_title", "value": "Home" },
-    { "name": "home_search_placeholder", "value": "Search content of interest" },
-    { "name": "home_refresh", "value": "Refresh" },
-    { "name": "mine_title", "value": "Mine" },
-    { "name": "mine_user_name", "value": "Not logged in" },
-    { "name": "mine_user_desc", "value": "Tap to log in for more services" },
-    { "name": "mine_group_account", "value": "Account" },
-    { "name": "mine_item_profile", "value": "Profile" },
-    { "name": "mine_item_security", "value": "Account & Security" },
-    { "name": "mine_item_privacy", "value": "Privacy Center" },
-    { "name": "mine_group_app", "value": "App Settings" },
-    { "name": "mine_item_notify", "value": "Notifications" },
-    { "name": "mine_item_theme", "value": "Theme" },
-    { "name": "mine_item_about", "value": "About" },
-    { "name": "mine_item_clear_cache", "value": "Clear Cache" },
-    { "name": "mine_logout", "value": "Log Out" },
-    { "name": "state_loading", "value": "Loading..." },
-    { "name": "state_empty_title", "value": "No data" },
-    { "name": "state_empty_desc", "value": "No content yet. Pull down to refresh." },
-    { "name": "state_error_title", "value": "Load failed" },
-    { "name": "state_error_desc", "value": "Network error. Please check and retry." },
-    { "name": "state_retry", "value": "Retry" },
-    { "name": "state_create", "value": "Create" },
-    { "name": "card_view_more", "value": "View more" },
-    { "name": "logout_confirm_title", "value": "Confirm Logout" },
-    { "name": "logout_confirm_msg", "value": "You will lose personalized services after logout. Confirm?" },
-    { "name": "btn_login", "value": "Huawei Account Login" },
-    { "name": "btn_generate", "value": "Start AI Breakdown" },
-    { "name": "btn_generating", "value": "AI breaking down..." },
-    { "name": "btn_add_to_route", "value": "Add to Route" },
-    { "name": "btn_add_to_today", "value": "Add to Todo" },
-    { "name": "btn_back", "value": "< Back" },
-    { "name": "btn_edit", "value": "Edit" },
-    { "name": "btn_logout", "value": "Log Out" },
-    { "name": "btn_generate_another", "value": "Regenerate" },
-    { "name": "btn_expand_edit", "value": "Expand Edit" },
-    { "name": "btn_confirm_join", "value": "Confirm Join" },
-    { "name": "btn_reset_confirm", "value": "Confirm Reset" },
-    { "name": "empty_home_title", "value": "No todos today" },
-    { "name": "empty_home_subtitle", "value": "Let AI plan your study" },
-    { "name": "empty_home_action", "value": "Go to AI" },
-    { "name": "home_today_todo", "value": "Today's Todo" },
-    { "name": "home_today_completion_rate", "value": "Today's Completion" },
-    { "name": "home_today_completion", "value": "Today's Completion" },
-    { "name": "home_today_study_duration", "value": "Today's Duration" },
-    { "name": "home_completed_count", "value": "Completed" },
-    { "name": "home_pending_count", "value": "Pending" },
-    { "name": "home_total_count", "value": "Total" },
-    { "name": "route_goals_count_prefix", "value": "Total " },
-    { "name": "route_goals_count_suffix", "value": " goals" },
-    { "name": "route_avg_completion", "value": "Avg Completion" },
-    { "name": "route_total_goals", "value": "Total Goals" },
-    { "name": "route_completed_goals", "value": "Completed" },
-    { "name": "route_in_progress", "value": "In Progress" },
-    { "name": "route_active_goals", "value": "Active Goals" },
-    { "name": "task_detail_step_deleted_temp", "value": "Step deleted (lost on page exit)" },
-    { "name": "task_detail_step_updated_temp", "value": "Step updated (lost on page exit)" },
-    { "name": "task_detail_step_added_temp", "value": "Step added (lost on page exit)" },
-    { "name": "task_detail_toast_step_updated", "value": "Step updated (UI only)" },
-    { "name": "task_detail_toast_step_added", "value": "Step added (UI only)" },
-    { "name": "task_detail_toast_step_deleted", "value": "Step deleted (UI only)" },
-    { "name": "back_press_exit_toast", "value": "Press back again to exit" },
-    { "name": "acc_quadrant_card", "value": "Quadrant card, %d tasks, long press to drag and reorder, tap for details" },
-    { "name": "acc_quadrant_task", "value": "Task" },
-    { "name": "acc_login_huawei_button", "value": "Huawei account one-tap login" },
-    { "name": "acc_login_privacy_checkbox", "value": "Agree to user agreement and privacy policy" },
-    { "name": "acc_goal_history_filter_pending", "value": "Filter pending goals" },
-    { "name": "acc_goal_history_filter_in_progress", "value": "Filter in-progress goals" },
-    { "name": "acc_goal_history_filter_completed", "value": "Filter completed goals" },
-    { "name": "acc_goal_history_card", "value": "Goal history card" },
-    { "name": "acc_goal_history_back", "value": "Back" },
-    { "name": "page_notifications", "value": "Notifications" },
-    { "name": "notif_empty", "value": "No notifications yet" },
-    { "name": "notif_clear_title", "value": "Clear all notifications?" },
-    { "name": "notif_clear_message", "value": "Are you sure you want to clear all notifications?" },
-    { "name": "notif_clear_confirm", "value": "Clear" },
-    { "name": "notif_clear_all", "value": "Clear all" },
-    { "name": "notif_read_all", "value": "Mark all read" },
-    { "name": "notif_delete", "value": "Delete" },
-    { "name": "notif_target_deleted", "value": "Related item has been deleted" },
-    { "name": "acc_notification_entry", "value": "Notification center" },
-    { "name": "goal_detail_deadline_label", "value": "Deadline" },
-    { "name": "goal_detail_no_deadline", "value": "No deadline set" },
-    { "name": "ai_plan_side_title", "value": "AI Plan" },
-    { "name": "ai_plan_side_empty", "value": "Chat with AI and your latest plan will appear here" }
+    {
+      "name": "module_desc",
+      "value": "Momentum main module"
+    },
+    {
+      "name": "ability_desc",
+      "value": "Application entry Ability"
+    },
+    {
+      "name": "ability_label",
+      "value": "Momentum"
+    },
+    {
+      "name": "reason_internet",
+      "value": "For network requests to fetch data"
+    },
+    {
+      "name": "tab_home",
+      "value": "Home"
+    },
+    {
+      "name": "tab_route",
+      "value": "Route"
+    },
+    {
+      "name": "tab_ai",
+      "value": "AI"
+    },
+    {
+      "name": "tab_mine",
+      "value": "Mine"
+    },
+    {
+      "name": "page_home",
+      "value": "Home"
+    },
+    {
+      "name": "page_route",
+      "value": "Route"
+    },
+    {
+      "name": "page_ai",
+      "value": "AI Breakdown"
+    },
+    {
+      "name": "page_profile",
+      "value": "Profile"
+    },
+    {
+      "name": "loading",
+      "value": "Loading..."
+    },
+    {
+      "name": "load_failed",
+      "value": "Load failed"
+    },
+    {
+      "name": "retry",
+      "value": "Retry"
+    },
+    {
+      "name": "avatar",
+      "value": "Avatar"
+    },
+    {
+      "name": "common_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "common_close",
+      "value": "Close"
+    },
+    {
+      "name": "common_confirm",
+      "value": "Confirm"
+    },
+    {
+      "name": "reason_keep_background",
+      "value": "AI task breakdown requires background running to complete requests"
+    },
+    {
+      "name": "reason_notification",
+      "value": "For study check-in reminders and task notifications"
+    },
+    {
+      "name": "reason_reminder",
+      "value": "For task deadline reminders"
+    },
+    {
+      "name": "reason_vibrate",
+      "value": "For vibration feedback when tasks are completed"
+    },
+    {
+      "name": "reason_awareness",
+      "value": "For sensing grip posture to auto-adjust floating button position"
+    },
+    {
+      "name": "app_name",
+      "value": "Momentum"
+    },
+    {
+      "name": "stats_completed_tasks",
+      "value": "Tasks Done"
+    },
+    {
+      "name": "task_edit_quadrant_preview",
+      "value": "Auto-sorted into"
+    },
+    {
+      "name": "error_generic_toast",
+      "value": "Something went wrong. Please try again later."
+    },
+    {
+      "name": "home_moved_to_prefix",
+      "value": "Moved to "
+    },
+    {
+      "name": "home_quadrant_current_suffix",
+      "value": " (current)"
+    },
+    {
+      "name": "pomo_auto_continue",
+      "value": "Auto-start next round"
+    },
+    {
+      "name": "pomo_auto_continue_desc",
+      "value": "Start the next focus round automatically when a break ends"
+    },
+    {
+      "name": "pomo_auto_continue_toast",
+      "value": "Break over. Next focus round started."
+    },
+    {
+      "name": "pomo_break_complete_toast",
+      "value": "Break over. Ready for the next focus round."
+    },
+    {
+      "name": "pomo_break_duration_label",
+      "value": "Short break"
+    },
+    {
+      "name": "pomo_break_hint",
+      "value": "Take a breather, then go again"
+    },
+    {
+      "name": "pomo_break_prefix",
+      "value": "Break "
+    },
+    {
+      "name": "pomo_break_suffix",
+      "value": " min"
+    },
+    {
+      "name": "pomo_completed_rounds_prefix",
+      "value": "Round "
+    },
+    {
+      "name": "pomo_completed_rounds_suffix",
+      "value": " completed"
+    },
+    {
+      "name": "pomo_custom_duration",
+      "value": "Custom"
+    },
+    {
+      "name": "pomo_custom_min_suffix",
+      "value": " min"
+    },
+    {
+      "name": "pomo_cycle_label",
+      "value": "Long break every %d rounds"
+    },
+    {
+      "name": "pomo_estimated_finish_infix",
+      "value": " · focus #"
+    },
+    {
+      "name": "pomo_estimated_finish_prefix",
+      "value": "Ends by "
+    },
+    {
+      "name": "pomo_estimated_finish_suffix",
+      "value": " today"
+    },
+    {
+      "name": "pomo_focus_complete_celebrate",
+      "value": "Focus complete!"
+    },
+    {
+      "name": "pomo_focus_complete_toast",
+      "value": "Focus complete. Time for a break."
+    },
+    {
+      "name": "pomo_focus_duration_label",
+      "value": "Focus length"
+    },
+    {
+      "name": "pomo_focus_in_progress",
+      "value": "Focus in progress"
+    },
+    {
+      "name": "pomo_focus_now",
+      "value": "Focus now"
+    },
+    {
+      "name": "pomo_focus_paused",
+      "value": "Focus paused"
+    },
+    {
+      "name": "pomo_focusing",
+      "value": "Focusing"
+    },
+    {
+      "name": "pomo_keep_focus_hint",
+      "value": "Stay focused, ignore distractions"
+    },
+    {
+      "name": "pomo_long_break_duration_label",
+      "value": "Long break"
+    },
+    {
+      "name": "pomo_long_break_hint",
+      "value": "Long break — relax a little"
+    },
+    {
+      "name": "pomo_long_break_tag",
+      "value": "Long break"
+    },
+    {
+      "name": "pomo_optional_duration_hint",
+      "value": "Pick a length, full-screen countdown"
+    },
+    {
+      "name": "pomo_pause",
+      "value": "Pause"
+    },
+    {
+      "name": "pomo_paused",
+      "value": "Paused"
+    },
+    {
+      "name": "pomo_ready_to_focus",
+      "value": "Ready to focus"
+    },
+    {
+      "name": "pomo_resting",
+      "value": "On a break"
+    },
+    {
+      "name": "pomo_resume",
+      "value": "Resume"
+    },
+    {
+      "name": "pomo_round_of",
+      "value": "Round %d"
+    },
+    {
+      "name": "pomo_rounds_completed_suffix",
+      "value": " rounds done"
+    },
+    {
+      "name": "pomo_select_duration_hint",
+      "value": "Pick a length and start focusing"
+    },
+    {
+      "name": "pomo_short_break_tag",
+      "value": "Short break"
+    },
+    {
+      "name": "pomo_start",
+      "value": "Start"
+    },
+    {
+      "name": "pomo_start_focus",
+      "value": "Start focusing"
+    },
+    {
+      "name": "pomo_start_next_round",
+      "value": "Start next round"
+    },
+    {
+      "name": "pomo_stop",
+      "value": "Stop"
+    },
+    {
+      "name": "pomo_stopped_toast",
+      "value": "Focus session stopped"
+    },
+    {
+      "name": "pomo_task_info_missing",
+      "value": "Task info missing"
+    },
+    {
+      "name": "pomo_today_count_infix",
+      "value": " · "
+    },
+    {
+      "name": "pomo_today_prefix",
+      "value": "Today "
+    },
+    {
+      "name": "pomo_view",
+      "value": "View"
+    },
+    {
+      "name": "pomo_notif_complete_break_text",
+      "value": "Ready for the next focus round."
+    },
+    {
+      "name": "pomo_notif_complete_break_title",
+      "value": "Break over"
+    },
+    {
+      "name": "pomo_notif_complete_focus_text",
+      "value": "\"%s\" finished one focus round. Take a break."
+    },
+    {
+      "name": "pomo_notif_complete_focus_title",
+      "value": "Focus complete"
+    },
+    {
+      "name": "pomo_notif_fallback_title",
+      "value": "Focus now"
+    },
+    {
+      "name": "pomo_notif_focus_prefix",
+      "value": "🍅 Focusing"
+    },
+    {
+      "name": "pomo_notif_paused_prefix",
+      "value": "⏸ Paused"
+    },
+    {
+      "name": "pomo_notif_remain_time",
+      "value": "%s left"
+    },
+    {
+      "name": "pomo_notif_rest_prefix",
+      "value": "☕ On a break"
+    },
+    {
+      "name": "pomo_notif_span_minutes",
+      "value": "%d min"
+    },
+    {
+      "name": "pomo_stop_confirm_message",
+      "value": "Stop this focus session? The current round will not count as completed."
+    },
+    {
+      "name": "btn_logging_in",
+      "value": "Logging in..."
+    },
+    {
+      "name": "btn_save",
+      "value": "Save"
+    },
+    {
+      "name": "btn_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "btn_go_login",
+      "value": "Go to Login"
+    },
+    {
+      "name": "btn_go_ai",
+      "value": "Go to AI"
+    },
+    {
+      "name": "btn_go_ai_generate",
+      "value": "Go to AI Breakdown"
+    },
+    {
+      "name": "btn_cancel_generate",
+      "value": "Cancel"
+    },
+    {
+      "name": "btn_confirm_delete",
+      "value": "Confirm Delete"
+    },
+    {
+      "name": "btn_add_step",
+      "value": "Add"
+    },
+    {
+      "name": "btn_mark_complete",
+      "value": "Mark Complete"
+    },
+    {
+      "name": "btn_completed",
+      "value": "Completed"
+    },
+    {
+      "name": "btn_sync_now",
+      "value": "Sync Now"
+    },
+    {
+      "name": "btn_syncing",
+      "value": "Syncing..."
+    },
+    {
+      "name": "btn_exit",
+      "value": "Exit"
+    },
+    {
+      "name": "btn_force_exit",
+      "value": "Force Exit"
+    },
+    {
+      "name": "btn_go_settings",
+      "value": "Go to Settings"
+    },
+    {
+      "name": "btn_close",
+      "value": "Close"
+    },
+    {
+      "name": "btn_create_goal",
+      "value": "Create Goal"
+    },
+    {
+      "name": "btn_confirm_plan",
+      "value": "Confirm Plan"
+    },
+    {
+      "name": "empty_route_title",
+      "value": "No goals yet"
+    },
+    {
+      "name": "empty_route_subtitle",
+      "value": "Describe a goal, and AI will turn it into an actionable path"
+    },
+    {
+      "name": "empty_route_manual",
+      "value": "Create manually"
+    },
+    {
+      "name": "empty_milestone",
+      "value": "No milestones"
+    },
+    {
+      "name": "empty_steps",
+      "value": "No steps yet"
+    },
+    {
+      "name": "empty_related_tasks",
+      "value": "No related tasks"
+    },
+    {
+      "name": "empty_no_step_hint",
+      "value": "Add your first step below"
+    },
+    {
+      "name": "ai_guide_title",
+      "value": "Enter your goal, AI will break it down into executable steps"
+    },
+    {
+      "name": "ai_guide_step1",
+      "value": "Enter the goal you want to achieve"
+    },
+    {
+      "name": "ai_guide_step2",
+      "value": "AI intelligently breaks it down into executable steps"
+    },
+    {
+      "name": "ai_guide_step3",
+      "value": "Add to route with one click and start executing"
+    },
+    {
+      "name": "ai_input_title",
+      "value": "Enter your project goal"
+    },
+    {
+      "name": "ai_input_placeholder",
+      "value": "e.g., develop a HarmonyOS weather app..."
+    },
+    {
+      "name": "ai_input_collapsed_hint",
+      "value": "AI goal breakdown"
+    },
+    {
+      "name": "ai_select_scenario",
+      "value": "Or select a scenario"
+    },
+    {
+      "name": "ai_loading_text",
+      "value": "AI is breaking down..."
+    },
+    {
+      "name": "ai_loading_time_hint",
+      "value": "Usually takes 5-15 seconds"
+    },
+    {
+      "name": "ai_error_title",
+      "value": "Breakdown failed"
+    },
+    {
+      "name": "ai_login_required_title",
+      "value": "Please log in first"
+    },
+    {
+      "name": "ai_login_required_desc",
+      "value": "Log in to use AI breakdown"
+    },
+    {
+      "name": "ai_result_summary",
+      "value": "Broke down"
+    },
+    {
+      "name": "ai_result_tasks_suffix",
+      "value": " tasks for you"
+    },
+    {
+      "name": "ai_add_to_route_prefix",
+      "value": "Add to route ("
+    },
+    {
+      "name": "ai_add_to_route_suffix",
+      "value": " tasks)"
+    },
+    {
+      "name": "dialog_delete_title",
+      "value": "Confirm delete"
+    },
+    {
+      "name": "dialog_delete_message",
+      "value": "Deleted data cannot be recovered. Confirm deletion?"
+    },
+    {
+      "name": "dialog_delete_task_title",
+      "value": "Delete task"
+    },
+    {
+      "name": "dialog_unsaved_title",
+      "value": "Unsaved changes"
+    },
+    {
+      "name": "dialog_unsaved_message",
+      "value": "You have unsaved changes. Are you sure you want to leave?"
+    },
+    {
+      "name": "dialog_logout_title",
+      "value": "Log Out"
+    },
+    {
+      "name": "dialog_logout_message",
+      "value": "Cloud data will not be lost after logout. Log in again to restore."
+    },
+    {
+      "name": "dialog_logout_no_sync_message",
+      "value": "Cloud sync is disabled. Logging out will clear local data and it cannot be recovered. Continue?"
+    },
+    {
+      "name": "dialog_api_key_invalid",
+      "value": "Invalid API Key"
+    },
+    {
+      "name": "dialog_add_to_route_title",
+      "value": "Add to Route"
+    },
+    {
+      "name": "dialog_reset_title",
+      "value": "Reset Settings"
+    },
+    {
+      "name": "dialog_reset_message",
+      "value": "Reset will clear all local configurations and cannot be undone"
+    },
+    {
+      "name": "dialog_sync_failed_title",
+      "value": "Data Sync Failed"
+    },
+    {
+      "name": "dialog_sync_failed_message",
+      "value": "Data sync failed. Exiting may cause data loss. Continue?"
+    },
+    {
+      "name": "dialog_goal_action_title",
+      "value": "Goal actions"
+    },
+    {
+      "name": "dialog_edit_goal",
+      "value": "Edit goal"
+    },
+    {
+      "name": "dialog_goal_review",
+      "value": "AI Review"
+    },
+    {
+      "name": "dialog_goal_review_title",
+      "value": "Goal Review Report"
+    },
+    {
+      "name": "review_loading",
+      "value": "AI is analyzing your goal data, please wait..."
+    },
+    {
+      "name": "toast_review_failed",
+      "value": "Review generation failed, please try again"
+    },
+    {
+      "name": "dialog_delete_goal",
+      "value": "Delete goal"
+    },
+    {
+      "name": "toast_delete_failed",
+      "value": "Delete failed"
+    },
+    {
+      "name": "dialog_task_action_title",
+      "value": "Task actions"
+    },
+    {
+      "name": "dialog_edit_task",
+      "value": "Edit task"
+    },
+    {
+      "name": "dialog_delete_task",
+      "value": "Delete task"
+    },
+    {
+      "name": "dialog_delete_task_message",
+      "value": "Are you sure you want to delete this task? This cannot be undone."
+    },
+    {
+      "name": "dialog_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "dialog_confirm",
+      "value": "Confirm"
+    },
+    {
+      "name": "dialog_leave_edit",
+      "value": "Keep editing"
+    },
+    {
+      "name": "dialog_leave_page",
+      "value": "Leave"
+    },
+    {
+      "name": "edit_task_panel_title",
+      "value": "Edit task"
+    },
+    {
+      "name": "edit_task_name_hint",
+      "value": "Task name"
+    },
+    {
+      "name": "edit_task_duration_hint",
+      "value": "Estimated duration (minutes)"
+    },
+    {
+      "name": "edit_task_save",
+      "value": "Save"
+    },
+    {
+      "name": "edit_task_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "toast_task_updated",
+      "value": "Task updated"
+    },
+    {
+      "name": "home_empty_message",
+      "value": "Nothing scheduled for today"
+    },
+    {
+      "name": "home_completed_section_title",
+      "value": "Completed"
+    },
+    {
+      "name": "home_completed_undo_hint",
+      "value": "Tap to undo"
+    },
+    {
+      "name": "home_deadline_overdue",
+      "value": " Overdue"
+    },
+    {
+      "name": "task_focus_summary",
+      "value": "Focused "
+    },
+    {
+      "name": "task_focus_count_unit",
+      "value": " rounds"
+    },
+    {
+      "name": "home_empty_cta",
+      "value": "Break down"
+    },
+    {
+      "name": "category_all",
+      "value": "All"
+    },
+    {
+      "name": "category_programming",
+      "value": "Programming"
+    },
+    {
+      "name": "category_language",
+      "value": "Language"
+    },
+    {
+      "name": "category_fitness",
+      "value": "Fitness"
+    },
+    {
+      "name": "category_reading",
+      "value": "Reading"
+    },
+    {
+      "name": "category_ai",
+      "value": "AI Generated"
+    },
+    {
+      "name": "settings_not_set",
+      "value": "Not set"
+    },
+    {
+      "name": "settings_notification_on",
+      "value": "On"
+    },
+    {
+      "name": "settings_notification_off",
+      "value": "Off"
+    },
+    {
+      "name": "settings_privacy_agreed",
+      "value": "Agreed"
+    },
+    {
+      "name": "settings_privacy_not_agreed",
+      "value": "Not agreed"
+    },
+    {
+      "name": "settings_huawei_user",
+      "value": "Huawei User"
+    },
+    {
+      "name": "ai_phase_basic",
+      "value": "Basic"
+    },
+    {
+      "name": "ai_phase_core",
+      "value": "Core"
+    },
+    {
+      "name": "ai_phase_sprint",
+      "value": "Sprint"
+    },
+    {
+      "name": "ai_phase_empty",
+      "value": "No tasks in this phase"
+    },
+    {
+      "name": "ai_week_prefix",
+      "value": "Week "
+    },
+    {
+      "name": "ai_week_suffix",
+      "value": ""
+    },
+    {
+      "name": "ai_duration_weeks",
+      "value": " weeks"
+    },
+    {
+      "name": "ai_duration_days",
+      "value": " days"
+    },
+    {
+      "name": "ai_default_task",
+      "value": "Task"
+    },
+    {
+      "name": "ai_description",
+      "value": "Generated by AI"
+    },
+    {
+      "name": "ai_category",
+      "value": "AI Generated"
+    },
+    {
+      "name": "ai_expand_steps",
+      "value": "Expand steps, "
+    },
+    {
+      "name": "ai_collapse_steps",
+      "value": "Collapse steps"
+    },
+    {
+      "name": "ai_icon",
+      "value": "AI breakdown icon"
+    },
+    {
+      "name": "ai_key_invalid",
+      "value": "Invalid Key"
+    },
+    {
+      "name": "task_unnamed_step",
+      "value": "unnamed step"
+    },
+    {
+      "name": "task_priority_high",
+      "value": "High"
+    },
+    {
+      "name": "task_priority_low",
+      "value": "Low"
+    },
+    {
+      "name": "acc_milestone_tag",
+      "value": "Milestone tag"
+    },
+    {
+      "name": "acc_l2_task_card",
+      "value": "Task card"
+    },
+    {
+      "name": "acc_related_task",
+      "value": "Related task"
+    },
+    {
+      "name": "acc_goal_header",
+      "value": "Goal info"
+    },
+    {
+      "name": "acc_add_todo",
+      "value": "Add to todo"
+    },
+    {
+      "name": "acc_edit_goal",
+      "value": "Edit goal"
+    },
+    {
+      "name": "acc_delete_goal",
+      "value": "Delete goal"
+    },
+    {
+      "name": "acc_back_button",
+      "value": "Back button"
+    },
+    {
+      "name": "toast_save_success",
+      "value": "Saved"
+    },
+    {
+      "name": "toast_save_failed",
+      "value": "Save failed"
+    },
+    {
+      "name": "toast_delete_success",
+      "value": "Deleted"
+    },
+    {
+      "name": "toast_add_success",
+      "value": "Added to todo"
+    },
+    {
+      "name": "toast_copy_success",
+      "value": "Copied to clipboard"
+    },
+    {
+      "name": "toast_api_key_saved",
+      "value": "API Key saved"
+    },
+    {
+      "name": "toast_api_key_invalid",
+      "value": "Invalid API Key, please check"
+    },
+    {
+      "name": "toast_login_required",
+      "value": "Please log in first"
+    },
+    {
+      "name": "toast_input_required",
+      "value": "Please enter a goal first"
+    },
+    {
+      "name": "toast_no_tasks_to_add",
+      "value": "No tasks to add"
+    },
+    {
+      "name": "toast_cancelled",
+      "value": "Generation cancelled"
+    },
+    {
+      "name": "toast_step_empty",
+      "value": "Step cannot be empty"
+    },
+    {
+      "name": "toast_step_updated",
+      "value": "Step updated"
+    },
+    {
+      "name": "toast_step_added",
+      "value": "Step added"
+    },
+    {
+      "name": "toast_step_deleted",
+      "value": "Step deleted"
+    },
+    {
+      "name": "toast_task_completed",
+      "value": "Task completed"
+    },
+    {
+      "name": "toast_task_uncompleted",
+      "value": "Task reopened"
+    },
+    {
+      "name": "toast_task_extract_failed",
+      "value": "Task extraction failed: no task found"
+    },
+    {
+      "name": "toast_task_already_in_todo",
+      "value": "Task already in todo"
+    },
+    {
+      "name": "toast_goal_updated",
+      "value": "Goal updated"
+    },
+    {
+      "name": "toast_goal_deleted",
+      "value": "Goal deleted"
+    },
+    {
+      "name": "toast_task_deleted",
+      "value": "Task deleted"
+    },
+    {
+      "name": "toast_sync_success",
+      "value": "Synced"
+    },
+    {
+      "name": "toast_sync_error",
+      "value": "Sync error"
+    },
+    {
+      "name": "toast_sync_disabled",
+      "value": "Cloud sync is disabled. Please enable it in Settings"
+    },
+    {
+      "name": "toast_sync_upload_pending",
+      "value": "Remote data pulled, but your changes are not uploaded yet. Retrying automatically when the network is back"
+    },
+    {
+      "name": "toast_reset_done",
+      "value": "All settings reset"
+    },
+    {
+      "name": "toast_update_failed_retry",
+      "value": "Update failed, try again"
+    },
+    {
+      "name": "toast_delete_failed_retry",
+      "value": "Delete failed, try again"
+    },
+    {
+      "name": "toast_privacy_agreed",
+      "value": "Privacy policy agreed"
+    },
+    {
+      "name": "toast_privacy_revoked",
+      "value": "Privacy policy revoked"
+    },
+    {
+      "name": "toast_notification_failed",
+      "value": "Notification setup failed"
+    },
+    {
+      "name": "toast_notification_error",
+      "value": "Notification setup error"
+    },
+    {
+      "name": "page_goal_detail",
+      "value": "Goal Detail"
+    },
+    {
+      "name": "page_task_detail",
+      "value": "Task Detail"
+    },
+    {
+      "name": "page_goal_history",
+      "value": "Goal History"
+    },
+    {
+      "name": "page_settings",
+      "value": "Settings"
+    },
+    {
+      "name": "settings_api_key_label",
+      "value": "Enter DeepSeek API Key"
+    },
+    {
+      "name": "settings_advanced",
+      "value": "Advanced Settings"
+    },
+    {
+      "name": "settings_reset",
+      "value": "Reset Settings"
+    },
+    {
+      "name": "settings_about",
+      "value": "About"
+    },
+    {
+      "name": "settings_privacy",
+      "value": "Privacy Policy"
+    },
+    {
+      "name": "settings_privacy_hint",
+      "value": "View policy details >"
+    },
+    {
+      "name": "settings_notification",
+      "value": "Notification Permission"
+    },
+    {
+      "name": "settings_notification_desc",
+      "value": "Toggle app notifications"
+    },
+    {
+      "name": "settings_advance_task_label",
+      "value": "Task reminder lead time"
+    },
+    {
+      "name": "settings_advance_goal_label",
+      "value": "Goal reminder lead time"
+    },
+    {
+      "name": "advance_option_same_day",
+      "value": "Due day"
+    },
+    {
+      "name": "advance_option_1d",
+      "value": "1 day before"
+    },
+    {
+      "name": "advance_option_3d",
+      "value": "3 days before"
+    },
+    {
+      "name": "advance_option_1w",
+      "value": "1 week before"
+    },
+    {
+      "name": "settings_version",
+      "value": "Version"
+    },
+    {
+      "name": "settings_current_prefix",
+      "value": "Current: "
+    },
+    {
+      "name": "settings_app_settings",
+      "value": "App Settings"
+    },
+    {
+      "name": "loading_data",
+      "value": "Loading..."
+    },
+    {
+      "name": "loading_ai",
+      "value": "AI is breaking down..."
+    },
+    {
+      "name": "privacy_agree_prefix",
+      "value": "By logging in, you agree to"
+    },
+    {
+      "name": "privacy_link",
+      "value": "Privacy Policy"
+    },
+    {
+      "name": "privacy_agree_title",
+      "value": "Privacy Policy"
+    },
+    {
+      "name": "privacy_agree_ack",
+      "value": "I understand"
+    },
+    {
+      "name": "priority_high",
+      "value": "High"
+    },
+    {
+      "name": "priority_medium",
+      "value": "Medium"
+    },
+    {
+      "name": "priority_low",
+      "value": "Low"
+    },
+    {
+      "name": "login_slogan",
+      "value": "Goal management, step by step"
+    },
+    {
+      "name": "login_not_logged_in",
+      "value": "Not logged in"
+    },
+    {
+      "name": "login_please_login",
+      "value": "Please log in on the splash screen"
+    },
+    {
+      "name": "login_already_logged_in",
+      "value": "Logged in"
+    },
+    {
+      "name": "login_value_prop",
+      "value": "AI-driven, master your time"
+    },
+    {
+      "name": "login_btn_huawei",
+      "value": "Huawei Account Login"
+    },
+    {
+      "name": "login_privacy_check_prefix",
+      "value": "I have read and agree to"
+    },
+    {
+      "name": "login_privacy_link_user",
+      "value": "User Agreement"
+    },
+    {
+      "name": "login_privacy_check_and",
+      "value": "and"
+    },
+    {
+      "name": "profile_data_overview_title",
+      "value": "Task Data Overview"
+    },
+    {
+      "name": "profile_stat_todo",
+      "value": "To Start"
+    },
+    {
+      "name": "profile_stat_pending",
+      "value": "Pending"
+    },
+    {
+      "name": "profile_stat_in_progress",
+      "value": "In Progress"
+    },
+    {
+      "name": "profile_stat_completed",
+      "value": "Completed"
+    },
+    {
+      "name": "profile_empty_overview_hint",
+      "value": "No project data yet. Let AI break down your first goal!"
+    },
+    {
+      "name": "goal_history_empty",
+      "value": "No goals yet. Create one in AI page"
+    },
+    {
+      "name": "goal_history_empty_overdue",
+      "value": "No overdue goals"
+    },
+    {
+      "name": "goal_history_empty_completed",
+      "value": "No completed goals in this status"
+    },
+    {
+      "name": "goal_history_empty_in_progress",
+      "value": "No in-progress goals in this status"
+    },
+    {
+      "name": "home_greeting_suffix",
+      "value": ", friend"
+    },
+    {
+      "name": "home_encourage_text",
+      "value": "Keep it up today!"
+    },
+    {
+      "name": "home_estimated_prefix",
+      "value": "Est. "
+    },
+    {
+      "name": "home_items_suffix",
+      "value": " items"
+    },
+    {
+      "name": "home_delete_task_title",
+      "value": "Delete Task"
+    },
+    {
+      "name": "home_swipe_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "home_suggestion_button",
+      "value": "AI Suggestion"
+    },
+    {
+      "name": "suggestion_sheet_title",
+      "value": "Today's Priority Suggestion"
+    },
+    {
+      "name": "suggestion_loading",
+      "value": "AI is analyzing today's todos, please wait..."
+    },
+    {
+      "name": "toast_suggestion_failed",
+      "value": "Suggestion generation failed, please try again"
+    },
+    {
+      "name": "toast_suggestion_empty",
+      "value": "No pending todos yet, add tasks first"
+    },
+    {
+      "name": "route_my_route",
+      "value": "My Route"
+    },
+    {
+      "name": "route_milestone_completed_suffix",
+      "value": " milestones completed"
+    },
+    {
+      "name": "route_recommended_tasks",
+      "value": "Recommended tasks ("
+    },
+    {
+      "name": "route_added",
+      "value": "Added"
+    },
+    {
+      "name": "route_add_todo",
+      "value": "Add to todo"
+    },
+    {
+      "name": "route_expand_steps",
+      "value": "Expand steps"
+    },
+    {
+      "name": "route_collapse_steps",
+      "value": "Collapse steps"
+    },
+    {
+      "name": "route_expand_tasks",
+      "value": "Expand tasks"
+    },
+    {
+      "name": "route_collapse_tasks",
+      "value": "Collapse tasks"
+    },
+    {
+      "name": "route_expand_milestone",
+      "value": "Expand milestone"
+    },
+    {
+      "name": "route_collapse_milestone",
+      "value": "Collapse milestone"
+    },
+    {
+      "name": "route_already_in_todo",
+      "value": "Already in todo"
+    },
+    {
+      "name": "route_not_completed",
+      "value": "Not completed"
+    },
+    {
+      "name": "route_task_data_error",
+      "value": "Goal data error"
+    },
+    {
+      "name": "route_week_prefix",
+      "value": "Week "
+    },
+    {
+      "name": "route_week_suffix",
+      "value": ""
+    },
+    {
+      "name": "route_total_steps_prefix",
+      "value": "Total "
+    },
+    {
+      "name": "route_total_steps_suffix",
+      "value": " steps"
+    },
+    {
+      "name": "route_estimated_prefix",
+      "value": "Est. "
+    },
+    {
+      "name": "route_estimated_suffix",
+      "value": " min"
+    },
+    {
+      "name": "goal_detail_milestone_progress",
+      "value": "Milestone Progress"
+    },
+    {
+      "name": "goal_detail_no_milestone",
+      "value": "No milestone progress generated for this goal"
+    },
+    {
+      "name": "goal_detail_task_breakdown",
+      "value": "Task Breakdown ("
+    },
+    {
+      "name": "goal_detail_task_label",
+      "value": "Tasks"
+    },
+    {
+      "name": "goal_detail_view_task_detail",
+      "value": "View Task Detail"
+    },
+    {
+      "name": "goal_detail_click_expand",
+      "value": "Click to expand steps"
+    },
+    {
+      "name": "goal_detail_related_tasks",
+      "value": "Related Tasks"
+    },
+    {
+      "name": "goal_detail_related_hint",
+      "value": "Auto-linked during AI breakdown. View on home page."
+    },
+    {
+      "name": "goal_detail_edit_goal",
+      "value": "Edit Goal"
+    },
+    {
+      "name": "goal_detail_goal_name",
+      "value": "Goal Name"
+    },
+    {
+      "name": "goal_detail_goal_name_hint",
+      "value": "Enter goal name"
+    },
+    {
+      "name": "goal_detail_description",
+      "value": "Description"
+    },
+    {
+      "name": "goal_detail_description_hint",
+      "value": "Enter description"
+    },
+    {
+      "name": "goal_detail_category",
+      "value": "Category"
+    },
+    {
+      "name": "goal_detail_category_hint",
+      "value": "e.g., Programming, Fitness, Reading"
+    },
+    {
+      "name": "goal_detail_goal_name_empty",
+      "value": "Goal name cannot be empty"
+    },
+    {
+      "name": "goal_detail_estimated_time",
+      "value": "Estimated Time"
+    },
+    {
+      "name": "goal_detail_milestone_label",
+      "value": "Milestone"
+    },
+    {
+      "name": "goal_detail_related_task_label",
+      "value": "Related Task"
+    },
+    {
+      "name": "goal_detail_completed",
+      "value": "Completed"
+    },
+    {
+      "name": "goal_detail_in_progress",
+      "value": "In Progress"
+    },
+    {
+      "name": "goal_detail_completed_prefix",
+      "value": "Completed "
+    },
+    {
+      "name": "goal_detail_mark_complete",
+      "value": "Mark Complete"
+    },
+    {
+      "name": "goal_detail_mark_incomplete",
+      "value": "Mark Incomplete"
+    },
+    {
+      "name": "goal_detail_no_milestone_dialog",
+      "value": "No milestone progress yet. Go to AI to regenerate?"
+    },
+    {
+      "name": "goal_detail_add_todo",
+      "value": "+ Todo"
+    },
+    {
+      "name": "task_detail_execution_steps",
+      "value": "Steps"
+    },
+    {
+      "name": "task_detail_steps_count_prefix",
+      "value": ""
+    },
+    {
+      "name": "task_detail_steps_count_suffix",
+      "value": " steps"
+    },
+    {
+      "name": "task_detail_unlinked_task",
+      "value": "Unlinked task"
+    },
+    {
+      "name": "task_detail_unlinked_hint",
+      "value": "This todo cannot be traced to a goal. Consider re-adding."
+    },
+    {
+      "name": "task_detail_expired_link",
+      "value": "Link expired"
+    },
+    {
+      "name": "task_detail_expired_hint",
+      "value": "The linked goal/task was deleted. Steps cannot be shown."
+    },
+    {
+      "name": "task_detail_estimated_time",
+      "value": "Est."
+    },
+    {
+      "name": "task_detail_created_at",
+      "value": "Created"
+    },
+    {
+      "name": "task_detail_add_step_hint",
+      "value": "Add a step..."
+    },
+    {
+      "name": "task_detail_edit_step_hint",
+      "value": "Edit step..."
+    },
+    {
+      "name": "task_detail_edit_step_placeholder",
+      "value": "Edit step..."
+    },
+    {
+      "name": "task_detail_add_step_input",
+      "value": "Step input"
+    },
+    {
+      "name": "task_detail_add_step_button",
+      "value": "Add step button"
+    },
+    {
+      "name": "task_detail_mark_complete_button",
+      "value": "Mark task complete"
+    },
+    {
+      "name": "task_detail_confirm_edit_acc",
+      "value": "Confirm edit"
+    },
+    {
+      "name": "task_detail_cancel_edit_acc",
+      "value": "Cancel edit"
+    },
+    {
+      "name": "task_detail_edit_step_acc",
+      "value": "Edit step"
+    },
+    {
+      "name": "task_detail_delete_step_acc",
+      "value": "Delete step"
+    },
+    {
+      "name": "task_detail_complete_prefix_acc",
+      "value": "Toggle "
+    },
+    {
+      "name": "task_detail_unnamed_step",
+      "value": "unnamed step"
+    },
+    {
+      "name": "task_detail_priority_high_cn",
+      "value": "High"
+    },
+    {
+      "name": "task_detail_priority_low_cn",
+      "value": "Low"
+    },
+    {
+      "name": "task_detail_unknown_status",
+      "value": "Unknown"
+    },
+    {
+      "name": "task_detail_min_step_warning",
+      "value": "At least 1 step is required."
+    },
+    {
+      "name": "task_detail_delete_step_message",
+      "value": "Are you sure you want to delete this step? This cannot be undone."
+    },
+    {
+      "name": "task_detail_confirm_edit",
+      "value": "Confirm Edit"
+    },
+    {
+      "name": "task_detail_cancel_edit",
+      "value": "Cancel Edit"
+    },
+    {
+      "name": "task_detail_edit_step",
+      "value": "Edit Step"
+    },
+    {
+      "name": "task_detail_delete_step",
+      "value": "Delete Step"
+    },
+    {
+      "name": "task_detail_update_failed_retry",
+      "value": "Update failed, try again"
+    },
+    {
+      "name": "task_detail_add_failed_retry",
+      "value": "Add step failed, try again"
+    },
+    {
+      "name": "task_detail_step_update_failed_retry",
+      "value": "Step operation failed, try again"
+    },
+    {
+      "name": "task_detail_delete_failed_prefix",
+      "value": "Delete failed: "
+    },
+    {
+      "name": "task_detail_update_failed_prefix",
+      "value": "Update failed: "
+    },
+    {
+      "name": "sync_not_synced",
+      "value": "Not synced"
+    },
+    {
+      "name": "sync_just_now",
+      "value": "Just synced"
+    },
+    {
+      "name": "sync_minutes_ago_suffix",
+      "value": " min ago"
+    },
+    {
+      "name": "sync_hours_ago_suffix",
+      "value": " hours ago"
+    },
+    {
+      "name": "sync_days_ago_suffix",
+      "value": " days ago"
+    },
+    {
+      "name": "default_unnamed",
+      "value": "Unnamed"
+    },
+    {
+      "name": "default_unnamed_task",
+      "value": "Unnamed task"
+    },
+    {
+      "name": "default_unnamed_goal",
+      "value": "Unnamed goal"
+    },
+    {
+      "name": "default_unnamed_milestone",
+      "value": "Unnamed milestone"
+    },
+    {
+      "name": "default_no_description",
+      "value": "No description"
+    },
+    {
+      "name": "default_unknown",
+      "value": "Unknown"
+    },
+    {
+      "name": "default_other_category",
+      "value": "Other"
+    },
+    {
+      "name": "goal_detail_from_prefix",
+      "value": "From: "
+    },
+    {
+      "name": "goal_detail_status_label",
+      "value": "Status: "
+    },
+    {
+      "name": "goal_detail_progress_label",
+      "value": "Progress: "
+    },
+    {
+      "name": "goal_detail_week_prefix_space",
+      "value": "Week "
+    },
+    {
+      "name": "goal_detail_week_suffix_space",
+      "value": ""
+    },
+    {
+      "name": "goal_detail_completed_count_prefix",
+      "value": "Completed "
+    },
+    {
+      "name": "goal_detail_delete_task_message",
+      "value": "Are you sure you want to delete this task? Related todo records will also be deleted. This cannot be undone."
+    },
+    {
+      "name": "goal_detail_status_update_failed",
+      "value": "Status update failed, try again"
+    },
+    {
+      "name": "goal_detail_update_failed_prefix",
+      "value": "Update failed: "
+    },
+    {
+      "name": "goal_detail_task_data_invalid",
+      "value": "Task data invalid"
+    },
+    {
+      "name": "goal_detail_task_not_found",
+      "value": "Task no longer exists. Please refresh home page."
+    },
+    {
+      "name": "goal_detail_navigate_failed_prefix",
+      "value": "Navigation failed: "
+    },
+    {
+      "name": "goal_detail_added_to_todo_prefix",
+      "value": "Added to today's todo: "
+    },
+    {
+      "name": "goal_detail_extract_failed_prefix",
+      "value": "Extract failed: "
+    },
+    {
+      "name": "goal_detail_from_goal_prefix",
+      "value": "From goal \""
+    },
+    {
+      "name": "goal_detail_from_goal_suffix",
+      "value": "\""
+    },
+    {
+      "name": "toast_deleted_prefix",
+      "value": "Deleted \""
+    },
+    {
+      "name": "privacy_content",
+      "value": "Thank you for using Momentum!\n\n1. Account information: We collect your HUAWEI ID virtual identifiers (OpenID, UnionID), nickname and avatar, solely for sign-in, identity display and data ownership.\n2. Goals & tasks: Data is stored on your device by default. After sign-in, cloud sync is enabled automatically to support multi-device sync (you can turn it off anytime in Settings); data is uploaded to HUAWEI Cloud and visible only to you.\n3. Push & Live View: While a pomodoro is running, a system Live View shows the current phase, remaining time and the task name on your lock screen and status bar via the HUAWEI Push service; the app obtains a Push Token (a device-and-app-level identifier).\n4. Feedback & reports: The feedback/report content you submit, contact info (optional), your HUAWEI ID identifier and diagnostic data (app version, device model, OS version, data-scale statistics; no actual content) are uploaded to the cloud solely for issue locating and product improvement, and are never shown to other users.\n5. AI services: AI goal breakdown, review and todo suggestions are provided by the registered third-party large model (DeepSeek). We send the content you input plus statistical data of your goals/tasks (progress, status, priority, estimated time; tasks are anonymized as ordinal numbers, without names) to generate suggestions. See Article 3 of the User Agreement.\n6. We will never sell or share your information with unrelated third parties. You can delete all data anytime in Settings, or contact us via the User Agreement.\n\nIf you have questions, contact the developer (see the User Agreement for contact info)."
+    },
+    {
+      "name": "user_agreement_title",
+      "value": "User Agreement"
+    },
+    {
+      "name": "user_agreement_content",
+      "value": "Welcome to Qishi (起势, the App). This Agreement is between you and the developer (Sun Shengju, the Developer). By using the App you accept this Agreement.\n\n1. Services: AI goal breakdown, roadmap management, Eisenhower task matrix, Pomodoro timer, statistics, home-screen widget and optional cloud sync.\n\n2. Account: The App supports HUAWEI ID sign-in only. You may also use all local features as a guest. AI breakdown, cloud sync and feedback require sign-in. You are responsible for activities under your HUAWEI ID.\n\n3. AI-generated content: The AI breakdown calls a registered third-party large model (DeepSeek, provided by Hangzhou DeepSeek Artificial Intelligence Basic Technology Research Co., Ltd.; algorithm: DeepSeekChat求索对话生成算法, filing no. 网信算备330105747635301240017号). All AI output is explicitly labelled (AI-generated, for reference only) with a report entry. AI output is for reference only and does not constitute professional advice (medical, legal, financial or otherwise); you are responsible for decisions based on it. Do not use the AI feature to generate or spread content that violates laws or public morals.\n\n4. Code of conduct: comply with applicable laws; no infringement, reverse engineering, attacks or service disruption.\n\n5. Data & privacy: see the Privacy Policy. Goals and tasks are stored locally by default and uploaded only after you sign in and enable cloud sync. You can view, export, correct or delete your data anytime.\n\n6. IP: The design, code, icons and copy of the App belong to the Developer. Content you enter belongs to you; AI output is for your personal in-app use.\n\n7. Disclaimers: The App is provided as-is. To the maximum extent permitted by law, the Developer makes no warranties. The Developer is not liable for failures caused by force majeure, network faults or third-party services, and total liability is limited to amounts you actually paid (the App is currently free).\n\n8. Changes and termination: services may change, be interrupted or terminated with reasonable notice. You may stop using the App and delete your data anytime.\n\n9. Minors: should use the App under guardian supervision.\n\n10. Amendments: revised terms take effect upon publication; continued use constitutes acceptance.\n\n11. Governing law: PRC law; disputes shall be resolved by friendly negotiation, failing which by a competent court at the Developer’s domicile.\n\n12. Contact: Developer Sun Shengju | developersunshengju@163.com (reply within 15 business days)."
+    },
+    {
+      "name": "scenario_1_text",
+      "value": "Learn HarmonyOS"
+    },
+    {
+      "name": "scenario_1_prompt",
+      "value": "Learn HarmonyOS NEXT app development from scratch, complete a weather app in 3 months"
+    },
+    {
+      "name": "scenario_2_text",
+      "value": "2-Week Exam Prep"
+    },
+    {
+      "name": "scenario_2_prompt",
+      "value": "College English final exam review, master high-frequency vocabulary and essay templates in 2 weeks"
+    },
+    {
+      "name": "scenario_3_text",
+      "value": "Hot 100 in 1 Month"
+    },
+    {
+      "name": "scenario_3_prompt",
+      "value": "Prepare for ByteDance algorithm interview, finish LeetCode Hot 100 in 1 month"
+    },
+    {
+      "name": "scenario_4_text",
+      "value": "Lose 10kg in 12 Weeks"
+    },
+    {
+      "name": "scenario_4_prompt",
+      "value": "12-week fitness & fat loss plan with scientific diet, target 10kg weight loss"
+    },
+    {
+      "name": "scenario_5_text",
+      "value": "5-Day Qingdao Trip"
+    },
+    {
+      "name": "scenario_5_prompt",
+      "value": "Plan a 5-day trip to Qingdao with a daily itinerary, budget breakdown, and packing list"
+    },
+    {
+      "name": "scenario_6_text",
+      "value": "21-Day Early Riser"
+    },
+    {
+      "name": "scenario_6_prompt",
+      "value": "Build a 6:30 AM early-rising habit with a 21-day check-in plan, including bedtime routine and rewards"
+    },
+    {
+      "name": "scenario_accessibility_prefix",
+      "value": "Scenario: "
+    },
+    {
+      "name": "ai_onboarding_title",
+      "value": "Welcome to AI Breakdown"
+    },
+    {
+      "name": "ai_onboarding_dismiss",
+      "value": "Got it, start"
+    },
+    {
+      "name": "ai_onboarding_step1_desc",
+      "value": "Describe the goal you want to achieve in the input box"
+    },
+    {
+      "name": "ai_onboarding_step2_desc",
+      "value": "Click \"Start Breakdown\" to let AI break your goal into steps"
+    },
+    {
+      "name": "ai_onboarding_step3_desc",
+      "value": "Add the result to your route with one click and start acting"
+    },
+    {
+      "name": "ai_task_fallback_prefix",
+      "value": "Task"
+    },
+    {
+      "name": "ai_default_goal_name",
+      "value": "AI Generated Goal"
+    },
+    {
+      "name": "ai_edit_task",
+      "value": "Tweak"
+    },
+    {
+      "name": "ai_delete_task",
+      "value": "Delete"
+    },
+    {
+      "name": "ai_delete_confirm_title",
+      "value": "Delete Task"
+    },
+    {
+      "name": "ai_delete_confirm_message",
+      "value": "Are you sure you want to delete this AI-generated task? This cannot be undone."
+    },
+    {
+      "name": "ai_edit_task_title",
+      "value": "Edit Task"
+    },
+    {
+      "name": "ai_edit_task_name_hint",
+      "value": "Task name"
+    },
+    {
+      "name": "ai_edit_task_time_hint",
+      "value": "Estimated time (minutes)"
+    },
+    {
+      "name": "toast_task_name_required",
+      "value": "Task name cannot be empty"
+    },
+    {
+      "name": "dialog_api_key_go_settings",
+      "value": "Go to Advanced Settings to configure a custom Key"
+    },
+    {
+      "name": "dialog_add_to_route_confirm_prefix",
+      "value": "Add \""
+    },
+    {
+      "name": "dialog_add_to_route_confirm_suffix",
+      "value": "\" to route?\n\nContains "
+    },
+    {
+      "name": "dialog_add_to_route_confirm_task_suffix",
+      "value": " tasks (each can be added to todo in goal detail)"
+    },
+    {
+      "name": "toast_goal_add_failed_prefix",
+      "value": "Goal save failed: "
+    },
+    {
+      "name": "toast_goal_add_failed_suffix",
+      "value": " (aborted)"
+    },
+    {
+      "name": "toast_goal_added_prefix",
+      "value": "Added to route: "
+    },
+    {
+      "name": "toast_goal_added_task_infix",
+      "value": " ("
+    },
+    {
+      "name": "toast_goal_added_task_suffix",
+      "value": " tasks, add to todo in goal detail)"
+    },
+    {
+      "name": "home_toast_operation_failed_prefix",
+      "value": "Operation failed: "
+    },
+    {
+      "name": "home_toast_task_detail_unavailable",
+      "value": "Task detail unavailable"
+    },
+    {
+      "name": "route_deadline_prefix",
+      "value": "Due "
+    },
+    {
+      "name": "route_accessibility_goal_prefix",
+      "value": "Goal: "
+    },
+    {
+      "name": "route_accessibility_progress_infix",
+      "value": ", progress "
+    },
+    {
+      "name": "route_accessibility_milestone_completed_suffix",
+      "value": " milestones completed"
+    },
+    {
+      "name": "goal_detail_dialog_delete_confirm_prefix",
+      "value": "Are you sure you want to delete goal \""
+    },
+    {
+      "name": "goal_detail_dialog_delete_confirm_suffix",
+      "value": "\"?\nThis will delete all tasks, steps, and todo records under this goal."
+    },
+    {
+      "name": "login_toast_welcome_prefix",
+      "value": "Welcome, "
+    },
+    {
+      "name": "login_toast_login_failed_prefix",
+      "value": "Login failed: "
+    },
+    {
+      "name": "login_toast_user_cancelled",
+      "value": "User cancelled"
+    },
+    {
+      "name": "login_toast_login_error_prefix",
+      "value": "Login error: "
+    },
+    {
+      "name": "route_recommended_tasks_suffix",
+      "value": ")"
+    },
+    {
+      "name": "goal_detail_task_breakdown_suffix",
+      "value": ")"
+    },
+    {
+      "name": "goal_detail_add_milestone_btn",
+      "value": "+ Add"
+    },
+    {
+      "name": "goal_detail_add_task_btn",
+      "value": "+ Add"
+    },
+    {
+      "name": "goal_detail_add_milestone_title",
+      "value": "Add Milestone"
+    },
+    {
+      "name": "goal_detail_add_task_title",
+      "value": "Add Task"
+    },
+    {
+      "name": "goal_detail_add_milestone_name_label",
+      "value": "Milestone Title"
+    },
+    {
+      "name": "goal_detail_add_milestone_name_hint",
+      "value": "Enter milestone title"
+    },
+    {
+      "name": "goal_detail_add_milestone_desc_label",
+      "value": "Milestone Description"
+    },
+    {
+      "name": "goal_detail_add_milestone_desc_hint",
+      "value": "Enter milestone description (optional)"
+    },
+    {
+      "name": "goal_detail_add_milestone_week_label",
+      "value": "Week"
+    },
+    {
+      "name": "goal_detail_add_milestone_week_hint",
+      "value": "Enter week (default 1)"
+    },
+    {
+      "name": "goal_detail_add_task_name_label",
+      "value": "Task Name"
+    },
+    {
+      "name": "goal_detail_add_task_name_hint",
+      "value": "Enter task name"
+    },
+    {
+      "name": "goal_detail_no_l2_task",
+      "value": "No task breakdown yet. Add manually or use AI."
+    },
+    {
+      "name": "toast_milestone_added",
+      "value": "Milestone added"
+    },
+    {
+      "name": "toast_task_added",
+      "value": "Task added"
+    },
+    {
+      "name": "toast_input_empty",
+      "value": "Content cannot be empty"
+    },
+    {
+      "name": "chat_send",
+      "value": "Send"
+    },
+    {
+      "name": "chat_input_placeholder",
+      "value": "Enter your goal, or tweak the previous result..."
+    },
+    {
+      "name": "chat_input_count",
+      "value": "%d/%max"
+    },
+    {
+      "name": "chat_loading_hint",
+      "value": "AI is thinking..."
+    },
+    {
+      "name": "dev_skill_test_label",
+      "value": "[Dev] Xiaoyi Sim: "
+    },
+    {
+      "name": "dev_skill_test_1",
+      "value": "Create Fitness Goal"
+    },
+    {
+      "name": "dev_skill_test_2",
+      "value": "Learning Plan"
+    },
+    {
+      "name": "ai_image_max_reached",
+      "value": "You can select up to 3 images"
+    },
+    {
+      "name": "ai_image_pick_failed",
+      "value": "Image selection failed, please retry"
+    },
+    {
+      "name": "chat_plan_confirmed",
+      "value": "Added to route"
+    },
+    {
+      "name": "chat_add_all_to_todo",
+      "value": "Add all to todo"
+    },
+    {
+      "name": "chat_added_all_to_todo",
+      "value": "All added to todo ✓"
+    },
+    {
+      "name": "toast_confirm_plan_first",
+      "value": "Please confirm this plan first"
+    },
+    {
+      "name": "toast_tasks_already_in_todo",
+      "value": "All tasks are already in todo"
+    },
+    {
+      "name": "chat_tasks_count_prefix",
+      "value": "Total "
+    },
+    {
+      "name": "chat_tasks_count_suffix",
+      "value": " tasks"
+    },
+    {
+      "name": "chat_empty_hint",
+      "value": "Start chatting with AI to break down your goal"
+    },
+    {
+      "name": "home_items_prefix",
+      "value": "Total "
+    },
+    {
+      "name": "greeting_dawn",
+      "value": "Good dawn"
+    },
+    {
+      "name": "greeting_morning",
+      "value": "Good morning"
+    },
+    {
+      "name": "greeting_noon",
+      "value": "Good noon"
+    },
+    {
+      "name": "greeting_afternoon",
+      "value": "Good afternoon"
+    },
+    {
+      "name": "greeting_evening",
+      "value": "Good evening"
+    },
+    {
+      "name": "greeting_night",
+      "value": "Good night"
+    },
+    {
+      "name": "default_nickname",
+      "value": "Huawei User"
+    },
+    {
+      "name": "default_signature",
+      "value": "Improve a little every day"
+    },
+    {
+      "name": "unit_minutes",
+      "value": "min"
+    },
+    {
+      "name": "acc_default_avatar",
+      "value": "Default avatar"
+    },
+    {
+      "name": "acc_notification_toggle",
+      "value": "Notification toggle"
+    },
+    {
+      "name": "acc_expand_advanced",
+      "value": "Expand advanced settings"
+    },
+    {
+      "name": "acc_hide_password",
+      "value": "Hide password"
+    },
+    {
+      "name": "acc_show_password",
+      "value": "Show password"
+    },
+    {
+      "name": "acc_save_api_key",
+      "value": "Save API Key"
+    },
+    {
+      "name": "acc_reset_settings",
+      "value": "Reset all settings to default"
+    },
+    {
+      "name": "acc_go_login",
+      "value": "Go to login button"
+    },
+    {
+      "name": "acc_loading",
+      "value": "Loading"
+    },
+    {
+      "name": "acc_cancel_generate",
+      "value": "Cancel generation button"
+    },
+    {
+      "name": "acc_add_to_route",
+      "value": "Add to route button"
+    },
+    {
+      "name": "acc_expand_edit",
+      "value": "Expand edit button"
+    },
+    {
+      "name": "acc_goal_input",
+      "value": "Goal input, up to 200 chars"
+    },
+    {
+      "name": "acc_char_count_prefix",
+      "value": "Chars: "
+    },
+    {
+      "name": "acc_start_ai",
+      "value": "Start AI breakdown button"
+    },
+    {
+      "name": "acc_dismiss_onboarding",
+      "value": "Close onboarding"
+    },
+    {
+      "name": "acc_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "acc_progress",
+      "value": "Progress"
+    },
+    {
+      "name": "acc_category_filter_prefix",
+      "value": "Category filter: "
+    },
+    {
+      "name": "eisenhower_entry_button",
+      "value": "Matrix"
+    },
+    {
+      "name": "eisenhower_sheet_title",
+      "value": "Todo Items"
+    },
+    {
+      "name": "eisenhower_sheet_subtitle",
+      "value": "Prioritize todos by importance and urgency"
+    },
+    {
+      "name": "eisenhower_q1_title",
+      "value": "Important & Urgent"
+    },
+    {
+      "name": "eisenhower_q1_desc",
+      "value": "Do now"
+    },
+    {
+      "name": "eisenhower_q2_title",
+      "value": "Important, Not Urgent"
+    },
+    {
+      "name": "eisenhower_q2_desc",
+      "value": "Schedule"
+    },
+    {
+      "name": "eisenhower_q3_title",
+      "value": "Urgent, Not Important"
+    },
+    {
+      "name": "eisenhower_q3_desc",
+      "value": "Quick do"
+    },
+    {
+      "name": "eisenhower_q4_title",
+      "value": "Not Urgent, Not Important"
+    },
+    {
+      "name": "eisenhower_q4_desc",
+      "value": "Minimize"
+    },
+    {
+      "name": "eisenhower_empty_quadrant",
+      "value": "No tasks"
+    },
+    {
+      "name": "eisenhower_total_prefix",
+      "value": "Total "
+    },
+    {
+      "name": "eisenhower_total_suffix",
+      "value": " to decide"
+    },
+    {
+      "name": "page_login",
+      "value": "Login"
+    },
+    {
+      "name": "form_todo_card_name",
+      "value": "Today's Todo"
+    },
+    {
+      "name": "form_todo_card_desc",
+      "value": "Show today's todo completion rate and task list"
+    },
+    {
+      "name": "reason_gesture_detection",
+      "value": "For adjusting floating button position"
+    },
+    {
+      "name": "reason_real_time_activity",
+      "value": "For showing Pomodoro countdown live activity on lock screen and status bar"
+    },
+    {
+      "name": "reason_distributed_sync",
+      "value": "For discovering nearby wearable devices and initiating Pomodoro cross-device migration"
+    },
+    {
+      "name": "home_title",
+      "value": "Home"
+    },
+    {
+      "name": "home_search_placeholder",
+      "value": "Search content of interest"
+    },
+    {
+      "name": "home_refresh",
+      "value": "Refresh"
+    },
+    {
+      "name": "mine_title",
+      "value": "Mine"
+    },
+    {
+      "name": "mine_user_name",
+      "value": "Not logged in"
+    },
+    {
+      "name": "mine_user_desc",
+      "value": "Tap to log in for more services"
+    },
+    {
+      "name": "mine_group_account",
+      "value": "Account"
+    },
+    {
+      "name": "mine_item_profile",
+      "value": "Profile"
+    },
+    {
+      "name": "mine_item_security",
+      "value": "Account & Security"
+    },
+    {
+      "name": "mine_item_privacy",
+      "value": "Privacy Center"
+    },
+    {
+      "name": "mine_group_app",
+      "value": "App Settings"
+    },
+    {
+      "name": "mine_item_notify",
+      "value": "Notifications"
+    },
+    {
+      "name": "mine_item_theme",
+      "value": "Theme"
+    },
+    {
+      "name": "mine_item_about",
+      "value": "About"
+    },
+    {
+      "name": "mine_item_clear_cache",
+      "value": "Clear Cache"
+    },
+    {
+      "name": "mine_logout",
+      "value": "Log Out"
+    },
+    {
+      "name": "state_loading",
+      "value": "Loading..."
+    },
+    {
+      "name": "state_empty_title",
+      "value": "No data"
+    },
+    {
+      "name": "state_empty_desc",
+      "value": "No content yet. Pull down to refresh."
+    },
+    {
+      "name": "state_error_title",
+      "value": "Load failed"
+    },
+    {
+      "name": "state_error_desc",
+      "value": "Network error. Please check and retry."
+    },
+    {
+      "name": "state_retry",
+      "value": "Retry"
+    },
+    {
+      "name": "state_create",
+      "value": "Create"
+    },
+    {
+      "name": "card_view_more",
+      "value": "View more"
+    },
+    {
+      "name": "logout_confirm_title",
+      "value": "Confirm Logout"
+    },
+    {
+      "name": "logout_confirm_msg",
+      "value": "You will lose personalized services after logout. Confirm?"
+    },
+    {
+      "name": "btn_login",
+      "value": "Huawei Account Login"
+    },
+    {
+      "name": "btn_generate",
+      "value": "Start AI Breakdown"
+    },
+    {
+      "name": "btn_generating",
+      "value": "AI breaking down..."
+    },
+    {
+      "name": "btn_add_to_route",
+      "value": "Add to Route"
+    },
+    {
+      "name": "btn_add_to_today",
+      "value": "Add to Todo"
+    },
+    {
+      "name": "btn_back",
+      "value": "< Back"
+    },
+    {
+      "name": "btn_edit",
+      "value": "Edit"
+    },
+    {
+      "name": "btn_logout",
+      "value": "Log Out"
+    },
+    {
+      "name": "btn_generate_another",
+      "value": "Regenerate"
+    },
+    {
+      "name": "btn_expand_edit",
+      "value": "Expand Edit"
+    },
+    {
+      "name": "btn_confirm_join",
+      "value": "Confirm Join"
+    },
+    {
+      "name": "btn_reset_confirm",
+      "value": "Confirm Reset"
+    },
+    {
+      "name": "empty_home_title",
+      "value": "No todos today"
+    },
+    {
+      "name": "empty_home_subtitle",
+      "value": "Let AI plan your study"
+    },
+    {
+      "name": "empty_home_action",
+      "value": "Go to AI"
+    },
+    {
+      "name": "home_today_todo",
+      "value": "Today's Todo"
+    },
+    {
+      "name": "home_today_completion_rate",
+      "value": "Today's Completion"
+    },
+    {
+      "name": "home_today_completion",
+      "value": "Today's Completion"
+    },
+    {
+      "name": "home_today_study_duration",
+      "value": "Today's Duration"
+    },
+    {
+      "name": "home_completed_count",
+      "value": "Completed"
+    },
+    {
+      "name": "home_pending_count",
+      "value": "Pending"
+    },
+    {
+      "name": "home_total_count",
+      "value": "Total"
+    },
+    {
+      "name": "route_goals_count_prefix",
+      "value": "Total "
+    },
+    {
+      "name": "route_goals_count_suffix",
+      "value": " goals"
+    },
+    {
+      "name": "route_avg_completion",
+      "value": "Avg Completion"
+    },
+    {
+      "name": "route_total_goals",
+      "value": "Total Goals"
+    },
+    {
+      "name": "route_completed_goals",
+      "value": "Completed"
+    },
+    {
+      "name": "route_in_progress",
+      "value": "In Progress"
+    },
+    {
+      "name": "route_active_goals",
+      "value": "Active Goals"
+    },
+    {
+      "name": "task_detail_step_deleted_temp",
+      "value": "Step deleted (lost on page exit)"
+    },
+    {
+      "name": "task_detail_step_updated_temp",
+      "value": "Step updated (lost on page exit)"
+    },
+    {
+      "name": "task_detail_step_added_temp",
+      "value": "Step added (lost on page exit)"
+    },
+    {
+      "name": "task_detail_toast_step_updated",
+      "value": "Step updated (UI only)"
+    },
+    {
+      "name": "task_detail_toast_step_added",
+      "value": "Step added (UI only)"
+    },
+    {
+      "name": "task_detail_toast_step_deleted",
+      "value": "Step deleted (UI only)"
+    },
+    {
+      "name": "back_press_exit_toast",
+      "value": "Press back again to exit"
+    },
+    {
+      "name": "acc_quadrant_card",
+      "value": "Quadrant card, %d tasks, long press to drag and reorder, tap for details"
+    },
+    {
+      "name": "acc_quadrant_task",
+      "value": "Task"
+    },
+    {
+      "name": "acc_login_huawei_button",
+      "value": "Huawei account one-tap login"
+    },
+    {
+      "name": "acc_login_privacy_checkbox",
+      "value": "Agree to user agreement and privacy policy"
+    },
+    {
+      "name": "acc_goal_history_filter_pending",
+      "value": "Filter pending goals"
+    },
+    {
+      "name": "acc_goal_history_filter_in_progress",
+      "value": "Filter in-progress goals"
+    },
+    {
+      "name": "acc_goal_history_filter_completed",
+      "value": "Filter completed goals"
+    },
+    {
+      "name": "acc_goal_history_card",
+      "value": "Goal history card"
+    },
+    {
+      "name": "acc_goal_history_back",
+      "value": "Back"
+    },
+    {
+      "name": "page_notifications",
+      "value": "Notifications"
+    },
+    {
+      "name": "notif_empty",
+      "value": "No notifications yet"
+    },
+    {
+      "name": "notif_clear_title",
+      "value": "Clear all notifications?"
+    },
+    {
+      "name": "notif_clear_message",
+      "value": "Are you sure you want to clear all notifications?"
+    },
+    {
+      "name": "notif_clear_confirm",
+      "value": "Clear"
+    },
+    {
+      "name": "notif_clear_all",
+      "value": "Clear all"
+    },
+    {
+      "name": "notif_read_all",
+      "value": "Mark all read"
+    },
+    {
+      "name": "notif_delete",
+      "value": "Delete"
+    },
+    {
+      "name": "notif_target_deleted",
+      "value": "Related item has been deleted"
+    },
+    {
+      "name": "acc_notification_entry",
+      "value": "Notification center"
+    },
+    {
+      "name": "goal_detail_deadline_label",
+      "value": "Deadline"
+    },
+    {
+      "name": "goal_detail_priority_label",
+      "value": "Priority"
+    },
+    {
+      "name": "goal_detail_deadline_clear",
+      "value": "Clear"
+    },
+    {
+      "name": "goal_detail_estimated_time_label",
+      "value": "Estimated time (optional)"
+    },
+    {
+      "name": "goal_detail_estimated_time_hint",
+      "value": "e.g. 30"
+    },
+    {
+      "name": "duration_unit_min",
+      "value": " min"
+    },
+    {
+      "name": "duration_unit_hour",
+      "value": " hrs"
+    },
+    {
+      "name": "duration_unit_day",
+      "value": " days"
+    },
+    {
+      "name": "duration_preset_half_day",
+      "value": "Half day"
+    },
+    {
+      "name": "goal_detail_no_deadline",
+      "value": "No deadline set"
+    },
+    {
+      "name": "profile_overview_ring_label",
+      "value": "Avg Progress"
+    },
+    {
+      "name": "dialog_delete_all_title",
+      "value": "Delete All Data"
+    },
+    {
+      "name": "dialog_delete_all_message",
+      "value": "This will permanently delete all data on this device and in the cloud. This cannot be undone. Continue?"
+    },
+    {
+      "name": "toast_delete_all_success",
+      "value": "All data deleted"
+    },
+    {
+      "name": "toast_delete_all_failed",
+      "value": "Delete failed. Please try again later"
+    },
+    {
+      "name": "settings_delete_all_data",
+      "value": "Delete All Data"
+    },
+    {
+      "name": "settings_delete_all_data_desc",
+      "value": "Erase all local and cloud data. This cannot be undone"
+    },
+    {
+      "name": "feedback_category_bug",
+      "value": "Bug report"
+    },
+    {
+      "name": "feedback_category_suggestion",
+      "value": "Suggestion"
+    },
+    {
+      "name": "feedback_category_other",
+      "value": "Other"
+    },
+    {
+      "name": "feedback_category_label",
+      "value": "Feedback type"
+    },
+    {
+      "name": "feedback_contact_placeholder",
+      "value": "Contact (optional, for follow-up)"
+    },
+    {
+      "name": "feedback_login_required",
+      "value": "Sign in to submit feedback"
+    },
+    {
+      "name": "feedback_queued_offline",
+      "value": "Offline. Feedback saved and will upload automatically"
+    },
+    {
+      "name": "feedback_submit_failed",
+      "value": "Submission failed. Please try again later"
+    },
+    {
+      "name": "page_report",
+      "value": "Report"
+    },
+    {
+      "name": "report_category_label",
+      "value": "Report type"
+    },
+    {
+      "name": "report_category_inappropriate",
+      "value": "Inappropriate content"
+    },
+    {
+      "name": "report_category_infringement",
+      "value": "Infringement"
+    },
+    {
+      "name": "report_category_misinformation",
+      "value": "Misinformation"
+    },
+    {
+      "name": "report_input_placeholder",
+      "value": "Describe the content you want to report…"
+    },
+    {
+      "name": "report_submit",
+      "value": "Submit report"
+    },
+    {
+      "name": "report_submit_success",
+      "value": "Report submitted. We will review it shortly"
+    },
+    {
+      "name": "login_brand_name_sub",
+      "value": "Momentum"
+    },
+    {
+      "name": "login_skip",
+      "value": "Skip for now"
+    },
+    {
+      "name": "privacy_gate_notice",
+      "value": "By tapping Agree & Continue, you confirm that you have read and accepted the privacy policy above"
+    },
+    {
+      "name": "privacy_gate_agree",
+      "value": "Agree & Continue"
+    },
+    {
+      "name": "privacy_gate_disagree",
+      "value": "Decline & Exit"
+    },
+    {
+      "name": "ai_content_label",
+      "value": "Generated by AI. For reference only"
+    },
+    {
+      "name": "ai_content_report",
+      "value": "Report"
+    },
+    {
+      "name": "ai_plan_side_title",
+      "value": "AI Plan"
+    },
+    {
+      "name": "ai_plan_side_empty",
+      "value": "No plan yet. Enter a goal and let AI break it down"
+    },
+    {
+      "name": "about_built_with",
+      "value": "Built on HarmonyOS NEXT"
+    },
+    {
+      "name": "about_copyright",
+      "value": "© 2026 Momentum"
+    },
+    {
+      "name": "acc_go_settings",
+      "value": "Go to Settings"
+    },
+    {
+      "name": "ai_added_tasks_to_todo_prefix",
+      "value": "Added "
+    },
+    {
+      "name": "ai_added_tasks_to_todo_suffix",
+      "value": " key tasks to Today's To-Do"
+    },
+    {
+      "name": "ai_cloud_sync_required_toast",
+      "value": "AI breakdown needs to upload text to the cloud. Please enable cloud sync on the 'Me' page first."
+    },
+    {
+      "name": "btn_cancel",
+      "value": "Cancel"
+    },
+    {
+      "name": "btn_create",
+      "value": "Create"
+    },
+    {
+      "name": "dialog_clear_cache_message",
+      "value": "Clear cache? This won't affect your account or task data."
+    },
+    {
+      "name": "dialog_clear_cache_title",
+      "value": "Clear Cache"
+    },
+    {
+      "name": "export_btn",
+      "value": "Export Data"
+    },
+    {
+      "name": "export_failed",
+      "value": "Export Failed"
+    },
+    {
+      "name": "export_section_desc",
+      "value": "Export goals, tasks and settings as a JSON file"
+    },
+    {
+      "name": "export_section_title",
+      "value": "Export Backup"
+    },
+    {
+      "name": "export_success",
+      "value": "Export Successful"
+    },
+    {
+      "name": "feedback_copied",
+      "value": "Diagnostic info copied to clipboard"
+    },
+    {
+      "name": "feedback_copy_diag",
+      "value": "Copy Diagnostic Info"
+    },
+    {
+      "name": "feedback_empty",
+      "value": "Feedback cannot be empty"
+    },
+    {
+      "name": "feedback_input_placeholder",
+      "value": "Describe the issue you encountered or your suggestion…"
+    },
+    {
+      "name": "feedback_submit",
+      "value": "Submit Feedback"
+    },
+    {
+      "name": "feedback_submit_success",
+      "value": "Thanks for your feedback. Saved."
+    },
+    {
+      "name": "help_ai_desc",
+      "value": "Enter a goal on the AI page, and AI breaks it down into actionable tasks and steps you can add to your route in one tap."
+    },
+    {
+      "name": "help_ai_title",
+      "value": "AI Smart Breakdown"
+    },
+    {
+      "name": "help_data_desc",
+      "value": "By default all data is stored only on this device for privacy and security. Enable cloud sync to back up across devices."
+    },
+    {
+      "name": "help_data_title",
+      "value": "Data Storage"
+    },
+    {
+      "name": "help_pomodoro_desc",
+      "value": "Focus for 25 minutes, break for 5, and track daily focus sessions to help you get into flow."
+    },
+    {
+      "name": "help_pomodoro_title",
+      "value": "Pomodoro Focus"
+    },
+    {
+      "name": "help_quadrant_desc",
+      "value": "Prioritize to-dos by 'Important × Urgent': do important & urgent ones now, schedule important but not urgent ones."
+    },
+    {
+      "name": "help_quadrant_title",
+      "value": "Four-Quadrant To-Do"
+    },
+    {
+      "name": "help_sync_desc",
+      "value": "Enable cloud sync in Me → Settings to automatically back up data to the cloud and sync across devices."
+    },
+    {
+      "name": "help_sync_title",
+      "value": "Cloud Sync"
+    },
+    {
+      "name": "home_drag_release_hint",
+      "value": "Drag to the target position and release"
+    },
+    {
+      "name": "home_quadrant_count_prefix",
+      "value": "Total "
+    },
+    {
+      "name": "home_quadrant_count_suffix",
+      "value": " items"
+    },
+    {
+      "name": "import_btn",
+      "value": "Choose File to Import"
+    },
+    {
+      "name": "import_confirm_message",
+      "value": "Backup data will be imported in merge mode. After import, local and backup data are merged and deduplicated by ID. Continue?"
+    },
+    {
+      "name": "import_failed",
+      "value": "Import Failed"
+    },
+    {
+      "name": "import_invalid",
+      "value": "Invalid or incorrectly formatted backup file"
+    },
+    {
+      "name": "import_section_desc",
+      "value": "Import from a JSON file (merge mode: dedupe by ID, keep data from both sides)"
+    },
+    {
+      "name": "import_section_title",
+      "value": "Import Backup"
+    },
+    {
+      "name": "import_success",
+      "value": "Import Successful"
+    },
+    {
+      "name": "notif_goal_deadline_text_prefix",
+      "value": "Goal '"
+    },
+    {
+      "name": "notif_goal_deadline_text_suffix",
+      "value": "' is due soon"
+    },
+    {
+      "name": "notif_goal_deadline_title",
+      "value": "Goal Deadline Reminder"
+    },
+    {
+      "name": "notif_task_deadline_text_suffix",
+      "value": " is due soon"
+    },
+    {
+      "name": "notif_task_deadline_title",
+      "value": "Task Deadline Reminder"
+    },
+    {
+      "name": "page_about",
+      "value": "About Momentum"
+    },
+    {
+      "name": "page_feedback",
+      "value": "Feedback"
+    },
+    {
+      "name": "page_help",
+      "value": "Help"
+    },
+    {
+      "name": "page_import_export",
+      "value": "Import / Export"
+    },
+    {
+      "name": "page_stats",
+      "value": "Statistics"
+    },
+    {
+      "name": "page_tag_manage",
+      "value": "Tag Management"
+    },
+    {
+      "name": "profile_cloud_sync_title",
+      "value": "Cloud Data Sync"
+    },
+    {
+      "name": "profile_cloud_sync_toggle_acc",
+      "value": "Cloud data sync switch"
+    },
+    {
+      "name": "profile_group_help",
+      "value": "Help & Info"
+    },
+    {
+      "name": "profile_group_tools",
+      "value": "Tools & Management"
+    },
+    {
+      "name": "profile_item_about",
+      "value": "About Momentum"
+    },
+    {
+      "name": "profile_item_ai_review",
+      "value": "AI Review & Statistics"
+    },
+    {
+      "name": "profile_item_feedback",
+      "value": "Feedback"
+    },
+    {
+      "name": "profile_item_help",
+      "value": "Help"
+    },
+    {
+      "name": "profile_item_import_export",
+      "value": "Import / Export Task Data"
+    },
+    {
+      "name": "profile_item_tag_manage",
+      "value": "Tag Management"
+    },
+    {
+      "name": "profile_stat_overdue",
+      "value": "Overdue"
+    },
+    {
+      "name": "profile_sync_disabled_hint",
+      "value": "After turning off, data is stored on this device only"
+    },
+    {
+      "name": "profile_sync_disabled_toast",
+      "value": "Cloud sync off. Data is stored on this device only"
+    },
+    {
+      "name": "profile_sync_enable_cancelled_toast",
+      "value": "Cancelled enabling cloud sync"
+    },
+    {
+      "name": "profile_sync_enable_confirm",
+      "value": "Enable"
+    },
+    {
+      "name": "profile_sync_enable_message",
+      "value": "After enabling, data will sync to the cloud automatically and support cross-device collaboration. Continue?"
+    },
+    {
+      "name": "profile_sync_enable_title",
+      "value": "Enable Cloud Sync"
+    },
+    {
+      "name": "profile_sync_enabled_toast",
+      "value": "Cloud sync enabled"
+    },
+    {
+      "name": "profile_sync_local_cloud",
+      "value": "Local + Cloud Sync"
+    },
+    {
+      "name": "profile_sync_local_only",
+      "value": "Local Storage Only"
+    },
+    {
+      "name": "profile_sync_off_text",
+      "value": "Sync Off"
+    },
+    {
+      "name": "route_add_plus",
+      "value": "+ Add"
+    },
+    {
+      "name": "route_create_goal_deadline_label",
+      "value": "Deadline (optional)"
+    },
+    {
+      "name": "route_create_goal_desc_placeholder",
+      "value": "Enter goal description (optional)"
+    },
+    {
+      "name": "route_create_goal_name_placeholder",
+      "value": "Enter goal name"
+    },
+    {
+      "name": "route_steps_count_suffix",
+      "value": " steps"
+    },
+    {
+      "name": "settings_cache_title",
+      "value": "Cache Management"
+    },
+    {
+      "name": "settings_default_nickname_prefix",
+      "value": "MomentumUser_"
+    },
+    {
+      "name": "settings_login_failed",
+      "value": "Login Failed"
+    },
+    {
+      "name": "settings_notification_error_prefix",
+      "value": "Notification setting error: "
+    },
+    {
+      "name": "settings_notification_failed_prefix",
+      "value": "Notification setting failed: "
+    },
+    {
+      "name": "stats_ai_review_btn",
+      "value": "AI Global Review"
+    },
+    {
+      "name": "stats_ai_review_desc",
+      "value": "Generate a global review report based on your goals, tasks and focus data"
+    },
+    {
+      "name": "stats_ai_review_loading",
+      "value": "AI is analyzing your data, please wait…"
+    },
+    {
+      "name": "stats_ai_review_title",
+      "value": "AI Global Review"
+    },
+    {
+      "name": "stats_completed_goals",
+      "value": "Completed"
+    },
+    {
+      "name": "stats_goal_total",
+      "value": "Total Goals"
+    },
+    {
+      "name": "stats_no_data",
+      "value": "No data yet. Go to AI Breakdown to create a goal."
+    },
+    {
+      "name": "stats_overdue_goals",
+      "value": "Overdue"
+    },
+    {
+      "name": "stats_task_total",
+      "value": "Total Tasks"
+    },
+    {
+      "name": "stats_today_focus",
+      "value": "Today's Focus"
+    },
+    {
+      "name": "tag_empty",
+      "value": "No categories yet. Go to AI Breakdown to create a goal."
+    },
+    {
+      "name": "tag_merge",
+      "value": "Merge"
+    },
+    {
+      "name": "tag_merge_message",
+      "value": "Enter the target category name. All goals under the current category will be moved into it."
+    },
+    {
+      "name": "tag_merge_success",
+      "value": "Category merged"
+    },
+    {
+      "name": "tag_merge_target_placeholder",
+      "value": "Target category name"
+    },
+    {
+      "name": "tag_merge_title",
+      "value": "Merge Category"
+    },
+    {
+      "name": "tag_name_empty",
+      "value": "Category name cannot be empty"
+    },
+    {
+      "name": "tag_new_name_placeholder",
+      "value": "New category name"
+    },
+    {
+      "name": "tag_rename",
+      "value": "Rename"
+    },
+    {
+      "name": "tag_rename_message",
+      "value": "After renaming, all goals under this category will be updated to the new category name."
+    },
+    {
+      "name": "tag_rename_success",
+      "value": "Category renamed"
+    },
+    {
+      "name": "tag_rename_title",
+      "value": "Rename Category"
+    },
+    {
+      "name": "tag_same_name",
+      "value": "New name is the same as the current category"
+    },
+    {
+      "name": "task_detail_date_day_suffix",
+      "value": ""
+    },
+    {
+      "name": "task_detail_date_month_suffix",
+      "value": "/"
+    },
+    {
+      "name": "toast_cache_cleared",
+      "value": "Cache cleared"
+    },
+    {
+      "name": "widget_completed_count_suffix",
+      "value": " completed"
+    },
+    {
+      "name": "widget_empty_cta",
+      "value": "Go to AI Breakdown"
+    },
+    {
+      "name": "widget_empty_title",
+      "value": "No to-dos"
+    },
+    {
+      "name": "widget_more_items_suffix",
+      "value": " more"
+    },
+    {
+      "name": "widget_today_todo",
+      "value": "Today's To-Do"
+    },
+    {
+      "name": "widget_view_all",
+      "value": "View All"
+    },
+    {
+      "name": "ai_default_step",
+      "value": "Please add the steps manually"
+    },
+    {
+      "name": "ai_default_task_prefix",
+      "value": "Task"
+    },
+    {
+      "name": "ai_error_continue",
+      "value": "AI could not continue. Please retry or rephrase your request."
+    },
+    {
+      "name": "ai_error_empty_desc",
+      "value": "Goal description cannot be empty"
+    },
+    {
+      "name": "ai_error_unparseable",
+      "value": "Unable to parse the AI response. Please shorten your goal description and retry (the content may have been truncated)."
+    },
+    {
+      "name": "ai_error_service_unavailable",
+      "value": "AI service is temporarily unavailable. Please try again later."
+    },
+    {
+      "name": "chat_image_sent_prefix",
+      "value": "[User sent "
+    },
+    {
+      "name": "chat_image_sent_suffix",
+      "value": " image(s)]"
+    },
+    {
+      "name": "import_file_filter_label",
+      "value": "JSON File"
+    },
+    {
+      "name": "login_error_cert_invalid",
+      "value": "App certificate verification failed. Please try again later."
+    },
+    {
+      "name": "login_error_empty_openid",
+      "value": "Login failed: no account information returned."
+    },
+    {
+      "name": "login_error_state_csrf",
+      "value": "Security check failed. Please try again."
+    },
+    {
+      "name": "settings_language",
+      "value": "Language"
+    },
+    {
+      "name": "settings_language_default",
+      "value": "Follow system"
+    },
+    {
+      "name": "settings_language_en",
+      "value": "English"
+    },
+    {
+      "name": "settings_language_restart_toast",
+      "value": "Language switched. Restart the app to apply."
+    },
+    {
+      "name": "settings_language_zh",
+      "value": "简体中文"
+    },
+    {
+      "name": "settings_language_restart_later",
+      "value": "Later"
+    },
+    {
+      "name": "settings_language_restart_message",
+      "value": "Language switched. A restart is required to take effect. Restart now? It is recommended to restart when no task is in progress."
+    },
+    {
+      "name": "settings_language_restart_now",
+      "value": "Restart now"
+    },
+    {
+      "name": "settings_language_restart_title",
+      "value": "Restart App"
+    },
+    {
+      "name": "ai_plan_collapse_all",
+      "value": "Collapse all"
+    },
+    {
+      "name": "ai_plan_expand_all",
+      "value": "Expand all"
+    },
+    {
+      "name": "ai_plan_summary_tasks_suffix",
+      "value": " tasks"
+    },
+    {
+      "name": "ai_plan_summary_total_infix",
+      "value": " · "
+    },
+    {
+      "name": "ai_task_more_actions",
+      "value": "More actions"
+    },
+    {
+      "name": "ai_plan_generated_hint",
+      "value": "Plan generated — see the panel →"
+    },
+    {
+      "name": "ai_plan_latest_badge",
+      "value": "Latest"
+    },
+    {
+      "name": "settings_grip_awareness",
+      "value": "Smart Grip"
+    },
+    {
+      "name": "settings_grip_awareness_desc",
+      "value": "Floating button follows your holding hand"
+    },
+    {
+      "name": "settings_fab_title",
+      "value": "Floating action button"
+    },
+    {
+      "name": "settings_fab_desc",
+      "value": "The add button on Home and Route. Long-press to hide; re-enable here"
+    },
+    {
+      "name": "settings_section_general",
+      "value": "General"
+    },
+    {
+      "name": "settings_section_sync",
+      "value": "Cloud Sync"
+    },
+    {
+      "name": "settings_section_notification",
+      "value": "Notifications & Reminders"
+    },
+    {
+      "name": "settings_section_data",
+      "value": "Data"
+    },
+    {
+      "name": "settings_vibration",
+      "value": "Vibration"
+    },
+    {
+      "name": "settings_vibration_desc",
+      "value": "Vibrate when tasks or steps complete and pomodoro sessions finish"
+    },
+    {
+      "name": "toast_fab_hidden",
+      "value": "Hidden. Re-enable it in Settings, Floating action button"
+    },
+    {
+      "name": "home_add_todo_title",
+      "value": "Add a task"
+    },
+    {
+      "name": "home_add_todo_placeholder",
+      "value": "What needs doing?"
+    },
+    {
+      "name": "home_add_todo_quadrant_label",
+      "value": "Which quadrant?"
+    },
+    {
+      "name": "empty_route_filtered_title",
+      "value": "No goals in this category"
+    },
+    {
+      "name": "empty_route_filtered_subtitle",
+      "value": "Try another category, or move a goal into this one"
+    },
+    {
+      "name": "empty_route_filtered_action",
+      "value": "View all"
+    },
+    {
+      "name": "empty_route_placeholder",
+      "value": "What do you want to achieve?"
+    },
+    {
+      "name": "empty_route_howto_title",
+      "value": "How it works"
+    },
+    {
+      "name": "empty_route_step1",
+      "value": "Tell us what you want to achieve"
+    },
+    {
+      "name": "empty_route_step2",
+      "value": "AI turns it into an actionable route"
+    },
+    {
+      "name": "empty_route_step3",
+      "value": "Move a little every day, progress adds up"
+    },
+    {
+      "name": "empty_route_examples_title",
+      "value": "Try one of these"
+    },
+    {
+      "name": "empty_route_example1",
+      "value": "Half marathon in 3 months"
+    },
+    {
+      "name": "empty_route_example2",
+      "value": "Read 3 books in 30 days"
+    },
+    {
+      "name": "empty_route_example3",
+      "value": "Pass CET-6 in 6 months"
+    },
+    {
+      "name": "liveview_title_focus",
+      "value": "Focusing"
+    },
+    {
+      "name": "liveview_title_break",
+      "value": "On a break"
+    },
+    {
+      "name": "liveview_state_running",
+      "value": "Timing"
+    },
+    {
+      "name": "liveview_state_paused",
+      "value": "Paused"
+    },
+    {
+      "name": "btn_complete_all_steps",
+      "value": "Complete all steps"
+    },
+    {
+      "name": "btn_completed_undo",
+      "value": "Completed · Undo"
+    },
+    {
+      "name": "task_detail_steps_progress_prefix",
+      "value": "Completed "
+    },
+    {
+      "name": "task_detail_steps_progress_suffix",
+      "value": " steps"
+    },
+    {
+      "name": "task_detail_complete_all_hint",
+      "value": "Marks all steps above as done"
+    }
   ]
 }

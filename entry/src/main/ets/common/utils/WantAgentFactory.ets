@@ -24,11 +24,19 @@ function buildGoalRouteParams(goalId: string): Record<string, Object> {
 
 /**
  * 构造任务详情页路由参数（Want.parameters 类型为 Record<string, Object>）
+ *
+ * @param taskId - 任务 ID
+ * @param openImmersive - 是否需要落地即呼出全屏番茄钟（番茄钟通知专用）
  */
-function buildTaskRouteParams(taskId: string): Record<string, Object> {
+function buildTaskRouteParams(taskId: string, openImmersive: boolean): Record<string, Object> {
   const params: Record<string, Object> = {}
   params['routeName'] = 'TaskDetailPage'
   params['taskId'] = taskId
+  // 显式标记"从番茄钟通知进来"：EntryAbility 收到后直接 showImmersive()，
+  // 不依赖进程内 isImmersiveVisible 标志（进程被回收后该标志为 false，点通知只会落到任务详情）
+  if (openImmersive) {
+    params['openImmersive'] = '1'
+  }
   return params
 }
 
@@ -80,16 +88,18 @@ export class WantAgentFactory {
 
   /**
    * 创建点击通知后直达任务详情页的 WantAgent
-   * 携带 parameters: { routeName: 'TaskDetailPage', taskId: xxx }
-   * EntryAbility.onNewWant / onCreate 解析后调用 navigateToWithId 跳转
+   * 携带 parameters: { routeName: 'TaskDetailPage', taskId: xxx[, openImmersive: '1'] }
+   * EntryAbility.onNewWant / onCreate 解析后调用 navigateToWithIdOnce 跳转
    *
    * @param context - 应用上下文
    * @param taskId - 任务 ID
+   * @param openImmersive - true 时落地即呼出全屏番茄钟（仅番茄钟倒计时通知传 true）
    * @returns WantAgent 实例
    */
-  static async createTaskDetailWantAgent(context: Context, taskId: string): Promise<WantAgent> {
+  static async createTaskDetailWantAgent(context: Context, taskId: string,
+    openImmersive: boolean = false): Promise<WantAgent> {
     const uiaContext: common.UIAbilityContext = context as common.UIAbilityContext
-    const routeParams: Record<string, Object> = buildTaskRouteParams(taskId)
+    const routeParams: Record<string, Object> = buildTaskRouteParams(taskId, openImmersive)
     const wantAgentInfo: wantAgent.WantAgentInfo = {
       wants: [
         {

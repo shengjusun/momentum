@@ -10,9 +10,11 @@
  */
 
 import { promptAction } from '@kit.ArkUI'
+import { breakpointState } from '../common/utils/BreakpointState'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { DimensConstants } from '../common/constants/DimensConstants'
 import { Logger } from '../common/utils/Logger'
+import { AppReportSheet } from '../common/components/AppReportSheet'
 import { routeVM } from '../viewmodel/RoutePageViewModel'
 import { homeVM } from '../viewmodel/HomeViewModel'
 import { pomodoroService } from '../common/services/PomodoroService'
@@ -28,8 +30,11 @@ export struct StatsPage {
   @Local reviewLoading: boolean = false
   @Local reviewText: string = ''
   @Local todayFocusCount: number = 0
+  /** 页面存活标记：防止页面 pop 后 AI 回调仍写入 @Local 状态 */
+  private isAttached: boolean = false
 
   async aboutToAppear(): Promise<void> {
+    this.isAttached = true
     try {
       const stats = await pomodoroService.loadStats()
       this.todayFocusCount = stats.todayFocusCount
@@ -38,39 +43,61 @@ export struct StatsPage {
     }
   }
 
+  aboutToDisappear(): void {
+    this.isAttached = false
+  }
+
   private handleBack(): void {
     globalNavStack.pop()
   }
 
   /**
-   * 构造全局复盘数据文本（目标/任务/专注汇总）
+   * 构造全局复盘数据载荷（目标/任务/专注汇总）。
+   *
+   * ⚠️ 刻意用**语言中立的 `key=value`** 而不是拼中文句子：
+   *   原实现硬编码「目标总数：%d；已完成目标：%d…」，属 i18n 违规
+   *   （工程约定"文案一律走 `$r('app.string.*')`"），且英文界面下会把中文串
+   *   塞进全局复盘提示词（当时硬编码在 `model/AppConstants.ets`）。
+   *   改中立载荷后，本文件不再出现面向用户的中文文案。
+   *
+   * ✅ 已解决（2026-09-17）：提示词已迁至 `common/constants/AiPrompts.ets`，
+   *   中英两套 + 按语言取用（含"分四段""字数上限"等格式指令的本地化），
+   *   本载荷保持语言中立，两侧配合即为完整的英文体验。
    */
   private buildGlobalSummary(): string {
-    const goalTotal: number = routeVM.goals.length
-    const taskTotal: number = homeVM.taskList.length
+    const goalTotal: number = routeVM.liveGoals.length
+    const taskTotal: number = homeVM.liveTasks.length
     const completedGoals: number = routeVM.completedGoalCount
     const overdueGoals: number = routeVM.overdueGoalCount
     const focusCount: number = this.todayFocusCount
-    return '目标总数：' + goalTotal.toString() +
-      '；已完成目标：' + completedGoals.toString() +
-      '；逾期目标：' + overdueGoals.toString() +
-      '；任务总数：' + taskTotal.toString() +
-      '；今日专注次数：' + focusCount.toString()
+    return 'goals=' + goalTotal.toString() +
+      ';goals_completed=' + completedGoals.toString() +
+      ';goals_overdue=' + overdueGoals.toString() +
+      ';tasks=' + taskTotal.toString() +
+      ';focus_today=' + focusCount.toString()
+  }
+
+  /** 是否存在任何可复盘的数据（三项全零即视为无数据） */
+  private hasReviewableData(): boolean {
+    return routeVM.liveGoals.length > 0 || homeVM.liveTasks.length > 0 || this.todayFocusCount > 0
   }
 
   private handleGlobalReview(): void {
-    const summary: string = this.buildGlobalSummary()
-    if (summary.length === 0) {
+    // ⚠️ 修复死分支：原实现用 `summary.length === 0` 判空，但 summary 恒定非空
+    //   （总是带 label/键名）→ 该分支永远不会命中，`stats_no_data` 提示成了死代码。
+    if (!this.hasReviewableData()) {
       promptAction.showToast({
         message: getContext(this).resourceManager.getStringSync($r('app.string.stats_no_data').id),
         duration: 1500
       })
       return
     }
+    const summary: string = this.buildGlobalSummary()
     this.showReviewSheet = true
     this.reviewLoading = true
     this.reviewText = ''
     DeepSeekService.getInstance().generateGlobalReview(summary).then((report: string): void => {
+      if (!this.isAttached) return
       this.reviewLoading = false
       if (report.length === 0) {
         this.reviewText = ''
@@ -108,7 +135,7 @@ export struct StatsPage {
 
       Column({ space: 0 }) {
         Row() {
-          this.StatItemBuilder(routeVM.goals.length, $r('app.string.stats_goal_total'))
+          this.StatItemBuilder(routeVM.liveGoals.length, $r('app.string.stats_goal_total'))
           Divider().vertical(true).height(32).color($r('app.color.divider'))
           this.StatItemBuilder(routeVM.completedGoalCount, $r('app.string.stats_completed_goals'))
           Divider().vertical(true).height(32).color($r('app.color.divider'))
@@ -120,19 +147,19 @@ export struct StatsPage {
         Divider().color($r('app.color.divider')).padding({ left: 12, right: 12 })
 
         Row() {
-          this.StatItemBuilder(homeVM.taskList.length, $r('app.string.stats_task_total'))
+          this.StatItemBuilder(homeVM.liveTasks.length, $r('app.string.stats_task_total'))
           Divider().vertical(true).height(32).color($r('app.color.divider'))
           this.StatItemBuilder(this.todayFocusCount, $r('app.string.stats_today_focus'))
           Divider().vertical(true).height(32).color($r('app.color.divider'))
-          // 占位保持三列等分
-          this.StatItemBuilder(-1, $r('app.string.settings_not_set'))
+          // 已完成任务数（原为"-- 未设置"死占位格，改真实指标）
+          this.StatItemBuilder(homeVM.completedTaskCount, $r('app.string.stats_completed_tasks'))
         }
         .width('100%')
         .padding({ top: 16, bottom: 16 })
       }
       .width('100%')
       .backgroundColor($r('app.color.bg_card'))
-      .borderRadius(16)
+      .borderRadius(DimensConstants.RADIUS_L)
     }
     .width('100%')
     .margin({ top: 16 })
@@ -184,7 +211,7 @@ export struct StatsPage {
       .width('100%')
       .padding(16)
       .backgroundColor($r('app.color.bg_card'))
-      .borderRadius(16)
+      .borderRadius(DimensConstants.RADIUS_L)
     }
     .width('100%')
     .margin({ top: 16 })
@@ -195,64 +222,15 @@ export struct StatsPage {
    */
   @Builder
   ReviewCoverBuilder() {
-    Column() {
-      Column() {
-        Row() {
-          Text($r('app.string.stats_ai_review_title'))
-            .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-            .layoutWeight(1)
-          Button($r('app.string.common_close'))
-            .type(ButtonType.Capsule)
-            .height(32)
-            .padding({ left: 16, right: 16 })
-            .backgroundColor($r('app.color.bg_tag'))
-            .fontColor($r('app.color.text_secondary'))
-            .fontSize(CommonConstants.FONT_SIZE_CAPTION)
-            .onClick((): void => { this.showReviewSheet = false })
-        }
-        .width('100%')
-
-        if (this.reviewLoading) {
-          Column({ space: 12 }) {
-            LoadingProgress()
-              .width(40)
-              .height(40)
-              .color($r('app.color.primary_color'))
-            Text($r('app.string.stats_ai_review_loading'))
-              .fontSize(CommonConstants.FONT_SIZE_CAPTION)
-              .fontColor($r('app.color.text_secondary'))
-          }
-          .width('100%')
-          .justifyContent(FlexAlign.Center)
-          .margin({ top: 80 })
-          .layoutWeight(1)
-        } else {
-          Scroll() {
-            Text(this.reviewText)
-              .fontSize(CommonConstants.FONT_SIZE_BODY)
-              .fontColor($r('app.color.text_primary'))
-              .lineHeight(22)
-              .width('100%')
-              .copyOption(CopyOptions.LocalDevice)
-          }
-          .scrollBar(BarState.Off)
-          .layoutWeight(1)
-          .margin({ top: 12 })
-        }
-      }
-      .width('100%')
-      .height('78%')
-      .constraintSize({ maxWidth: DimensConstants.CONTENT_MAX_WIDTH })
-      .padding(20)
-      .backgroundColor($r('app.color.bg_card'))
-      .borderRadius({ topLeft: 20, topRight: 20 })
+    AppReportSheet({
+    title: getContext(this).resourceManager.getStringSync($r('app.string.stats_ai_review_title').id),
+    loading: this.reviewLoading,
+    text: this.reviewText,
+    loadingText: getContext(this).resourceManager.getStringSync($r('app.string.stats_ai_review_loading').id),
+    onClose: (): void => {
+      this.showReviewSheet = false
     }
-    .width('100%')
-    .height('100%')
-    .justifyContent(FlexAlign.End)
-    .backgroundColor($r('app.color.overlay_mask'))
+    })
   }
 
   build() {
@@ -273,8 +251,12 @@ export struct StatsPage {
 
               this.AiReviewCardBuilder()
             }
-            // 宽屏适配：内容列限宽居中
-            .constraintSize({ maxWidth: DimensConstants.CONTENT_MAX_WIDTH })
+            // 宽屏适配：内容列限宽居中（平板 lg 放宽到 860，与"我的"页同一分档）
+            .constraintSize({
+              maxWidth: breakpointState.isTablet
+                ? DimensConstants.CONTENT_MAX_WIDTH_TABLET
+                : DimensConstants.CONTENT_MAX_WIDTH
+            })
             .width('100%')
             .padding({ left: 16, right: 16, top: 8, bottom: safeAreaHelper.getBottomWith(24) })
           }

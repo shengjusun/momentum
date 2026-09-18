@@ -3,28 +3,41 @@
 import { HomeTodoItem, Id, TaskPriority, TaskDetailRouteNavParam, TaskDetailItem,
   EisenhowerQuadrant } from '../model/Models'
 import { homeVM, HomeViewModel } from '../viewmodel/HomeViewModel'
-import { globalNavStack, globalTabsController, TAB_INDEX, ROUTE_NAME, navigateTo, pushNavPath } from '../common/RouterManager'
-import { settingsVM } from '../viewmodel/SettingsViewModel'
+import { routeVM } from '../viewmodel/RoutePageViewModel'
+import { globalTabsController, TAB_INDEX, ROUTE_NAME, pushNavPath } from '../common/RouterManager'
+
 import { Logger } from '../common/utils/Logger'
-import { safeStringUtil, safeNumberUtil } from '../common/utils/SafeUtils'
-import { priorityLabelUtil, priorityBgColorUtil, priorityTextColorUtil } from '../common/utils/PriorityUtils'
+import { safeStringUtil, safeNumberUtil, formatDeadlineUtil } from '../common/utils/SafeUtils'
+import { priorityLabelUtil, priorityBgColorUtil, priorityTextColorUtil, classifyEisenhowerQuadrant, quadrantLabelUtil } from '../common/utils/PriorityUtils'
 import { promptAction, window } from '@kit.ArkUI'
-import { Context } from '@kit.AbilityKit'
+import { Context, common } from '@kit.AbilityKit'
 import { EisenhowerQuadrantDataSource } from '../common/datasource/TaskDataSource'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
 import { StateView, StateMode } from '../common/components/StateView'
+import { AppReportSheet } from '../common/components/AppReportSheet'
+import { AppActionSheet, AppActionSheetItem } from '../common/components/AppActionSheet'
 import { StorageManager } from '../common/utils/StorageManager'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { DimensConstants } from '../common/constants/DimensConstants'
+import { MotionConstants } from '../common/constants/MotionConstants'
 import { dragState } from './MainTab'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
 import { DeepSeekService } from '../common/services/DeepSeekService'
-import { ProfileAnalyzerService } from '../common/services/ProfileAnalyzerService'
+import { ProfileAnalyzerService, TodayTodoInput } from '../common/services/ProfileAnalyzerService'
 import { breakpointState } from '../common/utils/BreakpointState'
+import { GripAwarenessService, GripHand } from '../common/services/GripAwarenessService'
 
 /* ============================================================
  * 顶层工具函数
  * ============================================================ */
+
+/**
+ * bindPopup 的显示状态回调参数
+ * 自定义同构接口（形状与 SDK 声明一致），避免依赖 SDK 内部类型名
+ */
+interface PopupVisibilityEvent {
+  isVisible: boolean
+}
 
 /** 默认四象限顺序（Q1→Q2→Q3→Q4） */
 const DEFAULT_QUADRANT_ORDER: EisenhowerQuadrant[] = [
@@ -88,15 +101,14 @@ export struct CheckboxComponent {
   build() {
     Stack({ alignContent: Alignment.Center }) {
       if (this.isCompleted) {
-        Text('✓')
+        SymbolGlyph($r('sys.symbol.checkmark'))
           .fontSize(CommonConstants.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_inverse'))
+          .fontColor([$r('app.color.text_inverse')])
           .width(22)
           .height(22)
           .borderRadius(11)
           .backgroundColor($r('app.color.success_color'))
-          .textAlign(TextAlign.Center)
       } else {
         Column()
           .width(22)
@@ -127,6 +139,8 @@ export struct TaskListItemComponent {
   @Param task: HomeTodoItem = new HomeTodoItem('', '', '', '', TaskPriority.LOW, false, 0, '', '')
   @Event onToggle: (id: Id) => void = (id: Id): void => {}
   @Event onNavigate: (task: HomeTodoItem) => void = (task: HomeTodoItem): void => {}
+  /** 长按：弹出四象限移动菜单（象限反向操作入口） */
+  @Event onLongPress: (task: HomeTodoItem) => void = (task: HomeTodoItem): void => {}
 
   build() {
     Row({ space: 12 }) {
@@ -149,12 +163,26 @@ export struct TaskListItemComponent {
             .fontColor(priorityTextColorUtil(this.task.priority))
             .backgroundColor(priorityBgColorUtil(this.task.priority))
             .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-            .borderRadius(4)
+            .borderRadius(DimensConstants.RADIUS_XS)
 
           if (safeNumberUtil(parseInt(this.task.duration), 0) > 0) {
-            Text(this.task.duration + 'min')
+            Text(this.task.duration)
               .fontSize(CommonConstants.FONT_SIZE_XS)
               .fontColor($r('app.color.text_tertiary'))
+          }
+
+          // 截止时间：已逾期标红，24 小时内标警示色，其余常规展示
+          if (this.task.deadline > 0) {
+            Text(formatDeadlineUtil(this.task.deadline) +
+              (this.task.deadline <= Date.now()
+                ? getContext(this).resourceManager.getStringSync($r('app.string.home_deadline_overdue').id)
+                : ''))
+              .fontSize(CommonConstants.FONT_SIZE_XS)
+              .fontColor(this.task.deadline <= Date.now()
+                ? $r('app.color.error_color')
+                : (this.task.deadline - Date.now() < 24 * 60 * 60 * 1000
+                  ? $r('app.color.warning_color')
+                  : $r('app.color.text_tertiary')))
           }
         }
       }
@@ -165,11 +193,15 @@ export struct TaskListItemComponent {
     .constraintSize({ minHeight: 64 })
     .padding({ left: 16, right: 16 })
     .backgroundColor($r('app.color.bg_card'))
-    .borderRadius(12)
+    .borderRadius(DimensConstants.RADIUS_M)
     .shadow({ radius: 4, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 1 })
     .onClick((): void => {
       this.onNavigate(this.task)
     })
+    .gesture(LongPressGesture({ repeat: false })
+      .onAction((): void => {
+        this.onLongPress(this.task)
+      }))
   }
 }
 
@@ -195,8 +227,50 @@ export struct HomePage {
 
   // 艾森豪威尔四象限半模态状态：showEisenhowerSheet 控制半模态显示/隐藏
   @Local showEisenhowerSheet: boolean = false
+  /** 已完成任务折叠区展开状态 */
+  @Local showCompletedSection: boolean = false
   /** C2 今日排序建议：弹层显示/加载中/报告文本 */
   @Local showSuggestionSheet: boolean = false
+  /** 统一操作面板状态（页面级操作：删除确认等） */
+  @Local showActionSheet: boolean = false
+  @Local actionSheetTitle: string = ''
+  @Local actionSheetItems: AppActionSheetItem[] = []
+
+  // ---------------- 悬浮快捷按钮（FAB）+「添加待办」弹层 ----------------
+  /**
+   * FAB 显隐（**全局偏好**，默认显示）
+   * 与 RoutePage 共用 `CommonConstants.STORAGE_KEY_FAB_VISIBLE`：
+   * 长按隐藏、设置页「悬浮快捷按钮」恢复，两边行为完全一致。
+   */
+  @Local fabVisible: boolean = true
+  /** FAB 所在侧（智感握姿驱动；'unknown' 一律回落右下） */
+  @Local fabSide: 'left' | 'right' = 'right'
+  /** FAB 容器实测尺寸（onAreaChange 上报）：用 position 换边必须知道容器宽高 */
+  @Local fabAreaW: number = 0
+  @Local fabAreaH: number = 0
+  /** 是否启用「智感握姿」（设置页开关，默认开启） */
+  @Local gripEnabled: boolean = true
+  /** 「添加待办」弹层：显隐 / 标题输入 / 目标象限 */
+  @Local showAddTodoSheet: boolean = false
+  @Local addTodoTitle: string = ''
+  /** 默认放"重要不紧急"：这是大多数人真正该先做的事（Q1 往往是别人压给你的） */
+  @Local addTodoQuadrant: EisenhowerQuadrant = EisenhowerQuadrant.Q2_IMPORTANT_NOT_URGENT
+  /** FAB 尺寸与边距：与 RoutePage 保持一致（距底部 80vp、距左右各 24vp） */
+  private readonly FAB_SIZE: number = 56
+  private readonly FAB_EDGE: number = 24
+  private readonly FAB_BOTTOM: number = 80
+  /** 握姿感知服务单例（与 RoutePage 共用同一个单例） */
+  private gripService: GripAwarenessService = GripAwarenessService.getInstance()
+
+  // 长按待办 → "移动象限"菜单：锚定在被长按那一行上的弹层（bindPopup）
+  // 为什么不用 AppActionSheet：它是"页面级底部面板"，渲染在页面 Stack 内、位于四象限半模态
+  // （bindSheet，独立浮层）之下且贴着屏幕底部，与被长按的那一项毫无空间关系 —— 用户会觉得"弹在外面"。
+  /** 菜单是否显示 */
+  @Local showMoveMenu: boolean = false
+  /** 菜单操作的目标任务（null = 未选中；也用于判断弹层挂在哪一行） */
+  @Local moveMenuTask: HomeTodoItem | null = null
+  /** 目标任务当前所在象限（用于在菜单里标出"（当前）"） */
+  @Local moveMenuCurrent: EisenhowerQuadrant = EisenhowerQuadrant.Q1_IMPORTANT_URGENT
   @Local suggestionLoading: boolean = false
   @Local suggestionText: string = ''
   // 四个象限独立 DataSource，配合 LazyForEach 按需渲染
@@ -212,16 +286,143 @@ export struct HomePage {
    */
   @Local activeQuadrant: EisenhowerQuadrant = EisenhowerQuadrant.Q1_IMPORTANT_URGENT
   /**
-   * 任务总数追踪（驱动四象限 DataSource 同步）
+   * 四象限信号（驱动四象限 DataSource 同步）
    * 为什么需要：q1~q4DataSource 是 eisenhowerMatrix 的独立副本，无响应式绑定。
    * 之前只在"打开半模态 / 数据变更后可见性回调"时同步，平板右栏（常驻面板）
    * 冷启动首次渲染时数据源还是空的 → 面板空白。用 @Local + @Monitor 在
    * build 之后统一补一次同步（模式与 RoutePage.goalCount 一致）。
+   *
+   * ⚠️ 为什么是"四象限计数组合"而不是"任务总数"（2026-09-17 修复）：
+   *   旧信号 `liveTasks.length` 感知不到**任务换象限**——deadline 跨过 24h 线时
+   *   （nowMinute 每分钟驱动 eisenhowerMatrix 重算），任务从 q4 挪到 q3，总数不变
+   *   → 信号不变 → DataSource 不同步 → 右栏"计数是新的、列表是旧的"（计数直读
+   *   @Computed 会刷新，列表走 DataSource 不会）。四个计数拼串后，任何象限迁移都会改变信号。
    */
-  @Local quadrantTaskTotal: number = -1
-  @Monitor('quadrantTaskTotal')
-  onQuadrantTaskTotalChange(): void {
-    if (this.quadrantTaskTotal >= 0) {
+  @Local quadrantSignal: string = ''
+
+  /**
+   * FAB 的 x 坐标
+   * 换边必须走 position：它是可动画的渲染属性，配合 .animation() 才有"滑过去"的过渡感
+   */
+  private fabX(): number {
+    const w: number = this.fabAreaW > 0 ? this.fabAreaW : 360
+    if (this.fabSide === 'left') {
+      return this.FAB_EDGE
+    }
+    return Math.max(this.FAB_EDGE, w - this.FAB_SIZE - this.FAB_EDGE)
+  }
+
+  /** FAB 的 y 坐标（距底 80vp，避开底部悬浮 TabBar） */
+  private fabY(): number {
+    const h: number = this.fabAreaH > 0 ? this.fabAreaH : 780
+    return Math.max(0, h - this.FAB_SIZE - this.FAB_BOTTOM)
+  }
+
+  /**
+   * 读取全局 FAB 显隐偏好（幂等：aboutToAppear / onVisibleAreaChange 都会调）
+   * 后者覆盖"从设置页返回"的场景 —— 用户在设置里重新打开后切回首页要立刻生效。
+   */
+  private async loadFabVisible(): Promise<void> {
+    this.fabVisible = await StorageManager.getPreferenceBool(
+      CommonConstants.STORAGE_KEY_FAB_VISIBLE, true)
+  }
+
+  /**
+   * 按用户开关同步握姿订阅（设置页「智感握姿」）
+   * - 开启：订阅；服务内部做能力探测与降级，不支持设备回退 'unknown' → FAB 保持右下
+   * - 关闭：退订并把 FAB 复位右下
+   */
+  private async syncGripSubscription(): Promise<void> {
+    this.gripEnabled = await StorageManager.getPreferenceBool(
+      CommonConstants.STORAGE_KEY_GRIP_AWARENESS, true)
+    if (!this.gripEnabled) {
+      this.gripService.unsubscribe()
+      this.fabSide = 'right'
+      return
+    }
+    const uiContext: common.UIAbilityContext = getContext(this) as common.UIAbilityContext
+    this.gripService.subscribe(uiContext, (hand: GripHand): void => {
+      // 'right' 与 'unknown' 一律右下（默认）
+      this.fabSide = hand === 'left' ? 'left' : 'right'
+    })
+  }
+
+  /**
+   * 长按隐藏 FAB
+   * 隐藏是**全局偏好**（首页与路线页一起隐藏）：表达"我不需要这个按钮"，
+   * 而非"这一页不需要" —— 否则会出现"首页藏了、路线页还露着"的困惑。
+   * 恢复入口在设置页「悬浮快捷按钮」，toast 里直接写明路径。
+   */
+  private handleFabLongPress(): void {
+    if (!this.fabVisible) return
+    this.fabVisible = false
+    this.gripService.unsubscribe()
+    StorageManager.setPreferenceBool(CommonConstants.STORAGE_KEY_FAB_VISIBLE, false)
+      .catch((e: Error): void => {
+        Logger.warn('HomePage', 'save fab visible failed: ' + e.message)
+      })
+    promptAction.showToast({
+      message: getContext(this).resourceManager.getStringSync($r('app.string.toast_fab_hidden').id),
+      duration: 2500
+    })
+  }
+
+  /** 打开「添加待办」弹层（重置表单） */
+  private openAddTodoSheet(): void {
+    this.addTodoTitle = ''
+    this.addTodoQuadrant = EisenhowerQuadrant.Q2_IMPORTANT_NOT_URGENT
+    this.showAddTodoSheet = true
+  }
+
+  /**
+   * 把用户选的「象限」反推成数据字段并入库
+   *
+   * 四象限在本 App 里是**派生**的（重要 = `priority === HIGH`；紧急 = `deadline` 距今 < 24h），
+   * 所以选了"放哪一格"后，这里要反向写出对应的 `priority` + `deadline`：
+   *   Q1 重要且紧急   → HIGH   + 今天 23:59 截止
+   *   Q2 重要不紧急   → HIGH   + 无截止
+   *   Q3 紧急不重要   → MEDIUM + 今天 23:59 截止
+   *   Q4 不重要不紧急 → LOW    + 无截止
+   */
+  private handleAddTodo(): void {
+    const title: string = this.addTodoTitle.trim()
+    if (title.length === 0) {
+      promptAction.showToast({
+        message: getContext(this).resourceManager.getStringSync($r('app.string.toast_input_empty').id)
+      })
+      return
+    }
+    const q: EisenhowerQuadrant = this.addTodoQuadrant
+    const isImportant: boolean = q === EisenhowerQuadrant.Q1_IMPORTANT_URGENT ||
+      q === EisenhowerQuadrant.Q2_IMPORTANT_NOT_URGENT
+    const isUrgent: boolean = q === EisenhowerQuadrant.Q1_IMPORTANT_URGENT ||
+      q === EisenhowerQuadrant.Q3_NOT_IMPORTANT_URGENT
+
+    const priority: TaskPriority = isImportant
+      ? TaskPriority.HIGH
+      : (q === EisenhowerQuadrant.Q3_NOT_IMPORTANT_URGENT ? TaskPriority.MEDIUM : TaskPriority.LOW)
+    let deadline: number = 0
+    if (isUrgent) {
+      const now: Date = new Date()
+      deadline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).getTime()
+    }
+
+    const added: boolean = homeVM.addManualTask(title, priority, deadline)
+    if (!added) {
+      promptAction.showToast({
+        message: getContext(this).resourceManager.getStringSync($r('app.string.home_toast_operation_failed_prefix').id)
+      })
+      return
+    }
+    this.showAddTodoSheet = false
+    promptAction.showToast({
+      message: getContext(this).resourceManager.getStringSync($r('app.string.toast_task_added').id)
+    })
+  }
+
+  @Monitor('quadrantSignal')
+  onQuadrantSignalChange(): void {
+    if (this.quadrantSignal.length > 0) {
       this.syncEisenhowerDataSources()
     }
   }
@@ -238,6 +439,20 @@ export struct HomePage {
 
   /** 当前正在拖拽的象限索引（-1 表示未拖拽） */
   @Local draggingIndex: number = -1
+
+  /**
+   * 拖拽会话锁：记录本次手势起始的象限索引，-1 = 无会话。
+   *
+   * ⚠️ 为什么必须加锁：`onTouch` 挂在**每张象限卡**上，而 `longPressTimerId` /
+   * `touchStartScreenX/Y` / `draggingIndex` 都是**页面级共享字段**。双指同时按两张卡时：
+   *   ① 第二指的 Down 覆盖起始坐标，并用新句柄覆盖 `longPressTimerId`
+   *      —— 旧句柄丢失但**旧定时器仍会触发**，两个定时器各自把 `draggingIndex` 置成自己那张卡；
+   *   ② 之后任一手指的 Move 都用被覆盖后的起始坐标算位移 → 目标象限算错；
+   *   ③ 松手时按错误的 targetIndex 交换并 `saveQuadrantOrder()` **持久化**
+   *      → 用户排序被莫名打乱，且重启后依然是错的。
+   * 加锁后只认**第一个按下**的那张卡，其余手指的事件直接丢弃。
+   */
+  private dragSessionIndex: number = -1
 
   /** 拖拽偏移量 X（vp） */
   @Local dragOffsetX: number = 0
@@ -266,13 +481,20 @@ export struct HomePage {
   }
 
   /**
-   * build 之后更新任务总数，触发 @Monitor 同步四象限 DataSource
+   * build 之后更新四象限信号，触发 @Monitor 同步四象限 DataSource
    * （数据加载完成时 build 重渲染 → 此处补同步，避免平板右栏常驻面板空白）
+   *
+   * 信号 = q1,q2,q3,q4 四个计数拼串：任务增删、勾选完成、**跨象限迁移**（deadline
+   * 跨过 24h 线 / 优先级调整）任一发生都会改变信号 → 精确触发一次 DataSource 同步；
+   * 平时每分钟的 nowMinute 刷新若未引起任何象限计数变化，信号不变，不产生多余同步。
    */
   onDidBuild(): void {
-    const total: number = this.viewModel.taskList.length
-    if (this.quadrantTaskTotal !== total) {
-      this.quadrantTaskTotal = total
+    const signal: string = this.viewModel.eisenhowerMatrix.q1.count.toString() + ',' +
+      this.viewModel.eisenhowerMatrix.q2.count.toString() + ',' +
+      this.viewModel.eisenhowerMatrix.q3.count.toString() + ',' +
+      this.viewModel.eisenhowerMatrix.q4.count.toString()
+    if (this.quadrantSignal !== signal) {
+      this.quadrantSignal = signal
     }
   }
 
@@ -305,18 +527,35 @@ export struct HomePage {
     // HomePage 不是 @Entry 页面，onPageShow 不保证触发；窗口宽度改在这里取，
     // 保证四象限拖拽跨格阈值用的是真实窗口宽度（默认 360 在平板上会偏大）
     this.refreshWindowWidth()
+    // 悬浮按钮：读显隐偏好 + 订阅智感握姿（与 RoutePage 共用同一个偏好与同一个服务单例）
+    this.loadFabVisible().catch((e: Error): void => {
+      Logger.warn('HomePage', 'loadFabVisible failed: ' + e.message)
+    })
+    this.syncGripSubscription().catch((e: Error): void => {
+      Logger.warn('HomePage', 'syncGripSubscription failed: ' + e.message)
+    })
   }
 
-  aboutToDisappear(): void {
-    this.isAttached = false
+  /**
+   * 释放拖拽会话（幂等）：清长按定时器 + 复位拖拽态 + 释放会话锁 + 恢复 Tabs 滑动。
+   * Up / Cancel / 手指全抬起 / 页面消失 四条路径统一走这里，避免任何一条漏清理导致
+   * "会话锁残留 → 象限卡再也拖不动"。
+   */
+  private releaseDragSession(): void {
     if (this.longPressTimerId !== -1) {
       clearTimeout(this.longPressTimerId)
       this.longPressTimerId = -1
     }
-    if (this.draggingIndex >= 0) {
-      this.draggingIndex = -1
-    }
+    this.draggingIndex = -1
+    this.dragOffsetX = 0
+    this.dragOffsetY = 0
+    this.dragSessionIndex = -1
     dragState.isDragging = false
+  }
+
+  aboutToDisappear(): void {
+    this.isAttached = false
+    this.releaseDragSession()
   }
 
   /** 从 StorageManager 加载四象限排序 */
@@ -520,14 +759,14 @@ export struct HomePage {
               .fontWeight(FontWeight.Bold)
               .fontColor(this.getQuadrantThemeColor(quadrant))
               .backgroundColor(this.getQuadrantBadgeBg(quadrant))
-              .borderRadius(10)
+              .borderRadius(DimensConstants.RADIUS_M)
               .padding({ left: 7, right: 7, top: 2, bottom: 2 })
           } else {
             Text('0')
               .fontSize(CommonConstants.FONT_SIZE_XS)
               .fontColor($r('app.color.text_tertiary'))
               .backgroundColor($r('app.color.bg_tag'))
-              .borderRadius(10)
+              .borderRadius(DimensConstants.RADIUS_M)
               .padding({ left: 7, right: 7, top: 2, bottom: 2 })
           }
         }
@@ -571,7 +810,7 @@ export struct HomePage {
     .height('100%')
     .constraintSize({ minHeight: 120 })
     .backgroundColor($r('app.color.bg_card'))
-    .borderRadius(16)
+    .borderRadius(DimensConstants.RADIUS_L)
     .border({
       width: breakpointState.isTablet && this.activeQuadrant === quadrant ? 2 : 0,
       color: breakpointState.isTablet && this.activeQuadrant === quadrant
@@ -592,12 +831,29 @@ export struct HomePage {
       ? { x: this.dragOffsetX, y: this.dragOffsetY }
       : { x: 0, y: 0 })
     .zIndex(this.draggingIndex === quadIndex ? 100 : 0)
-    .animation({ duration: 150, curve: Curve.EaseOut })
+    // 长按拖拽跟手：刻意用短促非弹性曲线 —— 弹簧会让位移落后于手指、拖出"糊"的观感
+    .animation(MotionConstants.pressParam())
     .onTouch((event: TouchEvent): void => {
-      if (event.touches.length === 0) return
+      // 兜底：所有手指都已抬起 → 无条件释放会话（防会话锁残留导致象限卡再也拖不动）
+      if (event.touches.length === 0) {
+        this.releaseDragSession()
+        return
+      }
+      // ⚠️ 多指竞态防护：onTouch 挂在每张卡上，而会话字段（longPressTimerId /
+      //   touchStartScreenX/Y / draggingIndex）是页面级共享的。只认第一个按下的那张卡，
+      //   其余手指的事件一律丢弃，否则会算出错误的 targetIndex 并持久化坏排序。
+      if (this.dragSessionIndex !== -1 && this.dragSessionIndex !== quadIndex) {
+        return
+      }
       const touch: TouchObject = event.touches[0]
 
       if (event.type === TouchType.Down) {
+        // 同一张卡上多指重复 Down：会话已建立，忽略后续手指
+        if (this.dragSessionIndex === quadIndex) {
+          return
+        }
+        // 认领本次手势会话
+        this.dragSessionIndex = quadIndex
         // 记录起始全局坐标，启动长按定时器
         this.touchStartScreenX = touch.screenX
         this.touchStartScreenY = touch.screenY
@@ -607,7 +863,7 @@ export struct HomePage {
           this.draggingIndex = quadIndex
           this.dragOffsetX = 0
           this.dragOffsetY = 0
-          promptAction.showToast({ message: $r('app.string.home_drag_release_hint'), duration: 1000 })
+          promptAction.showToast({ message: $r('app.string.home_drag_release_hint'), duration: 1500 })
         }, 500)
       } else if (event.type === TouchType.Move) {
         if (this.draggingIndex === quadIndex) {
@@ -621,17 +877,12 @@ export struct HomePage {
           if (moveDist > 10) {
             clearTimeout(this.longPressTimerId)
             this.longPressTimerId = -1
-            // 取消长按，恢复 Tabs 滑动
+            // 取消长按，恢复 Tabs 滑动（会话锁保留到抬起，避免期间被别的卡接管）
             dragState.isDragging = false
           }
         }
       } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-        // 清除长按定时器
-        if (this.longPressTimerId !== -1) {
-          clearTimeout(this.longPressTimerId)
-          this.longPressTimerId = -1
-        }
-        // 如果在拖拽态且是正常抬起，执行交换
+        // 只有在拖拽态且是正常抬起时，才执行象限交换
         if (this.draggingIndex === quadIndex && event.type === TouchType.Up) {
           const targetIndex: number = this.calcTargetIndex(this.dragOffsetX, this.dragOffsetY)
           if (targetIndex >= 0 && targetIndex < this.quadrantOrder.length && targetIndex !== quadIndex) {
@@ -644,11 +895,7 @@ export struct HomePage {
           // （onClick 在 onTouch.Up 之后触发，此时 draggingIndex 已复位，原防护失效）
           this.suppressQuadrantCardClick = true
         }
-        this.draggingIndex = -1
-        this.dragOffsetX = 0
-        this.dragOffsetY = 0
-        // 恢复 Tabs 滑动
-        dragState.isDragging = false
+        this.releaseDragSession()
       }
     })
     .onClick((): void => {
@@ -698,6 +945,41 @@ export struct HomePage {
         : Math.max(currentRow - 1, 0)
     }
     return targetRow * 2 + targetCol
+  }
+
+  /**
+   * 主页空态引导行（只占一行，不与页面骨架抢空间）
+   *
+   * ⚠️ 这里刻意**只给一个去向明确**的入口：首页没有"手动添加待办"的能力
+   *   （待办只能来自「AI 拆解目标 → 确认方案」或「从路线页摘取任务」），
+   *   若在此放"手动添加"，用户点了无处可去。
+   */
+  @Builder
+  EmptyGuideRowBuilder() {
+    Row({ space: 8 }) {
+      Text($r('app.string.home_empty_message'))
+        .fontSize(CommonConstants.FONT_SIZE_SMALL)
+        .fontColor($r('app.color.text_secondary'))
+        .layoutWeight(1)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Text($r('app.string.home_empty_cta'))
+        .fontSize(CommonConstants.FONT_SIZE_SMALL)
+        .fontColor($r('app.color.primary_color'))
+        .fontWeight(FontWeight.Medium)
+        .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+        .borderRadius(DimensConstants.RADIUS_L)
+        .backgroundColor($r('app.color.primary_color_bg'))
+        .onClick((): void => {
+          globalTabsController.changeIndex(TAB_INDEX.AI)
+        })
+    }
+    .width('100%')
+    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+    .backgroundColor($r('app.color.bg_card'))
+    .borderRadius(DimensConstants.RADIUS_L)
+    .alignItems(VerticalAlign.Center)
   }
 
   /**
@@ -753,6 +1035,9 @@ export struct HomePage {
         onToggle: (id: Id): void => {
           this.toggleEisenhowerTask(id)
         },
+        onLongPress: (t: HomeTodoItem): void => {
+          this.openMoveQuadrantMenu(t)
+        },
         onNavigate: (todo: HomeTodoItem): void => {
           if (todo.relatedTaskId && todo.relatedGoalId) {
             if (!todo.id || todo.id.length === 0) {
@@ -790,6 +1075,79 @@ export struct HomePage {
     }
     .backgroundColor(Color.Transparent)
     .swipeAction({ end: this.deleteBuilder(task), edgeEffect: SwipeEdgeEffect.None })
+    // "移动象限"菜单：锚定在被长按的那一行上（只有目标任务所在的那一行会显示）
+    // 挂在 ListItem 上（ListItem 继承 CommonMethod，支持 bindPopup），不往 @ReusableV2 的
+    // TaskListItemComponent 内部挂浮层 —— 复用组件里挂弹层容易串状态。
+    .bindPopup(this.showMoveMenu && this.moveMenuTask !== null && this.moveMenuTask.id === task.id,
+      {
+        builder: this.MoveQuadrantMenuBuilder,
+        placement: Placement.Bottom,
+        popupColor: $r('app.color.bg_card'),
+        enableArrow: true,
+        autoCancel: true,
+        // 点外部/返回键收起时回写状态：否则 showMoveMenu 停在 true，
+        // 再次长按同一行时 show 值没变化，弹层不会再打开
+        onStateChange: (event: PopupVisibilityEvent): void => {
+          if (!event.isVisible) {
+            this.showMoveMenu = false
+          }
+        }
+      })
+  }
+
+  /**
+   * "移动象限"菜单内容（锚定弹层，读组件状态）
+   *
+   * ⚠️ 不接收形参：@Builder 的形参是按值传递、不建立状态依赖，菜单必须在打开那一刻
+   *    读到最新的 this.moveMenuTask / this.moveMenuCurrent，所以这里直读组件状态。
+   */
+  @Builder
+  MoveQuadrantMenuBuilder() {
+    Column({ space: 2 }) {
+      // 顶部任务名：让用户确认"操作的是这一项"
+      Text(safeStringUtil(this.moveMenuTask === null ? '' : this.moveMenuTask.title,
+        getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id)))
+        .fontSize(CommonConstants.FONT_SIZE_XS)
+        .fontColor($r('app.color.text_tertiary'))
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+        .padding({ left: 14, right: 14, top: 10, bottom: 6 })
+
+      ForEach(DEFAULT_QUADRANT_ORDER, (q: EisenhowerQuadrant): void => {
+        Row({ space: 8 }) {
+          // 当前象限用圆点标记（不用 SymbolGlyph：符号名需逐个核实，圆点零依赖且清晰）
+          Circle({ width: 6, height: 6 })
+            .fill(this.moveMenuCurrent === q ? $r('app.color.primary_color') : Color.Transparent)
+
+          Text(getContext(this).resourceManager.getStringSync(quadrantLabelUtil(q).id) +
+            (this.moveMenuCurrent === q
+              ? getContext(this).resourceManager.getStringSync($r('app.string.home_quadrant_current_suffix').id)
+              : ''))
+            .fontSize(CommonConstants.FONT_SIZE_BODY)
+            .fontWeight(this.moveMenuCurrent === q ? FontWeight.Medium : FontWeight.Normal)
+            .fontColor(this.moveMenuCurrent === q ? $r('app.color.primary_color') : $r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
+        }
+        .width('100%')
+        .height(44)
+        .padding({ left: 14, right: 14 })
+        .alignItems(VerticalAlign.Center)
+        .onClick((): void => {
+          const target: HomeTodoItem | null = this.moveMenuTask
+          const isCurrent: boolean = this.moveMenuCurrent === q
+          // 先收起菜单再执行动作（动作内部会弹 toast/可能再弹层）
+          this.closeMoveQuadrantMenu()
+          if (target !== null && !isCurrent) {
+            this.applyQuadrantMove(target, q)
+          }
+        })
+      }, (q: EisenhowerQuadrant): string => q)
+    }
+    .width(228)
+    .padding({ top: 4, bottom: 6 })
   }
 
   /**
@@ -867,7 +1225,7 @@ export struct HomePage {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.bg_card_variant'))
-    .borderRadius(16)
+    .borderRadius(DimensConstants.RADIUS_L)
     .padding(8)
   }
 
@@ -907,10 +1265,77 @@ export struct HomePage {
       } else {
         this.QuadrantTaskListBuilder(16)
       }
+
+      // 已完成任务折叠区：勾选后不再"凭空消失"，可查看、点击可反悔
+      if (this.viewModel.completedTasks.length > 0) {
+        this.CompletedSectionBuilder()
+      }
     }
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.bg_page'))
+  }
+
+  /** 已完成任务折叠区（半模态内）：默认收起，展开后点击条目可撤销完成 */
+  @Builder
+  CompletedSectionBuilder() {
+    Column({ space: 8 }) {
+      // 折叠头：标题 + 数量 + 展开/收起箭头
+      Row({ space: 6 }) {
+        Text($r('app.string.home_completed_section_title'))
+          .fontSize(CommonConstants.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_secondary'))
+        Text(this.viewModel.completedTasks.length.toString())
+          .fontSize(CommonConstants.FONT_SIZE_SMALL)
+          .fontColor($r('app.color.text_tertiary'))
+        Blank()
+        SymbolGlyph($r('sys.symbol.chevron_down'))
+          .fontSize(14)
+          .fontColor([$r('app.color.text_tertiary')])
+          .rotate({ angle: this.showCompletedSection ? 180 : 0 })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 8, bottom: 4 })
+      .onClick((): void => {
+        this.showCompletedSection = !this.showCompletedSection
+      })
+
+      if (this.showCompletedSection) {
+        List({ space: 8 }) {
+          ForEach(this.viewModel.completedTasks, (task: HomeTodoItem): void => {
+            ListItem() {
+              Row({ space: 8 }) {
+                SymbolGlyph($r('sys.symbol.checkmark_circle_fill'))
+                  .fontSize(16)
+                  .fontColor([$r('app.color.success_color')])
+                Text(task.title)
+                  .fontSize(CommonConstants.FONT_SIZE_BODY)
+                  .fontColor($r('app.color.text_tertiary'))
+                  .decoration({ type: TextDecorationType.LineThrough, color: $r('app.color.text_tertiary') })
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .layoutWeight(1)
+                Text($r('app.string.home_completed_undo_hint'))
+                  .fontSize(CommonConstants.FONT_SIZE_XS)
+                  .fontColor($r('app.color.primary_color'))
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+              .onClick((): void => {
+                // 反悔：恢复为未完成（toggleTask 会联动 routeVM 回滚 L2/进度并重排提醒）
+                this.toggleEisenhowerTask(task.id)
+              })
+            }
+          }, (task: HomeTodoItem): string => task.id + '_' + task.isCompleted.toString())
+        }
+        .width('100%')
+        .height(160)
+        .scrollBar(BarState.Off)
+        .padding({ left: 0, right: 0 })
+      }
+    }
+    .width('100%')
   }
 
   /** 内容列限宽：平板（lg）双栏上限 DUAL_MAX_WIDTH，手机/折叠屏保持 640 居中 */
@@ -986,16 +1411,25 @@ export struct HomePage {
             this.viewModel.retryLoad()
           }
         })
-      } else if (this.viewModel.taskList.length === 0) {
-        // 空态：无待办任务时引导用户去 AI 拆解
-        StateView({
-          mode: StateMode.EMPTY,
-          emptyMessage: $r('app.string.home_empty_message'),
-          ctaText: $r('app.string.home_empty_cta'),
-          onCta: (): void => {
-            globalTabsController.changeIndex(TAB_INDEX.AI)
+      } else if (this.viewModel.liveTasks.length === 0) {
+        // 空态：**保留四象限骨架**，引导压成一行
+        // 设计取舍：原实现用 StateView(EMPTY) 的整页居中插画，会把四象限矩阵整个换掉 ——
+        //   用户看不到"这个 App 是怎么组织的"，页面也显得空荡。
+        //   现改为矩阵照常渲染（四象限卡片本就支持 0 条：角标显示 0、任务区留空），
+        //   引导只占一行高度，页面骨架与正常态完全一致。
+        Column() {
+          this.EmptyGuideRowBuilder()
+
+          Column() {
+            this.QuadrantMatrixBuilder()
           }
-        })
+          .width('100%')
+          .layoutWeight(1)
+          .margin({ top: 10 })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .padding({ left: 16, right: 16, bottom: safeAreaHelper.getBottomWith(DimensConstants.TAB_CLEARANCE) })
       } else if (breakpointState.isTablet) {
         // 正常态-平板：左象限矩阵 + 右常驻任务面板（点击左格右栏直接切换，替代半模态）
         Row({ space: 16 }) {
@@ -1034,6 +1468,14 @@ export struct HomePage {
       .onVisibleAreaChange([0.0], (isVisible: boolean, _currentRatio: number): void => {
         if (isVisible && this.viewModel.isLoaded) {
           this.forceSyncDataSource()
+          // 切回首页时，「智感握姿 / 悬浮快捷按钮」可能刚在设置页被改过，重新同步
+          // （HomePage 非 @Entry 页面，onPageShow 不保证触发，故挂在这里）
+          this.loadFabVisible().catch((e: Error): void => {
+            Logger.warn('HomePage', 'loadFabVisible failed: ' + e.message)
+          })
+          this.syncGripSubscription().catch((e: Error): void => {
+            Logger.warn('HomePage', 'syncGripSubscription failed: ' + e.message)
+          })
         }
       })
       // 四象限半模态（bindSheet）
@@ -1051,11 +1493,81 @@ export struct HomePage {
           Logger.info('HomePage', 'Eisenhower sheet dismissed')
         }
       })
+      // 悬浮快捷按钮（FAB）：与 RoutePage 同一套几何 + 智感握姿 + 长按隐藏
+      // 全屏容器 + hitTestBehavior(Transparent)：空白处点击穿透到下层内容
+      if (this.viewModel.isLoaded && this.fabVisible) {
+        Stack() {
+          Button({ type: ButtonType.Circle }) {
+            Text('+')
+              .fontSize(CommonConstants.FONT_SIZE_HUGE)
+              .fontColor($r('app.color.text_inverse'))
+              .fontWeight(FontWeight.Bold)
+          }
+          .width(this.FAB_SIZE)
+          .height(this.FAB_SIZE)
+          .backgroundColor($r('app.color.primary_color'))
+          .shadow({ radius: 12, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 4 })
+          .position({ x: this.fabX(), y: this.fabY() })
+          // 换边过渡：position 可动画 + 响应式弹簧，让按钮"带惯性滑"过去而不是匀速平移
+          .animation(MotionConstants.springParam())
+          .onClick((): void => {
+            this.openAddTodoSheet()
+          })
+          // 长按 600ms = 隐藏按钮（恢复入口在设置页「悬浮快捷按钮」）
+          .gesture(
+            LongPressGesture({ repeat: false, duration: 600 })
+              .onAction((): void => {
+                this.handleFabLongPress()
+              })
+          )
+        }
+        .width('100%')
+        .height('100%')
+        .hitTestBehavior(HitTestMode.Transparent)
+        .onAreaChange((_oldArea: Area, newArea: Area): void => {
+          const w: number = Number(newArea.width)
+          const h: number = Number(newArea.height)
+          if (!Number.isNaN(w) && !Number.isNaN(h) && w > 0 && h > 0) {
+            this.fabAreaW = w
+            this.fabAreaH = h
+          }
+        })
+      }
+
       // C2 今日排序建议全屏弹层（Stack 层叠；置于 Stack 层不受内容限宽影响）
       if (this.showSuggestionSheet) {
         this.SuggestionCoverBuilder()
       }
+
+      // 统一操作面板（替代系统 showActionMenu/showDialog）
+      if (this.showActionSheet) {
+        AppActionSheet({
+          title: this.actionSheetTitle,
+          items: this.actionSheetItems,
+          onDismiss: (): void => {
+            this.showActionSheet = false
+          }
+        })
+      }
     }
+    // 「添加待办」半模态（bindSheet）
+    // ⚠️ 必须用 bindSheet，不能用页面内自绘 Stack 层：自绘层位于 HdsTabs 的**内容区之内**，
+    //    会被悬浮胶囊 TabBar 压住底部按钮（真机已复现），详见 AddTodoSheetBuilder 注释。
+    // 挂在根 Stack 上（而非内容 Column）：内容 Column 已被「四象限半模态」占用，
+    // 避免在同一个组件上重复调用 bindSheet。
+    .bindSheet($$this.showAddTodoSheet, this.AddTodoSheetBuilder(), {
+      // FIT_CONTENT：面板高度随表单内容自适应，不写死高度
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      showClose: false,
+      backgroundColor: $r('app.color.bg_card'),
+      maskColor: $r('app.color.overlay_mask'),
+      enableOutsideInteractive: false,
+      onDisappear: (): void => {
+        this.showAddTodoSheet = false
+        Logger.info('HomePage', 'add-todo sheet dismissed')
+      }
+    })
   }
 
   @Builder
@@ -1089,24 +1601,23 @@ export struct HomePage {
 
   private confirmDeleteTask(task: HomeTodoItem): void {
     const taskTitle: string = safeStringUtil(task.title, getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id))
-    promptAction.showDialog({
-      title: $r('app.string.home_delete_task_title'),
-      message: getContext(this).resourceManager.getStringSync($r('app.string.home_delete_task_title').id) + '"' + taskTitle + '"？\n' + getContext(this).resourceManager.getStringSync($r('app.string.dialog_delete_message').id),
-      buttons: [
-        { text: $r('app.string.common_cancel'), color: $r('app.color.text_tertiary') },
-        { text: $r('app.string.btn_delete'), color: $r('app.color.error_color') }
-      ]
-    }).then((result: promptAction.ShowDialogSuccessResponse): void => {
-      if (!this.viewModel.isLoaded) return
-      if (result.index === 1) {
-        this.viewModel.deleteTask(task.id)
-        this.forceSyncDataSource()
-        Logger.info('HomePage', 'swipe delete confirmed, id=' + task.id + ', title=' + taskTitle)
-        promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.toast_deleted_prefix').id) + taskTitle + '"', duration: 1500 })
+    // 统一 ActionSheet：替代系统 showDialog 兜底样式
+    this.actionSheetTitle = getContext(this).resourceManager.getStringSync($r('app.string.home_delete_task_title').id) +
+      '"' + taskTitle + '"？'
+    this.actionSheetItems = [
+      {
+        label: getContext(this).resourceManager.getStringSync($r('app.string.btn_delete').id),
+        danger: true,
+        action: (): void => {
+          if (!this.viewModel.isLoaded) return
+          this.viewModel.deleteTask(task.id)
+          this.forceSyncDataSource()
+          Logger.info('HomePage', 'swipe delete confirmed, id=' + task.id + ', title=' + taskTitle)
+          promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.toast_deleted_prefix').id) + taskTitle + '"', duration: 1500 })
+        }
       }
-    }).catch((e: Error): void => {
-      Logger.error('HomePage', 'confirmDeleteTask showDialog failed: ' + e.message)
-    })
+    ]
+    this.showActionSheet = true
   }
 
   /**
@@ -1114,12 +1625,100 @@ export struct HomePage {
    * - 打开弹层即进入加载态
    * - 成功后展示纯文本建议；失败 toast 并关闭弹层
    */
+  /**
+   * 长按任务 → 打开"移动象限"菜单（象限反向操作入口）
+   *
+   * 象限本身是"优先级 × 截止时间"的派生结果，移动 = 反推底层字段并联动全链路。
+   * 菜单是锚定在被长按那一行上的 bindPopup（见 QuadrantTaskItemBuilder），
+   * 不再走页面级底部面板 —— 面板会被四象限半模态（bindSheet）压住且贴在屏幕底部，
+   * 与被长按的那一项毫无空间关系。
+   *
+   * 顺序要求：先把目标任务与当前象限写进状态、再置位显示。
+   * bindPopup 的 builder 在显示那一刻读取这两个状态，因此不依赖任何生命周期回调，无竞态。
+   */
+  private openMoveQuadrantMenu(task: HomeTodoItem): void {
+    this.moveMenuTask = task
+    this.moveMenuCurrent = classifyEisenhowerQuadrant(task.priority, task.deadline)
+    this.showMoveMenu = true
+    Logger.info('HomePage', 'openMoveQuadrantMenu: id=' + task.id +
+      ', current=' + this.moveMenuCurrent)
+  }
+
+  /** 收起"移动象限"菜单（选中项 / 点外部 / 返回键都会回到这里） */
+  private closeMoveQuadrantMenu(): void {
+    this.showMoveMenu = false
+    this.moveMenuTask = null
+  }
+
+  /**
+   * 象限移动换算：目标象限 → 优先级 + 截止时间（保持"双输入"机制，联动既有链路）
+   * 换算后经 routeVM.updateTask → TASK_INFO_UPDATED → L4 同步 + 截止提醒重排 + 象限重算
+   */
+  private applyQuadrantMove(task: HomeTodoItem, target: EisenhowerQuadrant): void {
+    const DAY_MS: number = 24 * 60 * 60 * 1000
+    const now: number = Date.now()
+    // 未来某天 23:59:59（days 天后）
+    const endOfDaysLater: (days: number) => number = (days: number): number => {
+      const d: Date = new Date(now)
+      d.setDate(d.getDate() + days)
+      d.setHours(23, 59, 59, 0)
+      return d.getTime()
+    }
+    // 确保"紧急"：无截止或截止超 24h → 明天 23:59
+    const ensureUrgent: (deadline: number) => number = (deadline: number): number => {
+      return (deadline > 0 && deadline <= now + DAY_MS) ? deadline : endOfDaysLater(1)
+    }
+    // 确保"不紧急"：已逾期或 24h 内 → 顺延 7 天；否则保持
+    const ensureNotUrgent: (deadline: number) => number = (deadline: number): number => {
+      return (deadline > 0 && deadline > now + DAY_MS) ? deadline : endOfDaysLater(7)
+    }
+
+    let newPriority: TaskPriority = task.priority
+    let newDeadline: number = task.deadline
+    if (target === EisenhowerQuadrant.Q1_IMPORTANT_URGENT) {
+      newPriority = TaskPriority.HIGH
+      newDeadline = ensureUrgent(task.deadline)
+    } else if (target === EisenhowerQuadrant.Q2_IMPORTANT_NOT_URGENT) {
+      newPriority = TaskPriority.HIGH
+      newDeadline = ensureNotUrgent(task.deadline)
+    } else if (target === EisenhowerQuadrant.Q3_NOT_IMPORTANT_URGENT) {
+      newPriority = task.priority === TaskPriority.HIGH ? TaskPriority.MEDIUM : task.priority
+      newDeadline = ensureUrgent(task.deadline)
+    } else {
+      newPriority = TaskPriority.LOW
+      newDeadline = task.deadline > 0 ? ensureNotUrgent(task.deadline) : 0
+    }
+
+    // 字段无变化（选了当前象限）则跳过
+    if (newPriority === task.priority && newDeadline === task.deadline) {
+      return
+    }
+
+    // 反查 L2 任务（updateTask 需要名称与时长）
+    const l2 = routeVM.findTask(task.relatedGoalId, task.relatedTaskId)
+    if (l2 === null) {
+      promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.home_toast_task_detail_unavailable').id), duration: 1500 })
+      return
+    }
+    const success: boolean = routeVM.updateTask(task.relatedGoalId, task.relatedTaskId,
+      l2.taskName, l2.estimatedTime > 0 ? l2.estimatedTime : 30, newPriority, newDeadline)
+    if (success) {
+      // 联动链路：updateTask → TASK_INFO_UPDATED → L4 同步/提醒重排 → 象限重算，此处仅提示结果
+      promptAction.showToast({
+        message: getContext(this).resourceManager.getStringSync($r('app.string.home_moved_to_prefix').id) +
+          getContext(this).resourceManager.getStringSync(quadrantLabelUtil(target).id),
+        duration: 1500
+      })
+    }
+  }
+
   private handleTodaySuggestion(): void {
     // 防重入：加载中重复点击会重复发起 AI 请求
     if (this.suggestionLoading) {
       return
     }
-    const todoData: string = ProfileAnalyzerService.buildTodayTodoData(this.viewModel)
+    const todoInput: TodayTodoInput = ProfileAnalyzerService.buildTodayTodoData(this.viewModel)
+    const todoData: string = todoInput.data
     if (todoData.length === 0) {
       promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.toast_suggestion_empty').id), duration: 1500 })
       return
@@ -1136,7 +1735,8 @@ export struct HomePage {
         promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.toast_suggestion_failed').id), duration: 1500 })
         return
       }
-      this.suggestionText = report
+      // 本地回填：把模型回复里的「任务N」还原为真实待办名称（名称从未发送给模型）
+      this.suggestionText = ProfileAnalyzerService.substituteTaskLabels(report, todoInput.titles)
       Logger.info('HomePage', 'handleTodaySuggestion success, reportLen=' + report.length.toString())
     }).catch((e: Error): void => {
       Logger.error('HomePage', 'handleTodaySuggestion failed: ' + e.message)
@@ -1148,68 +1748,127 @@ export struct HomePage {
   }
 
   /**
+   * 「添加待办」表单（作为 bindSheet 的内容，由 build 中的 bindSheet 挂载）
+   *
+   * ⚠️ **必须是 bindSheet，不能是页面内自绘 Stack 层**（真机已复现遮挡）：
+   *    自绘层位于 HdsTabs 的**内容区之内**，而悬浮胶囊 TabBar 由 HdsTabs 组件自身
+   *    绘制在内容区之上 —— 于是自绘层无论怎么调 padding / zIndex，底部的
+   *    「确认 / 取消」都会被 TabBar 压掉一截；遮罩同样盖不住 TabBar，
+   *    模态态下还能点它切页（不合规范）。
+   *    bindSheet 是页面级独立浮层，能正常盖住 TabBar，并自带遮罩、圆角、拖拽条
+   *    与键盘避让；与首页「四象限半模态」同款，交互风格一致。
+   *
+   * 交互差异：这里选的是**象限**而不是分类。四象限是首页的主视觉，
+   * "这件事放哪一格"比让用户填"优先级 + 截止时间"直观得多
+   * （四象限本就是这两个字段派生出来的，反推关系见 handleAddTodo）。
+   */
+  @Builder
+  AddTodoSheetBuilder() {
+    Column() {
+      Text($r('app.string.home_add_todo_title'))
+        .fontSize(18)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.text_primary'))
+        .margin({ bottom: 16 })
+
+      TextInput({
+        placeholder: $r('app.string.home_add_todo_placeholder'),
+        text: this.addTodoTitle
+      })
+        .width('100%')
+        .height(48)
+        .fontSize(16)
+        .borderRadius(DimensConstants.RADIUS_M)
+        .backgroundColor($r('app.color.bg_search'))
+        .padding({ left: 16, right: 16 })
+        .maxLength(30)
+        .onChange((value: string): void => {
+          this.addTodoTitle = value
+        })
+        .margin({ bottom: 16 })
+
+      Text($r('app.string.home_add_todo_quadrant_label'))
+        .fontSize(13)
+        .fontColor($r('app.color.text_secondary'))
+        .width('100%')
+        .margin({ bottom: 8 })
+
+      Grid() {
+        ForEach(this.quadrantOrder, (q: EisenhowerQuadrant): void => {
+          GridItem() {
+            Text(quadrantLabelUtil(q))
+              .fontSize(13)
+              .fontColor(this.addTodoQuadrant === q ?
+                $r('app.color.text_inverse') : $r('app.color.text_primary'))
+              .backgroundColor(this.addTodoQuadrant === q ?
+                $r('app.color.primary_color') : $r('app.color.bg_search'))
+              .borderRadius(DimensConstants.RADIUS_M)
+              .textAlign(TextAlign.Center)
+              .width('100%')
+              .height(40)
+              .onClick((): void => {
+                this.addTodoQuadrant = q
+              })
+          }
+        }, (q: EisenhowerQuadrant): string => q)
+      }
+      .columnsTemplate('1fr 1fr')
+      .columnsGap(8)
+      .rowsGap(8)
+      .width('100%')
+      .height(88)
+      .margin({ bottom: 20 })
+
+      Row({ space: 12 }) {
+        Button() {
+          Text($r('app.string.btn_cancel'))
+            .fontSize(15)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .layoutWeight(1)
+        .height(44)
+        .borderRadius(DimensConstants.RADIUS_XL)
+        .backgroundColor($r('app.color.bg_search'))
+        .onClick((): void => {
+          this.showAddTodoSheet = false
+        })
+
+        Button() {
+          Text($r('app.string.btn_add_to_today'))
+            .fontSize(15)
+            .fontColor($r('app.color.text_inverse'))
+            .fontWeight(FontWeight.Medium)
+        }
+        .layoutWeight(1)
+        .height(44)
+        .borderRadius(DimensConstants.RADIUS_XL)
+        .backgroundColor($r('app.color.primary_color'))
+        .onClick((): void => {
+          this.handleAddTodo()
+        })
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 8, bottom: 24 })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /**
    * C2 今日排序建议全屏弹层（Stack 层叠，替代 bindContentCover）
    * - 加载态：Loading + 提示文案
    * - 完成态：可滚动建议文本 + 关闭按钮
    */
   @Builder
   SuggestionCoverBuilder() {
-    Column() {
-      Column() {
-        Row() {
-          Text($r('app.string.suggestion_sheet_title'))
-            .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-            .layoutWeight(1)
-          Button($r('app.string.common_close'))
-            .type(ButtonType.Capsule)
-            .height(32)
-            .padding({ left: 16, right: 16 })
-            .backgroundColor($r('app.color.bg_tag'))
-            .fontColor($r('app.color.text_secondary'))
-            .fontSize(CommonConstants.FONT_SIZE_CAPTION)
-            .onClick((): void => { this.showSuggestionSheet = false })
-        }
-        .width('100%')
-
-        if (this.suggestionLoading) {
-          Column({ space: 12 }) {
-            LoadingProgress()
-              .width(40)
-              .height(40)
-              .color($r('app.color.primary_color'))
-            Text($r('app.string.suggestion_loading'))
-              .fontSize(CommonConstants.FONT_SIZE_CAPTION)
-              .fontColor($r('app.color.text_secondary'))
-          }
-          .width('100%')
-          .justifyContent(FlexAlign.Center)
-          .margin({ top: 80 })
-          .layoutWeight(1)
-        } else {
-          Scroll() {
-            Text(this.suggestionText)
-              .fontSize(CommonConstants.FONT_SIZE_BODY)
-              .fontColor($r('app.color.text_primary'))
-              .lineHeight(22)
-              .width('100%')
-              .copyOption(CopyOptions.LocalDevice)
-          }
-          .scrollBar(BarState.Off)
-          .layoutWeight(1)
-          .margin({ top: 12 })
-        }
+    AppReportSheet({
+      title: getContext(this).resourceManager.getStringSync($r('app.string.suggestion_sheet_title').id),
+      loading: this.suggestionLoading,
+      text: this.suggestionText,
+      loadingText: getContext(this).resourceManager.getStringSync($r('app.string.suggestion_loading').id),
+      onClose: (): void => {
+        this.showSuggestionSheet = false
       }
-      .width('100%')
-      .height('78%')
-      .padding(20)
-      .backgroundColor($r('app.color.bg_card'))
-      .borderRadius({ topLeft: 20, topRight: 20 })
-    }
-    .width('100%')
-    .height('100%')
-    .justifyContent(FlexAlign.End)
-    .backgroundColor($r('app.color.overlay_mask'))
+    })
   }
 }

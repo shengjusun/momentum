@@ -13,12 +13,14 @@
  */
 
 import { routeVM } from '../viewmodel/RoutePageViewModel'
-import { CommonConstants } from '../common/constants/CommonConstants'
+import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
+import { DimensConstants } from '../common/constants/DimensConstants'
 import { GoalCardItem, RouteParam, GoalDetailRouteNavParam } from '../model/Models'
-import { globalNavStack, ROUTE_NAME, pushNavPath } from '../common/RouterManager'
+import { globalNavStack, ROUTE_NAME } from '../common/RouterManager'
 import { Logger } from '../common/utils/Logger'
 import { safeStringUtil, safeNumberUtil, formatDeadlineUtil } from '../common/utils/SafeUtils'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
+import { MotionConstants } from '../common/constants/MotionConstants'
 
 /**
  * 目标历史页懒加载数据源
@@ -154,7 +156,8 @@ export struct GoalHistoryPage {
       id: goal.id,
       goal: goal
     }
-    pushNavPath(ROUTE_NAME.GOAL_DETAIL, param)
+    const pathInfo: NavPathInfo = new NavPathInfo(ROUTE_NAME.GOAL_DETAIL, param)
+    globalNavStack.pushPath(pathInfo)
   }
 
   /**
@@ -169,7 +172,8 @@ export struct GoalHistoryPage {
    */
   private updateDataSource(): void {
     const filtered: GoalCardItem[] = []
-    const goals: GoalCardItem[] = routeVM.goals
+    // 历史列表只展示存活目标（墓碑不参与展示）
+    const goals: GoalCardItem[] = routeVM.liveGoals
     for (let i: number = 0; i < goals.length; i++) {
       const goal: GoalCardItem = goals[i]
       if (goal && goal.id && Array.isArray(goal.tasks) && goal.tasks.length > 0 && this.matchStatus(goal)) {
@@ -192,7 +196,7 @@ export struct GoalHistoryPage {
             .backgroundColor($r('app.color.bg_progress_track'))
 
           Text(safeNumberUtil(goal.progress, 0).toString() + '%')
-            .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
+            .fontSize(16)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
         }
@@ -203,7 +207,7 @@ export struct GoalHistoryPage {
           Row({ space: 6 }) {
             Text(safeStringUtil(goal.name,
               getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_goal').id)))
-              .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
+              .fontSize(16)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_primary'))
               .maxLines(1)
@@ -212,17 +216,17 @@ export struct GoalHistoryPage {
 
             Text(safeStringUtil(goal.category,
               getContext(this).resourceManager.getStringSync($r('app.string.default_other_category').id)))
-              .fontSize(CommonConstants.FONT_SIZE_XXS)
+              .fontSize(10)
               .fontColor($r('app.color.primary_color'))
               .backgroundColor($r('app.color.bg_tag'))
               .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(4)
+              .borderRadius(DimensConstants.RADIUS_XS)
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
 
           Text(safeStringUtil(goal.description, ''))
-            .fontSize(CommonConstants.FONT_SIZE_SMALL)
+            .fontSize(12)
             .fontColor($r('app.color.text_secondary'))
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -230,16 +234,16 @@ export struct GoalHistoryPage {
 
           Row({ space: 8 }) {
             Text(safeStringUtil(goal.duration, ''))
-              .fontSize(CommonConstants.FONT_SIZE_XS)
+              .fontSize(11)
               .fontColor($r('app.color.text_tertiary'))
 
             Text('·')
-              .fontSize(CommonConstants.FONT_SIZE_XS)
+              .fontSize(11)
               .fontColor($r('app.color.text_tertiary'))
 
             Text(getContext(this).resourceManager.getStringSync($r('app.string.route_deadline_prefix').id) +
               formatDeadlineUtil(goal.deadline))
-              .fontSize(CommonConstants.FONT_SIZE_XS)
+              .fontSize(11)
               .fontColor($r('app.color.text_tertiary'))
           }
           .width('100%')
@@ -255,7 +259,7 @@ export struct GoalHistoryPage {
     .padding(12)
     .backgroundColor(this.pressedGoalId === goal.id ?
       $r('app.color.bg_tag') : $r('app.color.bg_card'))
-    .borderRadius(16)
+    .borderRadius(DimensConstants.RADIUS_L)
     .shadow({
       radius: this.pressedGoalId === goal.id ? 4 : 8,
       color: $r('app.color.shadow_card'),
@@ -266,7 +270,7 @@ export struct GoalHistoryPage {
       x: this.pressedGoalId === goal.id ? 0.98 : 1,
       y: this.pressedGoalId === goal.id ? 0.98 : 1
     })
-    .animation({ duration: 100, curve: Curve.EaseOut })
+    .animation(MotionConstants.pressParam())
     .accessibilityText(
       getContext(this).resourceManager.getStringSync($r('app.string.acc_goal_history_card').id) + ' ' +
       safeStringUtil(goal.name, getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_goal').id)) +
@@ -296,19 +300,19 @@ export struct GoalHistoryPage {
       // 根据过滤状态显示不同文案
       if (this.statusFilter === 'completed') {
         Text($r('app.string.goal_history_empty_completed'))
-          .fontSize(CommonConstants.FONT_SIZE_BODY)
+          .fontSize(14)
           .fontColor($r('app.color.text_tertiary'))
       } else if (this.statusFilter === 'inProgress') {
         Text($r('app.string.goal_history_empty_in_progress'))
-          .fontSize(CommonConstants.FONT_SIZE_BODY)
+          .fontSize(14)
           .fontColor($r('app.color.text_tertiary'))
       } else if (this.statusFilter === 'overdue') {
-        Text($r('app.string.profile_stat_overdue'))
-          .fontSize(CommonConstants.FONT_SIZE_BODY)
+        Text($r('app.string.goal_history_empty_overdue'))
+          .fontSize(14)
           .fontColor($r('app.color.text_tertiary'))
       } else {
         Text($r('app.string.goal_history_empty'))
-          .fontSize(CommonConstants.FONT_SIZE_BODY)
+          .fontSize(14)
           .fontColor($r('app.color.text_tertiary'))
       }
     }
@@ -329,7 +333,7 @@ export struct GoalHistoryPage {
     }
     .width('100%')
     .layoutWeight(1)
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+    .padding({ left: 16, right: 16, top: 12, bottom: safeAreaHelper.getBottomWith(12) })
   }
 
   build() {

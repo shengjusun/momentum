@@ -43,8 +43,14 @@ export class BreakpointUtil {
   /**
    * 注册断点监听
    * 必须在组件 aboutToAppear 中调用，并在 aboutToDisappear 中调用 unregister
+   *
+   * @param uiContext - 组件的 UIContext（this.getUIContext()）。
+   *   必须走 UIContext.getMediaQuery()，不能裸调全局 mediaquery.matchMediaSync()：
+   *   冷启动早期（MainTab.aboutToAppear）窗口尚未挂载完成，全局调用会绑到
+   *   错误/不存在的窗口上，监听静默失效 → 断点永远停在 'sm'，平板横屏不触发 lg 布局。
+   *   官方文档推荐 UIContext 形式（媒体查询指南 / UIContext 参考文档）。
    */
-  static register(): void {
+  static register(uiContext: UIContext): void {
     const tag: string = 'BreakpointUtil'
     BreakpointUtil.refCount++
     if (BreakpointUtil.refCount > 1) {
@@ -54,13 +60,15 @@ export class BreakpointUtil {
 
     try {
       // md 断点：宽度 >= 600vp
-      BreakpointUtil.mdListener = mediaquery.matchMediaSync(`(min-width: ${CommonConstants.BREAKPOINT_MD}vp)`)
+      BreakpointUtil.mdListener = uiContext.getMediaQuery()
+        .matchMediaSync(`(min-width: ${CommonConstants.BREAKPOINT_MD}vp)`)
       BreakpointUtil.mdListener.on('change', (_result: mediaquery.MediaQueryResult): void => {
         BreakpointUtil.updateBreakpoint()
       })
 
       // lg 断点：宽度 >= 840vp
-      BreakpointUtil.lgListener = mediaquery.matchMediaSync(`(min-width: ${CommonConstants.BREAKPOINT_LG}vp)`)
+      BreakpointUtil.lgListener = uiContext.getMediaQuery()
+        .matchMediaSync(`(min-width: ${CommonConstants.BREAKPOINT_LG}vp)`)
       BreakpointUtil.lgListener.on('change', (_result: mediaquery.MediaQueryResult): void => {
         BreakpointUtil.updateBreakpoint()
       })

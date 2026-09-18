@@ -6,10 +6,14 @@ import { StorageManager } from '../common/utils/StorageManager'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { profileVM, NotificationToggleResult } from './ProfileViewModel'
 import { HuaweiAuthService, HuaweiUserInfo } from '../common/services/HuaweiAuthService'
-import { CloudSyncService, SyncDataBundle, SyncApplyCallback, SyncDirection } from '../common/services/CloudSyncService'
+import { CloudSyncService, SyncDataBundle, SyncApplyCallback, SyncResult } from '../common/services/CloudSyncService'
 import { CloudDBSyncProxy } from '../common/services/CloudDBSyncProxy'
+import { CloudDBService } from '../common/services/CloudDBService'
 import { AgcAuthService } from '../common/services/AgcAuthService'
 import { notificationCenterService } from '../common/services/NotificationCenterService'
+import { deadlineReminderService } from '../common/services/DeadlineReminderService'
+import { pomodoroService } from '../common/services/PomodoroService'
+import { hapticFeedback } from '../common/services/HapticFeedback'
 
 import { PersistHelper } from '../common/utils/PersistHelper'
 // 事件总线，解耦 ViewModel 循环依赖
@@ -23,6 +27,8 @@ interface SettingsVMSnapshot {
   privacyAgreed: boolean
   vibrationEnabled: boolean
   syncEnabled: boolean
+  reminderAdvanceTaskDays: number
+  reminderAdvanceGoalDays: number
   version: number
 }
 
@@ -36,6 +42,15 @@ interface UserProfileVMSnapshot {
   huaweiUid: string
   isLoggedIn: boolean
   lastSyncTime: number
+}
+
+/**
+ * 云同步脏标记持久化快照（`CommonConstants.STORAGE_KEY_SYNC_DIRTY`）
+ * - `dirty === true`：本地存在尚未成功上传到云端的改动，需在下次同步时重试
+ * - 独立于 UserProfile 存储：**水位与脏标记都不参与同步载荷**
+ */
+interface SyncDirtySnapshot {
+  dirty: boolean
 }
 
 @ObservedV2
@@ -62,18 +77,36 @@ export class SettingsViewModel {
   // Ability onDestroy 防护标志：销毁后阻断一切云同步触发
   private isDestroyed: boolean = false
 
-  // 本地有未上传修改标志，triggerCloudSync 时置 true，buildLocalSyncDataBundle 取出后重置
-  // 保护本地新数据不被云端旧数据覆盖
-  private forceUploadFlag: boolean = false
+  /**
+   * 持久化脏标记（SYNC_NEEDED）
+   * - 语义：本地存在尚未成功上传到云端的改动
+   * - **持久化在本地存储**（`CommonConstants.STORAGE_KEY_SYNC_DIRTY`），
+   *   App 进程被杀 / 重启后仍保留，用于失败重试
+   * - 上传成功 / 无需上传（与云端一致）→ 清除
+   * - 上传失败 / 拉取失败 / 解析失败 / 未就绪 → 保留
+   * - ⚠️ 清空类操作（登出 / 一键删除所有数据）必须显式清除，
+   *   否则下次冷启动会拿空数据上传覆盖云端
+   */
+  private syncDirty: boolean = false
 
-  // 云同步回环阻断：同步回调写回本地时置 true，onScheduleFire 检测后跳过云同步
+  /**
+   * 就绪 gate 未通过时的待补触发标志
+   * - gate 未通过 → 不打网络请求、保留脏标记，并置本标志
+   * - SDK / VM / 快照就绪后调用 `notifyCloudReady()` → 自动补跑一次 syncNow
+   *   （否则冷启动若用户不操作数据，脏标记会一直滞留到下次触发）
+   */
+  private pendingReadySync: boolean = false
+
+  /** 快照提供者是否已注册（就绪 gate 的"本地就绪"部分） */
+  private snapshotsReady: boolean = false
+
+  /** 云同步回环阻断：同步回调写回本地时置 true，onScheduleFire 检测后跳过云同步 */
   private isApplyingSyncData: boolean = false
 
-  // 一键删除所有数据后的自动云同步抑制截止时间戳（Date.now() 毫秒）
-  // 清空本地会经 HomeVM 持久化防抖触发 SYNC_NEEDED，窗口内 doTriggerCloudSync 直接跳过
+  /** 一键删除所有数据后的自动云同步抑制截止时间戳（Date.now() 毫秒） */
   private suppressAutoSyncUntil: number = 0
 
-  // triggerCloudSync 防抖定时器，避免静止状态周期 Upsert
+  // syncNow 防抖定时器，避免静止状态周期 Upsert
   private syncDebounceTimer: number = -1
 
   private persistHelper: PersistHelper = new PersistHelper(
@@ -87,7 +120,9 @@ export class SettingsViewModel {
         this.isApplyingSyncData = false
         return
       }
-      this.triggerCloudSync()
+      // 本机设置变更（通知/震动/提前量/同步开关等）= 本地有改动
+      // → 打持久化脏标记 + 防抖触发 merge（settings 也是同步载荷的一部分）
+      this.markSyncNeeded('settings changed')
     }
   )
 
@@ -120,12 +155,15 @@ export class SettingsViewModel {
     this.context = context
     profileVM.init(context)
 
+    // 载入持久化脏标记（必须在任何同步判定之前）：App 被杀前未上传成功的改动标志
+    await this.loadSyncDirty()
+
     // 注册事件总线订阅（幂等：重复 init 时先 off 再 on）
     if (this.syncNeededCbId > 0) {
       eventBus.off(EventType.SYNC_NEEDED, this.syncNeededCbId)
     }
     this.syncNeededCbId = eventBus.on(EventType.SYNC_NEEDED, (payload: Object): void => {
-      this.triggerCloudSync()
+      this.markSyncNeeded('data changed')
     })
 
     try {
@@ -197,23 +235,9 @@ export class SettingsViewModel {
         return
       }
       if (this.userProfile.isLoggedIn && this.userProfile.huaweiUid.length > 0) {
-        const syncData: SyncDataBundle = this.buildLocalSyncDataBundle()
-        const syncCallback: SyncApplyCallback = this.buildLocalSyncApplyCallback()
-        // 冷启动自动合并云端数据，并集合并不覆盖本地独有数据
-        CloudSyncService.getInstance().smartSync(this.userProfile.huaweiUid, syncData, syncCallback, 'merge')
-          .then((r): void => {
-            Logger.info(this.tag, 'auto smartSync on init, direction=' + r.direction)
-            if (r.direction === 'error') {
-              this.toastMessage = this.context !== null
-                ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-                : r.errorMsg
-            }
-          }).catch((e: Error): void => {
-            Logger.error(this.tag, 'auto smartSync failed: ' + e.message)
-            this.toastMessage = this.context !== null
-              ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-              : e.message
-          })
+        // 冷启动统一走 merge；此时 CloudDB 尚未初始化 / 快照尚未注册，
+        // gate 会判定未就绪并保留脏标记，等 `notifyCloudReady()` 补触发
+        this.syncNowDetached('cold-start')
       }
     } finally {
       this.isLoaded = true
@@ -263,8 +287,18 @@ export class SettingsViewModel {
       ? snapshot.vibrationEnabled : true
     rehydrated.syncEnabled = typeof snapshot.syncEnabled === 'boolean'
       ? snapshot.syncEnabled : false
+    rehydrated.reminderAdvanceTaskDays = AppSettings.sanitizeAdvanceDays(snapshot.reminderAdvanceTaskDays, 1)
+    rehydrated.reminderAdvanceGoalDays = AppSettings.sanitizeAdvanceDays(snapshot.reminderAdvanceGoalDays, 3)
     // 整体替换 settings，@Trace 触发 UI 刷新
     this.settings = rehydrated
+    // 提前量同步到提醒服务（加载失败走默认值的路径也会经过这里）
+    deadlineReminderService.setAdvanceDays(
+      rehydrated.reminderAdvanceTaskDays, rehydrated.reminderAdvanceGoalDays)
+    // 通知/震动开关同步到番茄钟服务（完成通知与震动受设置控制）
+    pomodoroService.setFeedbackEnabled(
+      rehydrated.notificationEnabled, rehydrated.vibrationEnabled)
+    // 震动开关同步到触觉反馈服务（完成场景三档震动共用同一开关）
+    hapticFeedback.setEnabled(rehydrated.vibrationEnabled)
   }
 
   // 快照版本迁移：version 缺失或低于当前版本时执行，预留扩展点
@@ -284,6 +318,8 @@ export class SettingsViewModel {
       privacyAgreed: false,
       vibrationEnabled: true,
       syncEnabled: false,
+      reminderAdvanceTaskDays: 1,
+      reminderAdvanceGoalDays: 3,
       version: SettingsViewModel.CURRENT_VERSION
     }
   }
@@ -336,6 +372,8 @@ export class SettingsViewModel {
         privacyAgreed: this.settings.privacyAgreed,
         vibrationEnabled: this.settings.vibrationEnabled,
         syncEnabled: this.settings.syncEnabled,
+        reminderAdvanceTaskDays: this.settings.reminderAdvanceTaskDays,
+        reminderAdvanceGoalDays: this.settings.reminderAdvanceGoalDays,
         version: SettingsViewModel.CURRENT_VERSION
       }
       await StorageManager.saveData(ctx, SettingsViewModel.STORAGE_KEY, snapshot as object)
@@ -365,33 +403,36 @@ export class SettingsViewModel {
     }
   }
 
+  /**
+   * 构造本地数据包（同步载荷）
+   *
+   * ⚠️ `lastSyncTime` 是本机专属水位游标：**绝不进入任何一段 JSON 载荷**。
+   *    profileJson 里显式剔除该字段（历史实现会随 profile 一起上传，
+   *    导致水位被其它设备覆盖 → 等值判据错乱）。
+   */
   private buildLocalSyncDataBundle(): SyncDataBundle {
-    // 快照提供者为 null 说明对应模块未注入，传空字符串让 smartSync 做 null protection 合并
+    // 快照提供者为 null 说明对应模块未注入，传空字符串交由就绪 gate 拦截
     const goalsJson: string = this.goalsSnapshotProvider !== null ? this.goalsSnapshotProvider() : ''
     const todosJson: string = this.todosSnapshotProvider !== null ? this.todosSnapshotProvider() : ''
-    // 取出强制上传标志并重置，防止下次没修改也强制上传
-    const forceUpload: boolean = this.forceUploadFlag
-    this.forceUploadFlag = false
-    Logger.info(this.tag, 'buildLocalSyncDataBundle: goalsEmpty=' + (goalsJson.length === 0).toString() +
-      ' todosEmpty=' + (todosJson.length === 0).toString() + ' forceUpload=' + forceUpload.toString())
-    const profileSnapshot: UserProfileVMSnapshot = {
-      id: this.userProfile.id,
-      nickname: this.userProfile.nickname,
-      signature: this.userProfile.signature,
-      avatarUri: this.userProfile.avatarUri,
-      email: this.userProfile.email,
-      aiCredits: this.userProfile.aiCredits,
-      huaweiUid: this.userProfile.huaweiUid,
-      isLoggedIn: this.userProfile.isLoggedIn,
-      lastSyncTime: this.userProfile.lastSyncTime
+    const profilePayload: Record<string, Object> = {
+      'id': this.userProfile.id,
+      'nickname': this.userProfile.nickname,
+      'signature': this.userProfile.signature,
+      'avatarUri': this.userProfile.avatarUri,
+      'email': this.userProfile.email,
+      'aiCredits': this.userProfile.aiCredits,
+      'huaweiUid': this.userProfile.huaweiUid,
+      'isLoggedIn': this.userProfile.isLoggedIn
     }
+    Logger.info(this.tag, 'buildLocalSyncDataBundle: goalsEmpty=' + (goalsJson.length === 0).toString() +
+      ' todosEmpty=' + (todosJson.length === 0).toString())
     return {
       goalsJson: goalsJson,
       todosJson: todosJson,
       settingsJson: JSON.stringify(this.buildSettingsSnapshot()),
-      profileJson: JSON.stringify(profileSnapshot),
+      profileJson: JSON.stringify(profilePayload),
       lastSyncTime: this.userProfile.lastSyncTime,
-      forceUpload: forceUpload
+      dirty: this.syncDirty
     }
   }
 
@@ -412,13 +453,6 @@ export class SettingsViewModel {
       },
       applyProfile: (data: Record<string, Object>): void => {
         this.applyCloudProfileData(data)
-      },
-      updateLastSyncTime: (time: number): void => {
-        this.userProfile.lastSyncTime = time
-        // 同步回调写回不得触发云同步，仅本地持久化
-        this.persistHelper.flush().catch((e: Error): void => {
-          Logger.warn(this.tag, 'updateLastSyncTime flush failed: ' + e.message)
-        })
       }
     }
   }
@@ -448,7 +482,9 @@ export class SettingsViewModel {
     const cloudAvatarUri: string = typeof data['avatarUri'] === 'string' ?
       data['avatarUri'] as string : ''
     const loggedIn: Object | undefined = data['isLoggedIn']
-    const syncTime: Object | undefined = data['lastSyncTime']
+    // ⚠️ 水位（lastSyncTime）是**本机专属游标**：载荷里即使带了这个字段也一律忽略，
+    //    永远保留本机当前值（否则会被其它设备的水位覆盖 → 等值判据错乱）
+    const keepLocalWatermark: number = this.userProfile.lastSyncTime
     this.userProfile = new UserProfile(
       typeof data['id'] === 'string' ? data['id'] as string : this.userProfile.id,
       cloudNickname.length > 0 ? cloudNickname : this.userProfile.nickname,
@@ -458,7 +494,7 @@ export class SettingsViewModel {
       typeof data['aiCredits'] === 'string' ? data['aiCredits'] as string : this.userProfile.aiCredits,
       cloudUid.length > 0 ? cloudUid : this.userProfile.huaweiUid,
       typeof loggedIn === 'boolean' ? loggedIn as boolean : this.userProfile.isLoggedIn,
-      typeof syncTime === 'number' ? syncTime as number : this.userProfile.lastSyncTime
+      keepLocalWatermark
     )
     this.syncLoginStateToAppStorage()
     // 同步回调写回不得再触发云同步，仅本地持久化
@@ -468,56 +504,20 @@ export class SettingsViewModel {
     })
   }
 
-  // 手动同步场景构造数据包，forceUpload 由调用方决定
-  buildSyncDataBundle(goalsJson: string, todosJson: string, forceUpload: boolean): SyncDataBundle {
-    const profileSnapshot: UserProfileVMSnapshot = {
-      id: this.userProfile.id,
-      nickname: this.userProfile.nickname,
-      signature: this.userProfile.signature,
-      avatarUri: this.userProfile.avatarUri,
-      email: this.userProfile.email,
-      aiCredits: this.userProfile.aiCredits,
-      huaweiUid: this.userProfile.huaweiUid,
-      isLoggedIn: this.userProfile.isLoggedIn,
-      lastSyncTime: this.userProfile.lastSyncTime
-    }
-    return {
-      goalsJson: goalsJson,
-      todosJson: todosJson,
-      settingsJson: JSON.stringify(this.buildSettingsSnapshot()),
-      profileJson: JSON.stringify(profileSnapshot),
-      lastSyncTime: this.userProfile.lastSyncTime,
-      forceUpload: forceUpload
-    }
-  }
-
-  buildSyncApplyCallback(applyGoals: (data: Record<string, Object>) => void,
-    applyTodos: (data: Record<string, Object>) => void): SyncApplyCallback {
-    return {
-      applyGoals: applyGoals,
-      applyTodos: applyTodos,
-      applySettings: (data: Record<string, Object>): void => {
-        this.applyCloudSettingsSnapshot(data)
-      },
-      applyProfile: (data: Record<string, Object>): void => {
-        this.applyCloudProfileData(data)
-      },
-      updateLastSyncTime: (time: number): void => {
-        this.userProfile.lastSyncTime = time
-        // 同步回调写回不得触发云同步，仅本地持久化
-        this.persistHelper.flush().catch((e: Error): void => {
-          Logger.warn(this.tag, 'updateLastSyncTime flush failed: ' + e.message)
-        })
-      }
-    }
-  }
-
+  /**
+   * 设置快照（同步载荷的 settingsJson 来源）
+   *
+   * settings 合并口径：**本地优先**（保护本机偏好；尤其 syncEnabled 若被云端覆盖，
+   * 会出现"另一台设备关了同步 → 本机同步被关掉"的意外行为）。
+   */
   buildSettingsSnapshot(): SettingsVMSnapshot {
     return {
       notificationEnabled: this.settings.notificationEnabled,
       privacyAgreed: this.settings.privacyAgreed,
       vibrationEnabled: this.settings.vibrationEnabled,
       syncEnabled: this.settings.syncEnabled,
+      reminderAdvanceTaskDays: this.settings.reminderAdvanceTaskDays,
+      reminderAdvanceGoalDays: this.settings.reminderAdvanceGoalDays,
       version: SettingsViewModel.CURRENT_VERSION
     }
   }
@@ -541,7 +541,21 @@ export class SettingsViewModel {
     if (typeof cloudData['syncEnabled'] === 'boolean') {
       rehydrated.syncEnabled = cloudData['syncEnabled'] as boolean
     }
+    if (typeof cloudData['reminderAdvanceTaskDays'] === 'number') {
+      rehydrated.reminderAdvanceTaskDays =
+        AppSettings.sanitizeAdvanceDays(cloudData['reminderAdvanceTaskDays'] as number, 1)
+    }
+    if (typeof cloudData['reminderAdvanceGoalDays'] === 'number') {
+      rehydrated.reminderAdvanceGoalDays =
+        AppSettings.sanitizeAdvanceDays(cloudData['reminderAdvanceGoalDays'] as number, 3)
+    }
     this.settings = rehydrated
+    // 云端写回同样要同步提前量到提醒服务（阻断回环前的本地状态更新）
+    deadlineReminderService.setAdvanceDays(
+      rehydrated.reminderAdvanceTaskDays, rehydrated.reminderAdvanceGoalDays)
+    pomodoroService.setFeedbackEnabled(
+      rehydrated.notificationEnabled, rehydrated.vibrationEnabled)
+    hapticFeedback.setEnabled(rehydrated.vibrationEnabled)
     // 同步回调写回不得再触发云同步，仅本地持久化
     this.isApplyingSyncData = true
     this.persistHelper.flush().catch((e: Error): void => {
@@ -566,6 +580,9 @@ export class SettingsViewModel {
       if (result.success) {
         // 成功：用系统返回的最终状态
         this.settings.notificationEnabled = result.finalState
+        // 同步到番茄钟服务：完成通知立即受开关控制
+        pomodoroService.setFeedbackEnabled(result.finalState, this.settings.vibrationEnabled)
+        hapticFeedback.setEnabled(this.settings.vibrationEnabled)
         this.scheduleSave()
         Logger.info(this.tag,
           'toggleNotification success, finalState=' + result.finalState.toString())
@@ -601,17 +618,47 @@ export class SettingsViewModel {
   setVibrationEnabled(enabled: boolean): void {
     if (this.settings.vibrationEnabled === enabled) return
     this.settings.vibrationEnabled = enabled
+    pomodoroService.setFeedbackEnabled(this.settings.notificationEnabled, enabled)
+    hapticFeedback.setEnabled(enabled)
     this.scheduleSave()
     Logger.info(this.tag, 'setVibrationEnabled: ' + enabled.toString())
   }
 
-  // 云端同步开关切换：更新状态 → 同步代理 → 防抖持久化
+  // 设置截止提醒提前量：L4 任务（0=截止当天/1/3/7 天），立即同步提醒服务
+  setReminderAdvanceTaskDays(days: number): void {
+    const safeDays: number = AppSettings.sanitizeAdvanceDays(days, 1)
+    if (this.settings.reminderAdvanceTaskDays === safeDays) return
+    this.settings.reminderAdvanceTaskDays = safeDays
+    deadlineReminderService.setAdvanceDays(safeDays, this.settings.reminderAdvanceGoalDays)
+    this.scheduleSave()
+    Logger.info(this.tag, 'setReminderAdvanceTaskDays: ' + safeDays.toString() + 'd')
+  }
+
+  // 设置截止提醒提前量：L1 目标（0=截止当天/1/3/7 天），立即同步提醒服务
+  setReminderAdvanceGoalDays(days: number): void {
+    const safeDays: number = AppSettings.sanitizeAdvanceDays(days, 3)
+    if (this.settings.reminderAdvanceGoalDays === safeDays) return
+    this.settings.reminderAdvanceGoalDays = safeDays
+    deadlineReminderService.setAdvanceDays(this.settings.reminderAdvanceTaskDays, safeDays)
+    this.scheduleSave()
+    Logger.info(this.tag, 'setReminderAdvanceGoalDays: ' + safeDays.toString() + 'd')
+  }
+
+  /**
+   * 云端同步开关切换：更新状态 → 同步代理 → 防抖持久化
+   * **开启瞬间立即执行一次 merge**（§4.5）：让用户"打开开关就能看到云端数据"，
+   * 否则会以为同步没生效
+   */
   toggleSyncEnabled(enabled: boolean): void {
     if (this.settings.syncEnabled === enabled) return
     this.settings.syncEnabled = enabled
     CloudDBSyncProxy.getInstance().setSyncEnabled(enabled)
     this.scheduleSave()
     Logger.info(this.tag, 'toggleSyncEnabled: ' + (enabled ? '开启' : '关闭'))
+    if (enabled) {
+      // 开启即拉取：本地已登录时立刻 merge 一次（未登录则由 switch 引导登录）
+      this.syncNowDetached('sync-enabled')
+    }
   }
 
   // PII 信息日志脱敏：委托 Logger.mask 统一实现（空值差异由空串判断补齐）
@@ -655,119 +702,212 @@ export class SettingsViewModel {
     return parts.join(' | ')
   }
 
-  // 触发云端上传同步（防抖 1s）
-  // 解耦链路：HomeVM/RouteVM 数据变更 → emit SYNC_NEEDED → 此处监听 → triggerCloudSync
-  triggerCloudSync(): void {
-    // 防抖：同一对象短时间内只触发一次云同步
+  /* ============================================================
+   * 云同步：统一入口 + 持久化脏标记 + 就绪 gate
+   * ============================================================ */
+
+  /**
+   * 打持久化脏标记（SYNC_NEEDED），可选地防抖触发一次 merge
+   *
+   * 调用来源：
+   *   - HomeVM / RouteVM / SettingsVM 的持久化成功回调（本地数据变更）
+   *   - SettingsVM 监听 SYNC_NEEDED 事件
+   *   - App 退后台（`trigger = false`：只落标记**不允许发起网络请求**）
+   *
+   * @param reason - 日志用途的原因
+   * @param trigger - 是否顺带触发同步；退后台时必须传 false（禁止后台网络 merge）
+   */
+  markSyncNeeded(reason: string, trigger: boolean = true): void {
+    if (this.isApplyingSyncData) {
+      Logger.info(this.tag, 'markSyncNeeded skipped: applying sync data write-back, break loop')
+      return
+    }
+    // 清空类操作（登出 / 一键删除所有数据）窗口内禁止打标记：
+    // 这些流程会先清空本地数据，若此时打上脏标记，下次冷启动会尝试上传"空数据"
+    if (Date.now() < this.suppressAutoSyncUntil) {
+      Logger.info(this.tag, 'markSyncNeeded skipped: suppressed (clear-data window)')
+      return
+    }
+    if (!this.syncDirty) {
+      this.syncDirty = true
+      this.persistSyncDirty(true)
+      Logger.info(this.tag, 'dirty flag SET (' + reason + ')')
+    }
+    if (trigger) {
+      this.triggerSync()
+    }
+  }
+
+  /** 清除持久化脏标记（同步已达成一致 / 清空类操作） */
+  private clearSyncNeeded(reason: string): void {
+    if (!this.syncDirty) return
+    this.syncDirty = false
+    this.persistSyncDirty(false)
+    Logger.info(this.tag, 'dirty flag CLEARED (' + reason + ')')
+  }
+
+  /** 脏标记读取（冷启动，必须在任何同步判定之前完成） */
+  private async loadSyncDirty(): Promise<void> {
+    if (this.context === null) return
+    try {
+      const snapshot: SyncDirtySnapshot | null = await StorageManager.loadData<SyncDirtySnapshot | null>(
+        this.context, CommonConstants.STORAGE_KEY_SYNC_DIRTY, null)
+      this.syncDirty = snapshot !== null && snapshot.dirty === true
+      Logger.info(this.tag, 'loadSyncDirty: dirty=' + this.syncDirty.toString())
+    } catch (e) {
+      Logger.warn(this.tag, 'loadSyncDirty failed: ' + (e as Error).message)
+      this.syncDirty = false
+    }
+  }
+
+  /** 脏标记写入（立即写，不走防抖：进程随时可能被杀） */
+  private persistSyncDirty(dirty: boolean): void {
+    if (this.context === null) return
+    const ctx: Context = this.context
+    const snapshot: SyncDirtySnapshot = { dirty: dirty }
+    StorageManager.saveData(ctx, CommonConstants.STORAGE_KEY_SYNC_DIRTY, snapshot as object)
+      .catch((e: Error): void => {
+        Logger.error(this.tag, 'persistSyncDirty failed: ' + e.message)
+      })
+  }
+
+  /**
+   * 就绪 gate 判定（merge 的前置条件，任一不满足则不发起任何网络请求、保留脏标记）
+   *   1. 未同意隐私协议 / 未登录 / 无 UID / 同步开关关闭 → 不允许
+   *   2. 本地快照提供者未注册（VM 数据未加载完）→ 未就绪
+   *      ⚠️ 此时若合并，会把"空本地"当成真实数据参与并集 → 云端整包覆盖本地独有数据
+   *   3. CloudDB 未初始化 → 未就绪
+   */
+  isReadyToSync(): boolean {
+    if (!this.settings.privacyAgreed) return false
+    if (!this.userProfile.isLoggedIn || this.userProfile.huaweiUid.length === 0) return false
+    if (!CloudDBSyncProxy.getInstance().canSync()) return false
+    if (!this.snapshotsReady) return false
+    if (!CloudDBService.getInstance().isInitialized()) return false
+    return true
+  }
+
+  /**
+   * 就绪通知：CloudSDK 初始化完成 / 快照提供者注册完成后调用
+   * 若此前有因 gate 未通过而滞留的同步请求 → 立刻补跑一次
+   */
+  notifyCloudReady(): void {
+    if (!this.pendingReadySync) return
+    if (!this.isReadyToSync()) return
+    this.pendingReadySync = false
+    Logger.info(this.tag, 'notifyCloudReady: cloud & local ready, retry pending sync')
+    this.syncNowDetached('ready-retry')
+  }
+
+  /**
+   * 【唯一】同步入口（防抖 1s）
+   *
+   * 所有入口统一走这里：数据变更 / 立即同步 / 冷启动 / 登录完成 / 热启动 onNewWant /
+   * 切前台 onForeground / 开启同步开关 / 登出预上传。
+   * **禁止任何绕过本入口的裸 upload / download**。
+   */
+  triggerSync(): void {
     if (this.syncDebounceTimer !== -1) {
       clearTimeout(this.syncDebounceTimer)
     }
     this.syncDebounceTimer = setTimeout((): void => {
       this.syncDebounceTimer = -1
-      this.doTriggerCloudSync()
+      this.syncNowDetached('debounced')
     }, 1000)
   }
 
-  // 实际执行云端上传同步（防抖到期后调用）
-  private doTriggerCloudSync(): void {
-    // Ability 已销毁：阻断到期回调触发云同步
+  /**
+   * 立即执行一次 merge（triggerSync 防抖到期后调用；需即时生效的入口可直接调用）
+   *
+   * @returns 同步结果；`null` 表示本次被跳过（已销毁 / 抑制窗口内 / 就绪 gate 未通过）
+   */
+  async syncNow(reason: string): Promise<SyncResult | null> {
+    // Ability 已销毁：阻断云同步
     if (this.isDestroyed) {
-      Logger.info(this.tag, 'doTriggerCloudSync skipped: vm destroyed')
-      return
+      Logger.info(this.tag, 'syncNow skipped: vm destroyed')
+      return null
     }
-    // 一键删除数据后的抑制窗口：跳过自动上传，防止空 bundle 复活刚删除的云端记录
+    // 一键删除数据后的抑制窗口：防止清空动作触发的同步把空数据上传
     if (Date.now() < this.suppressAutoSyncUntil) {
-      Logger.info(this.tag, 'doTriggerCloudSync skipped: auto sync suppressed (deleteAllData window)')
-      return
+      Logger.info(this.tag, 'syncNow skipped: suppressed (deleteAllData window)')
+      return null
     }
-    // 未登录或无 UID 跳过
-    if (!this.userProfile.isLoggedIn || this.userProfile.huaweiUid.length === 0) {
-      Logger.info(this.tag, 'triggerCloudSync skipped: not logged in')
-      return
+    // 就绪 gate：未就绪 → 不发网络请求 + **保留脏标记** + 登记就绪后补触发
+    if (!this.isReadyToSync()) {
+      Logger.info(this.tag, 'syncNow(' + reason + ') deferred: not ready (dirty flag kept)')
+      this.pendingReadySync = true
+      return null
     }
-    // 云端同步关闭时跳过
-    if (!CloudDBSyncProxy.getInstance().canSync()) {
-      Logger.info(this.tag, 'triggerCloudSync skipped: sync disabled')
-      return
-    }
-    // 标记强制上传，buildLocalSyncDataBundle 取出后自动重置
-    this.forceUploadFlag = true
-    const syncData: SyncDataBundle = this.buildLocalSyncDataBundle()
+    const uid: string = this.userProfile.huaweiUid
+    // 快照提供者：在**真正执行 merge 的那一刻**取最新本地数据（pending 补跑时也取最新）
+    const dataProvider: () => SyncDataBundle = (): SyncDataBundle => this.buildLocalSyncDataBundle()
     const syncCallback: SyncApplyCallback = this.buildLocalSyncApplyCallback()
-    CloudSyncService.getInstance().smartSync(this.userProfile.huaweiUid, syncData, syncCallback, 'upload')
-      .then((r): void => {
-        Logger.info(this.tag, 'triggerCloudSync done, direction=' + r.direction)
-        if (r.direction === 'error') {
-          this.toastMessage = this.context !== null
-            ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-            : r.errorMsg
-        }
-      }).catch((e: Error): void => {
-        Logger.error(this.tag, 'triggerCloudSync failed: ' + e.message)
-        this.toastMessage = this.context !== null
-          ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-          : e.message
-      })
+    try {
+      const r: SyncResult = await CloudSyncService.getInstance().requestMerge(uid, dataProvider, syncCallback)
+      this.handleSyncResult(r, reason)
+      return r
+    } catch (e) {
+      const msg: string = (e as Error).message
+      Logger.error(this.tag, 'syncNow(' + reason + ') failed: ' + msg)
+      if (this.context !== null) {
+        this.toastMessage = this.context.resourceManager.getStringByNameSync('toast_sync_upload_pending')
+      }
+      return { outcome: 'upload_failed', uploaded: false, lastSyncTime: 0, errorMsg: msg }
+    }
   }
 
-  // 强制下载同步：以云端为准覆盖本地（慎用，多端协同请用 triggerSync）
-  triggerDownloadSync(): void {
-    if (!this.userProfile.isLoggedIn || this.userProfile.huaweiUid.length === 0) {
-      Logger.info(this.tag, 'triggerDownloadSync skipped: not logged in')
-      return
-    }
-    // 云端同步关闭时跳过下载
-    if (!CloudDBSyncProxy.getInstance().canSync()) {
-      Logger.info(this.tag, 'triggerDownloadSync skipped: sync disabled')
-      return
-    }
-    const syncData: SyncDataBundle = this.buildLocalSyncDataBundle()
-    const syncCallback: SyncApplyCallback = this.buildLocalSyncApplyCallback()
-    CloudSyncService.getInstance().smartSync(this.userProfile.huaweiUid, syncData, syncCallback, 'download')
-      .then((r): void => {
-        Logger.info(this.tag, 'triggerDownloadSync done, direction=' + r.direction)
-        if (r.direction === 'error') {
-          this.toastMessage = this.context !== null
-            ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-            : r.errorMsg
-        }
-      }).catch((e: Error): void => {
-        Logger.error(this.tag, 'triggerDownloadSync failed: ' + e.message)
-        this.toastMessage = this.context !== null
-          ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-          : e.message
-      })
+  /**
+   * 防抖调用点（不关心结果）
+   */
+  private syncNowDetached(reason: string): void {
+    this.syncNow(reason).catch((e: Error): void => {
+      Logger.error(this.tag, 'syncNowDetached(' + reason + ') failed: ' + e.message)
+    })
   }
 
-  // 并集合并同步（多端协同推荐）：按 id 合并，两端独有数据都保留
-  triggerSync(): void {
-    if (!this.userProfile.isLoggedIn || this.userProfile.huaweiUid.length === 0) {
-      Logger.info(this.tag, 'triggerSync skipped: not logged in')
-      return
-    }
-    // 云端同步关闭时跳过合并
-    if (!CloudDBSyncProxy.getInstance().canSync()) {
-      Logger.info(this.tag, 'triggerSync skipped: sync disabled')
-      return
-    }
-    const syncData: SyncDataBundle = this.buildLocalSyncDataBundle()
-    const syncCallback: SyncApplyCallback = this.buildLocalSyncApplyCallback()
-    CloudSyncService.getInstance().smartSync(this.userProfile.huaweiUid, syncData, syncCallback, 'merge')
-      .then((r): void => {
-        Logger.info(this.tag, 'triggerSync done, direction=' + r.direction)
-        if (r.direction === 'error') {
-          this.toastMessage = this.context !== null
-            ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-            : r.errorMsg
-        }
-      }).catch((e: Error): void => {
-        Logger.error(this.tag, 'triggerSync failed: ' + e.message)
-        this.toastMessage = this.context !== null
-          ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-          : e.message
+  /**
+   * 同步结果收尾（**水位只在上传成功后推进**）
+   * - `ok`
+   *   - 上传过 → 水位 = 本次真正写入云端的 updatedAt；清脏标记
+   *   - 无需上传 → 水位 = 云端当前 updatedAt（推进以收敛等值判据）；清脏标记
+   * - `not_ready` → 静默延后：不打网络请求、保留脏标记，等就绪补触发
+   * - `pull_failed` / `upload_failed` / `parse_failed`
+   *   → **水位不变 + 保留脏标记**，明确告知用户"改动暂未上传，恢复后自动重试"
+   */
+  private handleSyncResult(r: SyncResult, reason: string): void {
+    Logger.info(this.tag, 'syncNow(' + reason + ') done, outcome=' + r.outcome +
+      ', uploaded=' + r.uploaded.toString() + ', lastSyncTime=' + r.lastSyncTime.toString())
+    if (r.outcome === 'ok') {
+      if (r.lastSyncTime > 0) {
+        this.userProfile.lastSyncTime = r.lastSyncTime
+      }
+      this.clearSyncNeeded('sync ok (' + reason + ')')
+      this.persistHelper.flush().catch((e: Error): void => {
+        Logger.warn(this.tag, 'post-sync flush failed: ' + e.message)
       })
+      return
+    }
+    if (r.outcome === 'idle') {
+      return
+    }
+    if (r.outcome === 'not_ready') {
+      // 未就绪属正常中间态（冷启动早于 SDK/VM 就绪），不打扰用户
+      this.pendingReadySync = true
+      return
+    }
+    // 真实失败：本地改动未成功上传 → 明确告知用户（水位不变、脏标记保留）
+    if (this.context !== null) {
+      this.toastMessage = this.context.resourceManager.getStringByNameSync('toast_sync_upload_pending')
+    }
+    Logger.warn(this.tag, 'sync incomplete (dirty flag kept). outcome=' + r.outcome +
+      ', err=' + r.errorMsg)
   }
 
+  /**
+   * 注册快照提供者（由 MainTab 在所有 VM init 完成后调用）
+   * ⚠️ 这是就绪 gate 的关键一环：注册前 `buildLocalSyncDataBundle` 只能拿到空串，
+   *    此时合并会把"空本地"当成真实数据 → 必须等注册完成才允许发起 merge。
+   */
   registerSnapshotProviders(
     goalsProvider: () => string,
     todosProvider: () => string,
@@ -778,12 +918,16 @@ export class SettingsViewModel {
     this.todosSnapshotProvider = todosProvider
     this.goalsApplyCallback = goalsApply
     this.todosApplyCallback = todosApply
+    // 本地侧就绪：允许发起 merge；若此前有滞留请求（冷启动早于注册）→ 立即补跑
+    this.snapshotsReady = true
+    Logger.info(this.tag, 'registerSnapshotProviders done, snapshots ready')
+    this.notifyCloudReady()
   }
 
   // 华为登录 / 登出
 
   // 5 秒保护窗口标志位：登录成功后置 true，阻断 applyCloudProfileData 用云端旧数据覆盖刚写入的新 UserProfile
-  // 5 秒后 smartSync 应已完成，安全解除保护
+  // 5 秒后 syncNow 应已完成，安全解除保护
   private isJustLoggedIn: boolean = false
 
   /**
@@ -822,7 +966,7 @@ export class SettingsViewModel {
    * 2. syncLoginStateToAppStorage → 同步到 AppStorage 供其他 VM 读取
    * 3. flush() → 持久化到 Preferences（冷启动恢复依赖）
    * 4. 5 秒后解除 isJustLoggedIn 保护
-   * 5. smartSync('merge') → 并集合并云端数据
+   * 5. syncNow('after-login') → 统一 merge（并集合并云端数据）
    * nickname 兜底：华为 ID 未返回昵称时用 openId 后 4 位生成默认昵称
    */
   async applyLoginResult(user: HuaweiUserInfo): Promise<void> {
@@ -849,11 +993,23 @@ export class SettingsViewModel {
     // 同步到 AppStorage：其他 VM 通过 AppStorage.get('isLoggedIn') 读取，不 import SettingsVM
     this.syncLoginStateToAppStorage()
 
+    // ★ 登录即代表用户要使用云端能力：自动开启云同步。
+    // 若沿用默认值 false，会出现"登录了却什么都用不了"：
+    //   ① 下面的 canSync() 判定为 false → 登录后**完全不拉取云端数据**（即"没有第一时间拉数据"的根因）；
+    //   ② AIPage 以 syncEnabled 作为云功能门控（handleSendMessage / 发送按钮 .enabled）→ AI 被拦截。
+    // 这里直接改状态并同步代理层，由紧随其后的 flush() 一并持久化；刻意**不走 toggleSyncEnabled()**，
+    // 是为了避开其 scheduleSave() 触发的防抖上传，防止与下面的 merge 同步并发写同一份记录。
+    if (!this.settings.syncEnabled) {
+      this.settings.syncEnabled = true
+      CloudDBSyncProxy.getInstance().setSyncEnabled(true)
+      Logger.info(this.tag, 'applyLoginResult: cloud sync auto-enabled on login (login implies cloud intent)')
+    }
+
     // 持久化到 Preferences：冷启动时 settingsVM.init 从此恢复登录态
     await this.flush()
 
     // 5 秒保护窗口：期间 applyCloudProfileData 被 isJustLoggedIn 拦截
-    // 防止 smartSync 回调用云端旧 userProfile 覆盖刚写入的新数据（昵称/头像）
+    // 防止合并落地时用云端旧 userProfile 覆盖刚写入的新数据（昵称/头像）
     setTimeout((): void => {
       this.isJustLoggedIn = false
       Logger.info(this.tag, 'isJustLoggedIn reset to false after ' +
@@ -868,24 +1024,9 @@ export class SettingsViewModel {
       return
     }
 
-    // 直接执行并集合并同步，保护本地独有数据不被云端旧数据覆盖
-    const syncService: CloudSyncService = CloudSyncService.getInstance()
-    const syncData: SyncDataBundle = this.buildLocalSyncDataBundle()
-    const syncCallback: SyncApplyCallback = this.buildLocalSyncApplyCallback()
-
-    syncService.smartSync(user.openId, syncData, syncCallback, 'merge').then((syncResult): void => {
-      Logger.info(this.tag, 'smartSync done, direction=' + syncResult.direction)
-      if (syncResult.direction === 'error') {
-        this.toastMessage = this.context !== null
-          ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-          : syncResult.errorMsg
-      }
-    }).catch((e: Error): void => {
-      Logger.error(this.tag, 'smartSync failed: ' + e.message)
-      this.toastMessage = this.context !== null
-        ? this.context.resourceManager.getStringByNameSync('toast_sync_error')
-        : e.message
-    })
+    // 登录完成：统一走 merge（并集合并，本地独有数据与云端独有数据都保留）
+    // ⚠️ 登录刚完成时 CloudDB 可能尚未初始化 / 快照尚未注册 → gate 会自动延后并补触发
+    this.syncNowDetached('after-login')
   }
 
   /**
@@ -940,8 +1081,12 @@ export class SettingsViewModel {
       ok = false
     }
 
-    // 5. lastSyncTime 归零并持久化（云端记录已删，旧时间戳无意义）
+    // 5. lastSyncTime 归零 + **清除持久化脏标记** 并持久化
+    //    （云端记录已删、本地已清空：脏标记必须一并清掉，
+    //      否则下次冷启动 merge 会拿空数据上传，把刚删除的云端记录"复活"）
     this.userProfile.lastSyncTime = 0
+    this.pendingReadySync = false
+    this.clearSyncNeeded('deleteAllData')
     await this.flush()
 
     Logger.warn(this.tag, 'deleteAllData END, ok=' + ok.toString())
@@ -950,29 +1095,32 @@ export class SettingsViewModel {
 
   /**
    * 退出登录
-   * 1. 先上传本地数据到云端（logoutUploadFailed 则中止退出，由 ProfilePage 提示用户）
+   * 1. 先执行完整 merge（双向合并；失败则中止退出，由 ProfilePage 提示用户）
    * 2. cancelAuthorization 撤销华为 ID 授权
    * 3. 重置 userProfile + settings 为空实例
    * 4. emit CLEAR_ALL_REQUESTED → HomeVM/RouteVM 清空数据
-   * 5. flush() 持久化空状态 + syncLoginStateToAppStorage
-   * 为什么先上传：退出会清空本地数据，不先上传则用户数据永久丢失
+   * 5. **清除持久化脏标记** + flush 持久化空状态 + syncLoginStateToAppStorage
+   *
+   * 为什么先 merge：退出会清空本地数据，不先同步则用户数据永久丢失；
+   * 为什么用 merge 而不是裸 upload：裸 upload 会把云端整包覆盖，
+   * 抹掉其它设备在此期间已上传的内容。
    */
   async logout(context: common.Context): Promise<boolean> {
     this.logoutUploadFailed = false
     const oldUid: string = this.userProfile.huaweiUid
 
     if (oldUid.length > 0) {
-      // 云端同步关闭时跳过登出前预上传，但仍继续登出流程
+      // 云端同步关闭时跳过登出前预合并，但仍继续登出流程
       if (!CloudDBSyncProxy.getInstance().canSync()) {
-        Logger.info(this.tag, 'logout: sync disabled, skip pre-logout upload')
+        Logger.info(this.tag, 'logout: sync disabled, skip pre-logout merge')
       } else {
-        // ★ 先上传本地数据到云端：退出后本地数据会被清空，不先上传则用户数据永久丢失
-        try {
-          const syncData: SyncDataBundle = this.buildLocalSyncDataBundle()
-          await CloudSyncService.getInstance().upload(oldUid, syncData)
-        } catch (e) {
-          // 上传失败则中止退出：返回 false 让 ProfilePage 提示用户，避免数据丢失
-          Logger.warn(this.tag, 'pre-logout upload failed: ' + (e as Error).message)
+        // ★ 登出前完成双向合并：本地改动上云、云端他端改动也能一并落地
+        const r: SyncResult | null = await this.syncNow('pre-logout')
+        const merged: boolean = r !== null && (r.outcome === 'ok' || r.outcome === 'idle')
+        if (!merged) {
+          // 合并未完成（网络失败 / 未就绪）→ 中止退出，避免数据丢失
+          Logger.warn(this.tag, 'pre-logout merge incomplete, abort logout to protect data. outcome=' +
+            (r === null ? 'skipped' : r.outcome))
           this.logoutUploadFailed = true
           return false
         }
@@ -990,6 +1138,11 @@ export class SettingsViewModel {
     // 重置为空实例：isLoggedIn=false, huaweiUid=''，保留默认值
     this.userProfile = new UserProfile()
     this.settings = new AppSettings()
+    // 开启清空抑制窗口：清空动作会经防抖回调触发 SYNC_NEEDED，
+    // 窗口内禁止打脏标记 / 发起同步，防止"空数据上传把云端记录覆盖/复活"
+    this.suppressAutoSyncUntil = Date.now() + CommonConstants.DELETE_ALL_SUPPRESS_SYNC_MS
+    this.pendingReadySync = false
+    this.clearSyncNeeded('logout')
     // 事件总线通知 HomeVM/RouteVM 清空 taskList/goals（解耦：不直接 import 其他 VM）
     eventBus.emit(EventType.CLEAR_ALL_REQUESTED, null)
     await this.flush()
@@ -1013,6 +1166,11 @@ export class SettingsViewModel {
     this.userProfile = new UserProfile()
     this.settings = new AppSettings()
     this.logoutUploadFailed = false
+    // 与 logout 一致：开启清空抑制窗口 + 清除持久化脏标记，
+    // 防止清空动作触发的防抖回调把"空数据"标成待上传
+    this.suppressAutoSyncUntil = Date.now() + CommonConstants.DELETE_ALL_SUPPRESS_SYNC_MS
+    this.pendingReadySync = false
+    this.clearSyncNeeded('force-logout')
     // 通过事件总线通知 HomeVM/RouteVM 清空数据
     eventBus.emit(EventType.CLEAR_ALL_REQUESTED, null)
     await this.flush()

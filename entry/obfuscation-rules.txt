@@ -4,20 +4,71 @@
 # For more details, see
 #   https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/source-obfuscation
 
-# Obfuscation options:
-# -disable-obfuscation: disable all obfuscations
-# -enable-property-obfuscation: obfuscate the property names
-# -enable-toplevel-obfuscation: obfuscate the names in the global scope
-# -compact: remove unnecessary blank spaces and all line feeds
-# -remove-log: remove all console.* statements
-# -print-namecache: print the name cache that contains the mapping from the old names to new names
-# -apply-namecache: reuse the given cache file
-
-# Keep options:
-# -keep-property-name: specifies property names that you want to keep
-# -keep-global-name: specifies names that you want to keep in the global scope
+# ============================================================
+# ⚠️⚠️⚠️ 白名单维护说明（改动前务必先读）⚠️⚠️⚠️
+#
+# 本文件已按官方文档要求（source-obfuscation-rule-options / source-obfuscation-questions）
+# 配置好 keep 白名单。官方明确：使用数据库字段、JSON 字段时，
+# 必须用 -keep-property-name 保留名称，否则混淆后 JSON 键与数据不一致。
+#
+# 本应用三类"名称即数据"的高危场景（改动数据结构时必须同步维护下方白名单）：
+#   1. CloudDB 字段（UserSyncData / UserFeedback）：字段名被改 = 云同步【静默失败】
+#      —— 不报错、数据传不上去，最难排查。参考 2026-09-13 复核报告 P0。
+#   2. 本地持久化快照的 JSON key（StorageManager 全部存储）：键被改 =
+#      老用户升级后本地数据读不回来（等于丢数据）。
+#   3. 网络 JSON 字段（DeepSeek 响应）：访问点被改 = AI 功能直接失效。
+#
+# 已知安全边界（2026-09-13 依据官方文档确认）：
+#   - 字符串字面量属性名不会被混淆（如 data['goals']）→ 方括号字符串访问天然安全
+#   - ArkUI 组件属性名、SDK API 名称由系统白名单自动保留
+#   - -enable-string-property-obfuscation 未开启 → 字符串 key 双保险
+#
+# 启用混淆（build-profile.json5 的 enable: true）后必须做的验证：
+#   ① release 包真机：老本地数据能正常读出（验证第 2 类）
+#   ② 登录 + 云同步上传下载各一次，控制台核对字段（验证第 1 类）
+#   ③ AI 拆解跑一次（验证第 3 类）
+#   ④ 可用 DevEco「混淆助手」交叉检查遗漏的保留项
+# ============================================================
 
 -enable-property-obfuscation
 -enable-toplevel-obfuscation
 -enable-filename-obfuscation
 -enable-export-obfuscation
+
+# ---------- 1. CloudDB 数据库字段与方法（最高优先级）----------
+-keep-property-name uid goalsJson todosJson settingsJson profileJson updatedAt
+-keep-property-name feedbackId userId content category appVersion deviceModel osVersion diagJson contact status createTime imageUrls
+-keep-property-name naturalbase_ClassName
+
+# ---------- 2. 云同步记录与本地快照的 JSON key ----------
+-keep-property-name goals taskList filterCategory version savedAt __cleared__ app exportedAt data
+-keep-property-name id isCompleted isConfirmed priority deadline duration estimatedTime plannedTime completedTime actualCompletionTime createdAt
+# ⚠️ 云同步扩展字段（2026-09-18 体检补录）：这三个字段的**写入端用属性名**
+#   （`snapshotXxx` / `toJSON` 的对象字面量 key），**读取端用字符串**
+#   （`CloudSyncService.readBool/readNumber(x, 'isDeleted' | 'completionUpdatedAt')`）。
+#   string-property-obfuscation 未开启 ⇒ 字符串侧恒为原名；若属性名侧被混淆成短名，
+#   两边就**不再同名** ⇒ 墓碑 OR 失效（删除的条目在另一设备复活）、完成态裁决轴恒读 0
+#   —— 都是"不报错的静默失效"。凡新增"名称即数据"的字段，必须同步登记到本行。
+-keep-property-name isDeleted dueText completionUpdatedAt
+-keep-property-name title description tags subtitle name icon iconSelected quadrant progress
+-keep-property-name milestones totalMilestones completedMilestones steps completedSteps goalId goalName relatedGoalId relatedTaskId targetId targetRoute taskName tasks
+-keep-property-name nickname signature avatarUri email aiCredits huaweiUid isLoggedIn
+-keep-property-name notificationEnabled vibrationEnabled privacyAgreed syncEnabled reminderAdvanceTaskDays reminderAdvanceGoalDays lastSyncTime
+-keep-property-name todayFocusCount todayFocusMillis lastFocusDate completedFocusCount focusDurationMillis breakDurationMillis longBreakDurationMillis cycleLength elapsedBeforePause startTime phase taskId taskTitle focusCount focusMillis
+-keep-property-name taskIds goalIds value isRead
+-keep-property-name spanMillis state mode needLogin queued errorMsg success forceUpload goalsCount todosCount ts
+
+# ---------- 3. 网络 JSON 字段（DeepSeek 响应，按名访问）----------
+-keep-property-name choices message role finish_reason usage prompt_tokens completion_tokens total_tokens delta model temperature max_tokens
+
+# ---------- 4. Want / 多端流转参数 ----------
+-keep-property-name routeName taskId goalId openImmersive migrationData parameters pkgName abilityName bundleName
+
+# ---------- 5. 兜底：通用数据键（成本低，防后续改动踩坑）----------
+-keep-property-name text title name type label index items value unit week count state key data
+
+# ---------- 说明：以下场景本次确认无需配置 ----------
+# - -keep-global-name：本项目单 HAP + 本地 HAR（同编译单元，名称一致），无 HSP 跨模块导出
+# - -keep-file-name：页面经 Navigation 路由名（字符串字面量）跳转，非文件路径动态加载；
+#   若启用后出现页面路由异常，再补充 -keep-file-name 保留 pages 路径
+# - globalThis：工程未使用

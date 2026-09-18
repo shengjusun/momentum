@@ -5,6 +5,8 @@
  */
 
 import { globalNavStack } from '../common/RouterManager'
+import { AppInfoDialog } from '../common/components/AppInfoDialog'
+import { DimensConstants } from '../common/constants/DimensConstants'
 import { HuaweiAuthService, HuaweiLoginResult, HuaweiUserInfo } from '../common/services/HuaweiAuthService'
 import { settingsVM } from '../viewmodel/SettingsViewModel'
 import { Logger } from '../common/utils/Logger'
@@ -12,12 +14,17 @@ import { promptAction } from '@kit.ArkUI'
 import { common } from '@kit.AbilityKit'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
 import { CommonConstants } from '../common/constants/CommonConstants'
+import { MotionHelper } from '../common/utils/MotionHelper'
 
 
 @ComponentV2
 export struct LoginPage {
   @Local isLoggingIn: boolean = false
   @Local isCheckingLogin: boolean = true
+  /** 隐私协议长文弹窗 */
+  @Local showPrivacyDialogVisible: boolean = false
+  /** 用户协议长文弹窗（独立内容源，此前两链接共用隐私文案属合规缺陷） */
+  @Local showUserAgreementVisible: boolean = false
   // 隐私协议勾选态：未勾选时登录按钮置灰不可点击
   @Local isPrivacyAgreed: boolean = false
 
@@ -109,7 +116,7 @@ export struct LoginPage {
       }
     } catch (e) {
       const err: Error = e as Error
-      promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.login_toast_login_error_prefix').id) + err.message })
+      promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.login_toast_login_error_prefix').id) + getContext(this).resourceManager.getStringSync($r('app.string.error_generic_toast').id), duration: 2000 })
       Logger.error('LoginPage', 'login threw: ' + err.message)
     } finally {
       this.isLoggingIn = false
@@ -120,15 +127,8 @@ export struct LoginPage {
    * 显示隐私协议弹窗（隐私协议/用户协议共用同一内容）
    */
   private showPrivacyDialog(): void {
-    promptAction.showDialog({
-      title: $r('app.string.privacy_agree_title'),
-      message: getContext(this).resourceManager.getStringSync($r('app.string.privacy_content').id),
-      buttons: [
-        { text: $r('app.string.privacy_agree_ack'), color: $r('app.color.primary_color') }
-      ]
-    }).catch((e: Error): void => {
-      Logger.error('LoginPage', 'showPrivacyDialog failed: ' + e.message)
-    })
+    // 统一 AppInfoDialog：隐私长文可滚动阅读（替代系统 showDialog）
+    this.showPrivacyDialogVisible = true
   }
 
   build() {
@@ -150,7 +150,7 @@ export struct LoginPage {
           }
           .width(96)
           .height(96)
-          .borderRadius(24)
+          .borderRadius(DimensConstants.RADIUS_XL)
           .backgroundColor($r('app.color.login_logo_card_bg'))
           .shadow({
             radius: 24,
@@ -160,15 +160,15 @@ export struct LoginPage {
           })
           .alignContent(Alignment.Center)
 
-          // 应用名称 Momentum（大字号粗体）
+          // 应用名称 起势（大字号粗体）
           Text($r('app.string.app_name'))
             .fontSize(CommonConstants.FONT_SIZE_XXXL)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.text_primary'))
             .textAlign(TextAlign.Center)
 
-          // 中文副名 势能（小字号次要色）
-          Text($r('app.string.login_brand_name_cn'))
+          // 英文副标 Momentum（小字号次要色）
+          Text($r('app.string.login_brand_name_sub'))
             .fontSize(CommonConstants.FONT_SIZE_BODY)
             .fontColor($r('app.color.text_tertiary'))
             .textAlign(TextAlign.Center)
@@ -205,12 +205,12 @@ export struct LoginPage {
           // 登录按钮（胶囊形 + 主题色 + 柔和阴影）
           Button() {
             Row({ space: 10 }) {
-              Text('Momentum')
+              Text($r('app.string.app_name'))
                 .fontSize(CommonConstants.FONT_SIZE_XXS)
                 .fontWeight(FontWeight.Bold)
                 .fontColor($r('app.color.primary_color'))
                 .backgroundColor($r('app.color.primary_color_bg'))
-                .borderRadius(4)
+                .borderRadius(DimensConstants.RADIUS_XS)
                 .padding({ left: 6, right: 6, top: 3, bottom: 3 })
 
               if (this.isLoggingIn) {
@@ -244,16 +244,35 @@ export struct LoginPage {
             this.handleLogin()
           })
 
+          // 合规改造：「暂不登录」出口（细则要求登录页必须提供可拒绝的选项，不得强制登录）
+          Text($r('app.string.login_skip'))
+            .fontSize(CommonConstants.FONT_SIZE_CAPTION)
+            .fontColor($r('app.color.text_tertiary'))
+            .textAlign(TextAlign.Center)
+            .width('100%')
+            .padding({ top: 12, bottom: 12 })
+            .onClick((): void => {
+              globalNavStack.pop()
+            })
+
           // 隐私协议勾选行：Checkbox + "我已阅读并同意《隐私协议》和《用户协议》"
+          // 勾选区外包 44vp 热区（触控规范；合规关键控件不应难点）
+          // 范式对齐首页 CheckboxComponent：Checkbox 纯视觉（select 绑定状态），外层热区点击驱动状态
           Row({ space: 8 }) {
-            Checkbox()
-              .select(this.isPrivacyAgreed)
-              .selectedColor($r('app.color.primary_color'))
-              .width(16)
-              .height(16)
-              .onChange((value: boolean): void => {
-                this.isPrivacyAgreed = value
-              })
+            Row() {
+              Checkbox()
+                .select(this.isPrivacyAgreed)
+                .selectedColor($r('app.color.primary_color'))
+                .width(16)
+                .height(16)
+            }
+            .constraintSize({ minWidth: DimensConstants.TOUCH_COMFORT, minHeight: DimensConstants.TOUCH_COMFORT })
+            .justifyContent(FlexAlign.Center)
+            .alignItems(VerticalAlign.Center)
+            .hitTestBehavior(HitTestMode.Block)
+            .onClick((): void => {
+              this.isPrivacyAgreed = !this.isPrivacyAgreed
+            })
 
             Row() {
               Text($r('app.string.login_privacy_check_prefix'))
@@ -272,7 +291,8 @@ export struct LoginPage {
                 .fontSize(CommonConstants.FONT_SIZE_XS)
                 .fontColor($r('app.color.primary_color'))
                 .onClick((): void => {
-                  this.showPrivacyDialog()
+                  // 独立《用户协议》（此前与隐私协议共用同一弹窗，内容张冠李戴）
+                  this.showUserAgreementVisible = true
                 })
             }
             .layoutWeight(1)
@@ -298,22 +318,42 @@ export struct LoginPage {
           [$r('app.color.login_gradient_end'), 1.0]
         ]
       })
-      // 页面转场淡入淡出动画
-      .transition(TransitionEffect.OPACITY)
+      // 页面转场交给系统路由转场独占（原裸 OPACITY 无 animation 参数，实际从未生效）；
+      // IDENTITY 同时防止被外层 animateTo 补上默认透明度转场
+      .transition(MotionHelper.noTransition())
+
+      // 隐私协议长文弹窗（统一 AppInfoDialog，替代系统 showDialog）
+      if (this.showPrivacyDialogVisible) {
+        AppInfoDialog({
+          title: getContext(this).resourceManager.getStringSync($r('app.string.privacy_agree_title').id),
+          message: getContext(this).resourceManager.getStringSync($r('app.string.privacy_content').id),
+          closeText: getContext(this).resourceManager.getStringSync($r('app.string.privacy_agree_ack').id),
+          onClose: (): void => {
+            this.showPrivacyDialogVisible = false
+          }
+        })
+      }
+
+      // 用户协议长文弹窗（独立文案，含 AI 服务专项条款与 DeepSeek 备案号）
+      if (this.showUserAgreementVisible) {
+        AppInfoDialog({
+          title: getContext(this).resourceManager.getStringSync($r('app.string.user_agreement_title').id),
+          message: getContext(this).resourceManager.getStringSync($r('app.string.user_agreement_content').id),
+          closeText: getContext(this).resourceManager.getStringSync($r('app.string.privacy_agree_ack').id),
+          onClose: (): void => {
+            this.showUserAgreementVisible = false
+          }
+        })
+      }
     }
     .hideTitleBar(true)
-    // 拦截系统返回键，未登录时禁止返回主页
+    // 合规改造（2026-09-11）：允许返回。
+    // 《华为帐号登录管理细则》要求登录页必须提供清晰的取消/拒绝选项，不得把用户锁在登录流程中；
+    // 未登录用户本就以游客身份使用应用，返回应放行。仅登录请求进行中时拦截，避免中途退出导致状态错乱。
     .onBackPressed((): boolean => {
-      // 如果正在检查登录状态或正在登录，直接拦截
       if (this.isCheckingLogin || this.isLoggingIn) {
         return true
       }
-      // 如果未登录，拦截返回并提示
-      if (!settingsVM.userProfile.isLoggedIn) {
-        promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.toast_login_required').id) })
-        return true // 返回 true 表示拦截本次返回事件
-      }
-      // 已登录则允许返回
       return false
     })
     .onReady((context: NavDestinationContext): void => {

@@ -115,7 +115,8 @@ export function isStringContent(content: string | Array<ContentPart>): boolean {
  * 安全读取 content 为字符串：若为数组则拼接所有文本片段，图片片段替换为占位符
  * 用于日志、history 序列化等场景
  */
-export function contentToString(content: string | Array<ContentPart>): string {
+export function contentToString(content: string | Array<ContentPart>,
+  imageLabelPrefix: string = '', imageLabelSuffix: string = ''): string {
   if (typeof content === 'string') {
     return content
   }
@@ -129,7 +130,7 @@ export function contentToString(content: string | Array<ContentPart>): string {
     }
   }
   if (imageCount > 0) {
-    result += '[用户发送了' + imageCount.toString() + '张图片]'
+    result += imageLabelPrefix + imageCount.toString() + imageLabelSuffix
   }
   return result
 }

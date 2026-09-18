@@ -2,6 +2,7 @@
 
 import { promptAction } from '@kit.ArkUI'
 import { Logger } from '../common/utils/Logger'
+import { breakpointState } from '../common/utils/BreakpointState'
 import { safeStringUtil } from '../common/utils/SafeUtils'
 import { settingsVM, SettingsViewModel } from '../viewmodel/SettingsViewModel'
 import { homeVM } from '../viewmodel/HomeViewModel'
@@ -15,6 +16,7 @@ import { common } from '@kit.AbilityKit'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { DimensConstants } from '../common/constants/DimensConstants'
+import { MotionConstants } from '../common/constants/MotionConstants'
 
 @ComponentV2
 export struct ProfilePage {
@@ -56,11 +58,7 @@ export struct ProfilePage {
       return
     }
     // refreshUserProfile 已停用（登录信息在 applyLoginResult 时已同步，无需每次展示刷新）
-    if (!this.settingsVM.userProfile.isLoggedIn) {
-      Logger.info('ProfilePage', 'onPageShow: not logged in, redirect to LoginPage')
-      navigateTo(ROUTE_NAME.LOGIN)
-      return
-    }
+    // 合规改造：游客可进入「我的」，页面内已有「未登录 / 去登录」卡片，不再强制跳登录
     // routeVM.init 已在 EntryAbility.onWindowStageCreate 中调用，此处为安全保障
     // 若用户在 routeVM 尚未完成 init 时切到本页，补充触发加载
     if (!routeVM.isLoaded) {
@@ -146,7 +144,7 @@ export struct ProfilePage {
     .width('100%')
     .padding({ left: 20, right: 20, top: 18, bottom: 18 })
     .backgroundColor($r('app.color.bg_card'))
-    .borderRadius(16)
+    .borderRadius(DimensConstants.RADIUS_L)
   }
 
   @Builder
@@ -208,7 +206,7 @@ export struct ProfilePage {
           .fontWeight(FontWeight.Medium)
           .padding({ left: 8, right: 8, top: 3, bottom: 3 })
           .backgroundColor($r('app.color.success_color_bg'))
-          .borderRadius(10)
+          .borderRadius(DimensConstants.RADIUS_M)
 
         Text(this.settingsVM.settings.syncEnabled ?
           $r('app.string.profile_sync_local_cloud') : $r('app.string.profile_sync_local_only'))
@@ -217,7 +215,7 @@ export struct ProfilePage {
             ? $r('app.color.success_color') : $r('app.color.text_tertiary'))
           .fontWeight(FontWeight.Medium)
           .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-          .borderRadius(10)
+          .borderRadius(DimensConstants.RADIUS_M)
           .backgroundColor(this.settingsVM.settings.syncEnabled
             ? $r('app.color.success_color_bg') : $r('app.color.bg_tag'))
       }
@@ -250,11 +248,15 @@ export struct ProfilePage {
 
   @Builder
   HeaderActionsBuilder() {
-    if (this.settingsVM.userProfile.isLoggedIn) {
-      Row({ space: 8 }) {
+    Row({ space: 8 }) {
+      // 设置齿轮：登录后才显示（设置页含账号/同步等登录相关项）
+      if (this.settingsVM.userProfile.isLoggedIn) {
         this.SettingsGearBuilder()
-        this.NotificationBellBuilder()
       }
+      // 通知入口：**始终显示**。通知中心的内容（专注完成 / 任务到期提醒）都来自本地事件，
+      // 与登录状态无关；而「我的」页面下方那条指向同一路由的列表菜单项已删除，
+      // 所以这里是全状态下**唯一**的通知入口，不能再挂在 isLoggedIn 条件里。
+      this.NotificationBellBuilder()
     }
   }
 
@@ -281,7 +283,7 @@ export struct ProfilePage {
           .fontSize(CommonConstants.FONT_SIZE_MINI)
           .fontColor($r('app.color.text_inverse'))
           .backgroundColor($r('app.color.error_color'))
-          .borderRadius(8)
+          .borderRadius(DimensConstants.RADIUS_S)
           .padding({ left: 5, right: 5, top: 1, bottom: 1 })
           .margin({ top: -4, right: -4 })
       }
@@ -356,7 +358,7 @@ export struct ProfilePage {
         .padding({ top: 12, bottom: 12 })
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .borderRadius(10)
+        .borderRadius(DimensConstants.RADIUS_M)
         .backgroundColor($r('app.color.status_pending_bg'))
         .onClick((): void => {
           const param: RouteParam = { id: '', status: 'pending' }
@@ -378,7 +380,7 @@ export struct ProfilePage {
         .margin({ left: 6 })
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .borderRadius(10)
+        .borderRadius(DimensConstants.RADIUS_M)
         .backgroundColor($r('app.color.status_in_progress_bg'))
         .onClick((): void => {
           const param: RouteParam = { id: '', status: 'inProgress' }
@@ -400,7 +402,7 @@ export struct ProfilePage {
         .margin({ left: 6 })
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .borderRadius(10)
+        .borderRadius(DimensConstants.RADIUS_M)
         .backgroundColor($r('app.color.status_completed_bg'))
         .onClick((): void => {
           const param: RouteParam = { id: '', status: 'completed' }
@@ -422,7 +424,7 @@ export struct ProfilePage {
         .margin({ left: 6 })
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .borderRadius(10)
+        .borderRadius(DimensConstants.RADIUS_M)
         .backgroundColor($r('app.color.error_color_bg'))
         .onClick((): void => {
           const param: RouteParam = { id: '', status: 'overdue' }
@@ -431,7 +433,7 @@ export struct ProfilePage {
       }
       .width('100%')
       .backgroundColor($r('app.color.bg_card'))
-      .borderRadius(16)
+      .borderRadius(DimensConstants.RADIUS_L)
       .padding({ left: 4, right: 8, top: 4, bottom: 4 })
 
       if (routeVM.pendingGoalCount === 0 &&
@@ -476,15 +478,10 @@ export struct ProfilePage {
           $r('sys.symbol.label'), $r('app.string.profile_item_tag_manage'), (): void => {
             navigateTo(ROUTE_NAME.TAGS)
           })
-        Divider().color($r('app.color.divider')).padding({ left: 52, right: 16 })
-        this.MenuItemBuilder('notifications', $r('app.color.icon_bg_orange'), $r('app.color.icon_text_orange'),
-          $r('sys.symbol.bell'), $r('app.string.page_notifications'), (): void => {
-            navigateTo(ROUTE_NAME.NOTIFICATION)
-          })
       }
       .width('100%')
       .backgroundColor($r('app.color.bg_card'))
-      .borderRadius(16)
+      .borderRadius(DimensConstants.RADIUS_L)
     }
     .width('100%')
     .margin({ top: 16 })
@@ -517,7 +514,7 @@ export struct ProfilePage {
       }
       .width('100%')
       .backgroundColor($r('app.color.bg_card'))
-      .borderRadius(16)
+      .borderRadius(DimensConstants.RADIUS_L)
     }
     .width('100%')
     .margin({ top: 16 })
@@ -534,7 +531,7 @@ export struct ProfilePage {
       }
       .width(32)
       .height(32)
-      .borderRadius(8)
+      .borderRadius(DimensConstants.RADIUS_S)
       .backgroundColor(iconBg)
       .alignContent(Alignment.Center)
 
@@ -554,7 +551,7 @@ export struct ProfilePage {
     .padding({ left: 16, right: 16 })
     .alignItems(VerticalAlign.Center)
     .opacity(this.pressedMenuId === menuId ? 0.55 : 1.0)
-    .animation({ duration: 100, curve: Curve.EaseOut })
+    .animation(MotionConstants.pressParam())
     .onTouch((event: TouchEvent): void => {
       if (event.type === TouchType.Down) {
         this.pressedMenuId = menuId
@@ -630,8 +627,12 @@ export struct ProfilePage {
               // 4. 帮助与信息
               this.HelpGroupBuilder()
             }
-            // 宽屏适配：内容列限宽（宽度基于全宽包裹层，钳到 640 后由包裹层居中）
-            .constraintSize({ maxWidth: DimensConstants.CONTENT_MAX_WIDTH })
+            // 宽屏适配：内容列限宽（平板 lg 放宽到 860，避免横屏两侧大片留白；手机保持 640）
+            .constraintSize({
+              maxWidth: breakpointState.isTablet
+                ? DimensConstants.CONTENT_MAX_WIDTH_TABLET
+                : DimensConstants.CONTENT_MAX_WIDTH
+            })
             .width('100%')
             .padding({ left: 16, right: 16, top: 8, bottom: safeAreaHelper.getBottomWith(DimensConstants.TAB_CLEARANCE) })
             .backgroundColor($r('app.color.bg_page'))

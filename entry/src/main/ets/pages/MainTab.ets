@@ -1,12 +1,13 @@
-// 主入口页面，4 Tab 容器，Navigation 包裹 Tabs 的标准结构
-// 交互方案（对齐华为音乐）：
-//   - 内容区禁止滑动切换（scrollable(false)），页面滑动无反应
-//   - 导航栏左右拖拽，松手那一刻触发切换，页面以滑动动画过渡到目标 Tab（animationDuration 300）
-//   - 导航栏点击切换保留，同样带动画
-//   - 不做跟手平移（页面不跟随手指移动）
+// 主入口页面，4 Tab 容器，Navigation 包裹 HdsTabs 的标准结构
+// 页签栏方案（HDS 悬浮页签栏，@kit.UIDesignKit，API 23+）：
+//   - HdsTabs + barOverlap(true) + barFloatingStyle：悬浮胶囊底栏 + ADAPTIVE 沉浸光感材质（毛玻璃）
+//   - BottomTabBarStyle + SymbolGlyphModifier：系统符号双态图标，选中/未选中配色与官方动效由系统接管
+//   - 内容区支持手势滑动换页（vertical(false) 默认行为）；四象限长按拖拽期间经 dragState 临时禁用
+//   - 跨页切 Tab 仍走 globalTabsController.changeIndex（HomePage / GoalDetailPage / RoutePage）
 
-import { TabConfig } from '../model/Models'
-import { globalNavStack, ROUTE_NAME, globalTabsController, navigateTo, restoreMigrationIfNeeded, setCurrentTabIndex, notifyMigrationRestoreDone, hasPendingDeepLink, consumePendingDeepLink } from '../common/RouterManager'
+import { hdsMaterial, HdsTabs } from '@kit.UIDesignKit'
+import { SymbolGlyphModifier } from '@kit.ArkUI'
+import { globalNavStack, ROUTE_NAME, globalTabsController, restoreMigrationIfNeeded, setCurrentTabIndex, notifyMigrationRestoreDone, consumePendingDeepLink } from '../common/RouterManager'
 import { settingsVM } from '../viewmodel/SettingsViewModel'
 import { homeVM } from '../viewmodel/HomeViewModel'
 import { routeVM } from '../viewmodel/RoutePageViewModel'
@@ -29,9 +30,8 @@ import { LoginPage } from './LoginPage'
 import { bindBreakpointState, unbindBreakpointState, breakpointState } from '../common/utils/BreakpointState'
 import { Logger } from '../common/utils/Logger'
 import { CommonConstants } from '../common/constants/CommonConstants'
-import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
+
 import { BackPressHandler } from '../common/utils/BackPressHandler'
-import { DuneTabBar } from '../common/components/DuneTabBar'
 import { PrivacyConsentOverlay } from '../common/components/PrivacyConsentOverlay'
 import { CloudSdkService } from '../common/services/CloudSdkService'
 import { common } from '@kit.AbilityKit'
@@ -44,34 +44,46 @@ class DragStateHolder {
 const dragState = new DragStateHolder()
 export { dragState }
 
-function buildTabConfig(index: number, title: Resource, icon: Resource, iconSelected: Resource): TabConfig {
-  const config: TabConfig = new TabConfig()
-  config.index = index
-  config.title = title
-  config.icon = icon
-  config.iconSelected = iconSelected
-  return config
+// 页签配置：系统符号双态（normal 未选态 / selected 选中态）
+// 符号名核对自 HarmonyOS Symbol 全量符号库（4027 个，symbol.termnext.com）：
+// - home  house / house_fill（已编译验证）
+// - route route_plan / route_plan_fill（已编译验证，语义即"路线规划"）
+// - ai    robot / robots_fill（全量库确认的成对变体，AI 助手通用意象；
+//         备选：AI_wand_stars_and_cloud / AI_lightbulb_max / wand_and_stars_fill，均无确认的空心态）
+// - mine  person / person_fill（已编译验证）
+// 注：sparkles 在当前 SDK 不存在（编译 10903329 实测），官方 433 图标页亦未收录
+interface TabItem {
+  title: Resource
+  normal: Resource
+  selected: Resource
 }
 
-const TAB_CONFIGS: TabConfig[] = [
-  buildTabConfig(0, $r('app.string.tab_home'), $r('app.media.tab_home'), $r('app.media.tab_home_active')),
-  buildTabConfig(1, $r('app.string.tab_route'), $r('app.media.tab_route'), $r('app.media.tab_route_active')),
-  buildTabConfig(2, $r('app.string.tab_ai'), $r('app.media.tab_ai'), $r('app.media.tab_ai_active')),
-  buildTabConfig(3, $r('app.string.tab_mine'), $r('app.media.tab_mine'), $r('app.media.tab_mine_active'))
+const TAB_ITEMS: TabItem[] = [
+  { title: $r('app.string.tab_home'), normal: $r('sys.symbol.house'), selected: $r('sys.symbol.house_fill') },
+  { title: $r('app.string.tab_route'), normal: $r('sys.symbol.route_plan'), selected: $r('sys.symbol.route_plan_fill') },
+  { title: $r('app.string.tab_ai'), normal: $r('sys.symbol.robot'), selected: $r('sys.symbol.robots_fill') },
+  { title: $r('app.string.tab_mine'), normal: $r('sys.symbol.person'), selected: $r('sys.symbol.person_fill') }
 ]
+
+/** HDS 底部页签样式：系统符号双态 + 文字标签；选中态显式染品牌主色（随深浅色模式自适应） */
+function tabBarStyle(item: TabItem): BottomTabBarStyle {
+  return new BottomTabBarStyle({
+    normal: new SymbolGlyphModifier(item.normal),
+    selected: new SymbolGlyphModifier(item.selected)
+      .fontColor([$r('app.color.primary_color')])
+  }, item.title)
+}
 
 @Entry
 @ComponentV2
 export struct MainTab {
   @Local currentTabIndex: number = 0
   // 断点状态：全局响应式单例（BreakpointState），isTablet 变化自动触发 UI 刷新
-  // 四象限拖拽态：为 true 时禁止切换
-  dragState: DragStateHolder = dragState
   private hasInitStarted: boolean = false
 
   aboutToAppear(): void {
     Logger.info('MainTab', '========== aboutToAppear START ==========')
-    bindBreakpointState()
+    bindBreakpointState(this.getUIContext())
     Logger.info('MainTab', 'aboutToAppear: BreakpointState bound, isTablet=' + breakpointState.isTablet.toString())
 
     // 耗时操作和流转恢复延后执行，确保 Navigation 已挂载、NavPathStack 已绑定，避免冷启动卡死
@@ -127,8 +139,10 @@ export struct MainTab {
 
     try {
       settingsVM.registerSnapshotProviders(
-        (): string => JSON.stringify(routeVM.buildSnapshot()),
-        (): string => JSON.stringify(homeVM.buildSnapshot()),
+        // ⚠️ 必须用 buildSyncSnapshot（**含墓碑**）：用过滤后的视图会丢掉删除标记，
+        //    导致删除无法上传 → 对端删除复活
+        (): string => JSON.stringify(routeVM.buildSyncSnapshot()),
+        (): string => JSON.stringify(homeVM.buildSyncSnapshot()),
         (data: Record<string, Object>): void => { routeVM.applyCloudSnapshot(data) },
         (data: Record<string, Object>): void => { homeVM.applyCloudSnapshot(data) }
       )
@@ -145,14 +159,15 @@ export struct MainTab {
       const restored: boolean = restoreMigrationIfNeeded()
       Logger.info('MainTab', 'restoreMigrationIfNeeded result=' + restored.toString())
 
-      // ★ 路由守卫：三条件决定是否跳转 LoginPage
-      if (!restored && settingsVM.userProfile.isLoggedIn === false && !hasPendingDeepLink()) {
-        Logger.info('MainTab', 'not restored and not logged in and no deep link, navigateTo LoginPage')
-        navigateTo(ROUTE_NAME.LOGIN)
-      } else if (!restored && settingsVM.userProfile.isLoggedIn === false) {
-        Logger.info('MainTab', 'deep link pending, skip auto-login navigation')
+      // ★ 合规改造（2026-09-11）：移除冷启动强制登录
+      // 依据《华为帐号登录管理细则》——"禁止用户进入应用还未开始了解基础功能，就强制要求注册/登录"，
+      // 且应用不得因用户拒绝登录而终止服务。未登录用户以「游客」身份进入，全部本地功能
+      // （四象限 / 路线 / 番茄钟 / 统计 / 通知 / 桌面卡片 / 导入导出）可用；
+      // AI 拆解、云同步、反馈在点击使用时就地引导登录（细则允许"用户表现出意向后再次提示"）。
+      if (!settingsVM.userProfile.isLoggedIn) {
+        Logger.info('MainTab', 'guest mode: enter app without login (login gated per-feature)')
       } else {
-        Logger.info('MainTab', 'restored=' + restored.toString() + ', isLoggedIn=' + settingsVM.userProfile.isLoggedIn.toString() + ', no navigation needed')
+        Logger.info('MainTab', 'restored=' + restored.toString() + ', logged in, no navigation needed')
       }
       consumePendingDeepLink()
       notifyMigrationRestoreDone()
@@ -162,8 +177,8 @@ export struct MainTab {
   }
 
   /**
-   * 云 SDK 初始化链：冷启动时若已同意隐私协议，拉起云端 SDK 并补跑一次合并同步
-   * （settingsVM.init 的自动同步此时云端尚未就绪会空转，init 完成后由 triggerSync 补偿）
+   * 云 SDK 初始化链：冷启动时若已同意隐私协议，拉起云端 SDK 并通知同步层就绪
+   * （settingsVM.init 的同步会因就绪 gate 未通过而滞留，此处就绪后由 notifyCloudReady 补跑）
    * 未同意隐私协议时不做任何云端动作，等弹层同意后走 handlePrivacyAgreed
    */
   private async initCloudSdkIfNeeded(): Promise<void> {
@@ -178,7 +193,7 @@ export struct MainTab {
       Logger.error('MainTab', 'cold start cloud sdk init failed: ' + (e as Error).message)
       return
     }
-    settingsVM.triggerSync()
+    settingsVM.notifyCloudReady()
   }
 
   /**
@@ -195,8 +210,8 @@ export struct MainTab {
     } catch (e) {
       Logger.error('MainTab', 'cloud sdk init failed: ' + (e as Error).message)
     }
-    // 云 SDK 就绪后补跑冷启动合并同步（内部有登录态/同步开关守卫，条件不满足自动跳过）
-    settingsVM.triggerSync()
+    // 云 SDK 就绪后通知同步层：若此前有因 gate 未通过而滞留的请求 → 立即补跑
+    settingsVM.notifyCloudReady()
   }
 
   /** 不同意隐私协议：退出应用（合规要求：未同意不得使用） */
@@ -228,18 +243,8 @@ export struct MainTab {
     })
   }
 
-  // 统一的 Tab 切换入口（导航栏点击 / 导航栏拖拽共用）
-  // 切换由 currentTabIndex 驱动（$$ 双向绑定），页面以 animationDuration 的动画滑动到目标页
-  private selectTab(index: number): void {
-    // 边界钳制：越界或重复切换直接忽略（首个 Tab 右拖、末个 Tab 左拖不会切换）
-    if (index < 0 || index >= TAB_CONFIGS.length || index === this.currentTabIndex) {
-      return
-    }
-    animateTo({ duration: 300, curve: Curve.EaseOut }, (): void => {
-      this.currentTabIndex = index
-      setCurrentTabIndex(index)
-    })
-  }
+  // Tab 切换说明：页签点击 / 内容区滑动由 HdsTabs 自行处理（onChange 同步状态）；
+  // 跨页切 Tab 走 globalTabsController.changeIndex（RouterManager），不再需要本地 selectTab
 
   @Builder
   PageMapBuilder(name: string, param: Object): void {
@@ -271,88 +276,52 @@ export struct MainTab {
   }
 
   build(): void {
-    // 标准结构：Navigation 在外，Tabs 在内
-    // 导航栏底部悬浮（华为音乐平板式）：平板（lg）靠左下角，手机/折叠屏（sm/md）居中 72% 宽
+    // 标准结构：Navigation 在外，HdsTabs 在内（Navigation + 全局 NavPathStack 不变）
     Navigation(globalNavStack) {
       Stack() {
-        // Tabs 撑满整个区域（包括底部安全区），内容可滚到底部
-        Tabs({
-          barPosition: BarPosition.End,
-          index: $$this.currentTabIndex,
-          controller: globalTabsController
-        }) {
+        // HDS 悬浮页签栏：barOverlap 内容延伸到栏下方，barFloatingStyle 悬浮胶囊 + 沉浸光感材质
+        HdsTabs({ controller: globalTabsController }) {
           TabContent() {
             HomePage()
           }
-          .tabBar('')
+          .tabBar(tabBarStyle(TAB_ITEMS[0]))
 
           TabContent() {
             RoutePage()
           }
-          .tabBar('')
+          .tabBar(tabBarStyle(TAB_ITEMS[1]))
 
           TabContent() {
             AIPage()
           }
-          .tabBar('')
+          .tabBar(tabBarStyle(TAB_ITEMS[2]))
 
           TabContent() {
             ProfilePage()
           }
-          .tabBar('')
+          .tabBar(tabBarStyle(TAB_ITEMS[3]))
         }
-        .barWidth('100%')
-        .barHeight(0) // 隐藏系统 TabBar，使用自定义沙丘导航栏
-        .barMode(BarMode.Fixed)
+        .barPosition(BarPosition.End)
+        .vertical(false)
+        .barOverlap(true)
+        .barFloatingStyle({
+          barWidth: { smallWidth: 280, mediumWidth: 420, largeWidth: 560 },
+          barBottomMargin: 28,
+          systemMaterialEffect: {
+            materialType: hdsMaterial.MaterialType.ADAPTIVE,
+            materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE
+          }
+        })
         .backgroundColor($r('app.color.bg_page'))
         .width('100%')
         .height('100%')
-        // 内容区禁止滑动切换：页面滑动无反应，切换只能由导航栏触发
-        .scrollable(false)
-        // 松手/点击切换时，页面以 300ms 的滑动动画过渡到目标 Tab（华为音乐式动效）
-        // 手感调节：觉得慢改 250，觉得快改 350~400
+        // 内容区支持滑动换页（官方默认行为）；四象限长按拖拽期间临时禁用，防止长按拖动时页面晃动
+        .scrollable(!dragState.isDragging)
         .animationDuration(300)
         .onChange((index: number): void => {
           setCurrentTabIndex(index)
+          this.currentTabIndex = index
         })
-
-        // 悬浮导航栏层：Column 满铺 + Blank 顶到底部，透传点击给 Tabs
-        // 平板靠左下角，手机居中
-        Column() {
-          Blank()
-          DuneTabBar({
-            currentIndex: this.currentTabIndex,
-            tabConfigs: TAB_CONFIGS,
-            onTabSelected: (index: number): void => {
-              this.selectTab(index)
-            }
-          })
-            .width(breakpointState.isTablet ? '480vp' : '72%')
-            .margin({ left: breakpointState.isTablet ? 16 : 0 })
-            // 导航栏横向拖拽 → 松手那一刻切换到相邻 Tab，页面带动画滑过去
-            // PanGesture 而非 SwipeGesture：Swipe 有速度阈值，慢速拖动不触发；
-            // Pan 只看位移，拖过 20vp 松手即切，轻扫和慢拖都能响应
-            .gesture(
-              PanGesture({ fingers: 1, direction: PanDirection.Horizontal, distance: 20 })
-                .onActionEnd((event: GestureEvent): void => {
-                  // 四象限拖拽期间禁止切换
-                  if (this.dragState.isDragging) {
-                    return
-                  }
-                  // 向左拖（offsetX < 0）→ 下一个；向右拖（offsetX > 0）→ 上一个
-                  // 单次拖拽只切一个 Tab，selectTab 内部已做边界钳制
-                  if (event.offsetX < 0) {
-                    this.selectTab(this.currentTabIndex + 1)
-                  } else if (event.offsetX > 0) {
-                    this.selectTab(this.currentTabIndex - 1)
-                  }
-                })
-            )
-        }
-        .width('100%')
-        .height('100%')
-        .alignItems(breakpointState.isTablet ? HorizontalAlign.Start : HorizontalAlign.Center)
-        .hitTestBehavior(HitTestMode.Transparent)
 
         // 隐私门禁：设置加载完成且未同意隐私协议时，全屏弹层阻断一切交互
         // isLoaded 门控：已同意的老用户冷启动加载期间不会看到弹层闪现

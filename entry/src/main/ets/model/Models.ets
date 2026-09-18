@@ -18,6 +18,7 @@ export {
   HomeTodoItemJSON,
   HomeTodoItem,
   buildHomeTodoItem,
+  buildManualTodoItem,
   isValidHomeTodoItem,
   hydrateHomeTodoItem,
   snapshotHomeTodoItem,
@@ -34,6 +35,7 @@ export {
   GoalCardItemJSON,
   GoalCardItem,
   GoalDetailRouteNavParam,
+  FeedbackRouteNavParam,
   buildGoalCardItem,
   isValidGoalCardItem,
   hydrateGoalCardItem,
@@ -52,7 +54,7 @@ export {
   TaskDetailRouteParam,
   RouteParam,
   TaskDetailRouteNavParam,
-  getCompletedStepsSafe,
+  generateStepId,
   isStepCompleted,
   hydrateAiGeneratedTask,
   snapshotAiGeneratedTask
@@ -105,8 +107,7 @@ export {
 } from './DeepSeekModels'
 
 // 8. 全局常量 (AppConstants)
+// ⚠️ 提示词不在其中 —— 已迁至 `common/constants/AiPrompts.ets`（多语言）
 export {
-
-  MAX_INPUT_LENGTH,
-  DEEPSEEK_SYSTEM_PROMPT
+  MAX_INPUT_LENGTH
 } from './AppConstants'

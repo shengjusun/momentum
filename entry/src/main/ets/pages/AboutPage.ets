@@ -1,6 +1,6 @@
 /**
- * @file 关于 Momentum 页
- * @description 我的 → 帮助与信息 → 关于 Momentum
+ * @file 关于 起势 页
+ * @description 我的 → 帮助与信息 → 关于 起势
  *   版本信息 + 隐私协议 + 版权声明
  *
  * 跳转来源：ProfilePage 帮助与信息分组
@@ -8,17 +8,21 @@
  * @module pages
  */
 
-import { promptAction } from '@kit.ArkUI'
+
+import { DimensConstants } from '../common/constants/DimensConstants'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { bundleManager } from '@kit.AbilityKit'
 import { globalNavStack } from '../common/RouterManager'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
+import { AppInfoDialog } from '../common/components/AppInfoDialog'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
 
 @Entry
 @ComponentV2
 export struct AboutPage {
   @Local appVersion: string = ''
+  /** 隐私协议长文弹窗 */
+  @Local showPrivacyDialogVisible: boolean = false
 
   async aboutToAppear(): Promise<void> {
     try {
@@ -32,21 +36,14 @@ export struct AboutPage {
   private handleBack(): void {
     globalNavStack.pop()
   }
-
   private showPrivacyDialog(): void {
-    promptAction.showDialog({
-      title: $r('app.string.privacy_agree_title'),
-      message: getContext(this).resourceManager.getStringSync($r('app.string.privacy_content').id),
-      buttons: [
-        { text: $r('app.string.btn_close'), color: $r('app.color.text_tertiary') }
-      ]
-    }).catch((e: Error): void => {
-      // 忽略弹窗失败
-    })
+    // 统一 AppInfoDialog：隐私长文可滚动阅读（替代系统 showDialog）
+    this.showPrivacyDialogVisible = true
   }
 
   build() {
     NavDestination() {
+      Stack() {
       Column() {
         CommonTitleBar({
           title: $r('app.string.page_about'),
@@ -112,13 +109,17 @@ export struct AboutPage {
               .constraintSize({ minHeight: 52 })
               .padding({ left: 16, right: 16 })
               .alignItems(VerticalAlign.Center)
+              .stateStyles({
+                pressed: { .backgroundColor($r('app.color.bg_tag')) },
+                normal: { .backgroundColor(Color.Transparent) }
+              })
               .onClick((): void => {
                 this.showPrivacyDialog()
               })
             }
             .width('100%')
             .backgroundColor($r('app.color.bg_card'))
-            .borderRadius(16)
+            .borderRadius(DimensConstants.RADIUS_L)
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 8, bottom: safeAreaHelper.getBottomWith(24) })
@@ -131,6 +132,21 @@ export struct AboutPage {
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.bg_page'))
+
+      // 隐私协议长文弹窗（统一 AppInfoDialog）
+      if (this.showPrivacyDialogVisible) {
+        AppInfoDialog({
+          title: getContext(this).resourceManager.getStringSync($r('app.string.privacy_agree_title').id),
+          message: getContext(this).resourceManager.getStringSync($r('app.string.privacy_content').id),
+          closeText: getContext(this).resourceManager.getStringSync($r('app.string.btn_close').id),
+          onClose: (): void => {
+            this.showPrivacyDialogVisible = false
+          }
+        })
+      }
+      }
+      .width('100%')
+      .height('100%')
     }
     .hideTitleBar(true)
     .onBackPressed((): boolean => {

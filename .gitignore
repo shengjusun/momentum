@@ -18,6 +18,12 @@
 # 补充缓存目录
 .cache/
 .codegraph/
+# IDE 撤销缓存（含整份 string.json 副本，会**干扰"资源零引用"分析**，务必忽略）
+.codeartsdoer/
+# 外部工具产物
+.office-claw/
+# AI 工作数据（记忆分册 / 校验报告 / 中间产物）—— 不入库，避免噪音
+.workbuddy/
 # 系统垃圾文件
 .DS_Store
 Thumbs.db
@@ -29,3 +35,6 @@ ui_dump*.xml
 # 自定义私有密钥配置
 *.private.json
 *.secret.json
+
+# JiuwenSwarm runtime file operation logs
+.agent_history/

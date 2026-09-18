@@ -124,7 +124,7 @@ export class HuaweiAuthService {
 
       // CSRF 校验：state 不匹配说明响应可能被篡改，拒绝登录
       if (resp.state !== undefined && resp.state !== authRequest.state) {
-        result.errorMsg = 'state 校验失败，可能存在 CSRF'
+        result.errorMsg = context.resourceManager.getStringByNameSync('login_error_state_csrf')
         Logger.error(HuaweiAuthService.tag, result.errorMsg)
         this.clearLocalCache(context)
         return result
@@ -132,7 +132,7 @@ export class HuaweiAuthService {
 
       const cred = resp.data
       if (!cred || !cred.openID) {
-        result.errorMsg = '授权返回 openID 为空'
+        result.errorMsg = context.resourceManager.getStringByNameSync('login_error_empty_openid')
         Logger.error(HuaweiAuthService.tag, result.errorMsg)
         this.clearLocalCache(context)
         return result
@@ -202,10 +202,10 @@ export class HuaweiAuthService {
       const err = e as BusinessError
       // 官方错误码：1001502012 为用户取消
       if (err.code === 1001502012) {
-        result.errorMsg = '用户取消登录'
+        result.errorMsg = context.resourceManager.getStringByNameSync('login_toast_user_cancelled')
         Logger.info(HuaweiAuthService.tag, 'login cancelled by user (code=1001502012)')
       } else if (err.code === 1001500001) {
-        result.errorMsg = '应用指纹证书校验失败，请检查 client_id / 公钥指纹'
+        result.errorMsg = context.resourceManager.getStringByNameSync('login_error_cert_invalid')
         Logger.error(HuaweiAuthService.tag, result.errorMsg)
       } else {
         result.errorMsg = err.message ?? 'unknown error'

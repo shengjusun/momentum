@@ -19,6 +19,7 @@
  */
 
 import { promptAction } from '@kit.ArkUI'
+import { DimensConstants } from '../constants/DimensConstants'
 import {
   pomodoroService,
   PomodoroState,
@@ -191,24 +192,35 @@ export struct PomodoroTimerCard {
 
   build() {
     Column() {
-      // 今日统计（右上角）
-      Row() {
-        Blank()
-        Text(getContext(this).resourceManager.getStringSync($r('app.string.pomo_today_prefix').id) +
-          this.todayCount.toString() +
-          getContext(this).resourceManager.getStringSync($r('app.string.pomo_today_count_infix').id) +
-          this.formatDuration(this.todayMillis))
-          .fontSize(CommonConstants.FONT_SIZE_XS)
-          .fontColor($r('app.color.text_tertiary'))
+      // 今日统计（右上角；无数据时隐藏，避免无信息量占位）
+      if (this.todayCount > 0 || this.todayMillis > 0) {
+        Row() {
+          Blank()
+          Text(getContext(this).resourceManager.getStringSync($r('app.string.pomo_today_prefix').id) +
+            this.todayCount.toString() +
+            getContext(this).resourceManager.getStringSync($r('app.string.pomo_today_count_infix').id) +
+            this.formatDuration(this.todayMillis))
+            .fontSize(CommonConstants.FONT_SIZE_XS)
+            .fontColor($r('app.color.text_tertiary'))
+        }
+        .width('100%')
+        .margin({ bottom: 8 })
       }
-      .width('100%')
-      .margin({ bottom: 8 })
 
       // 根据状态渲染不同内容
       if (this.state === 'idle') {
         Row({ space: 10 }) {
-          Text('🍅')
-            .fontSize(CommonConstants.FONT_SIZE_MEGA)
+          // 图标统一为「系统 symbol + 36×36 淡色圆底」，与全站入口图标同语言
+          // （原为 30vp 手绘番茄轮廓：小尺寸下萼片与果身糊在一起，观感杂乱）
+          Stack({ alignContent: Alignment.Center }) {
+            SymbolGlyph($r('sys.symbol.timer'))
+              .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
+              .fontColor([$r('app.color.icon_text_orange')])
+          }
+          .width(36)
+          .height(36)
+          .borderRadius(18)
+          .backgroundColor($r('app.color.icon_bg_orange'))
           Column({ space: 2 }) {
             Text($r('app.string.pomo_start_focus'))
               .fontSize(CommonConstants.FONT_SIZE_MID)
@@ -229,7 +241,7 @@ export struct PomodoroTimerCard {
             .fontColor($r('app.color.text_inverse'))
             .fontSize(CommonConstants.FONT_SIZE_CAPTION)
             .fontWeight(FontWeight.Medium)
-            .borderRadius(16)
+            .borderRadius(DimensConstants.RADIUS_L)
             .shadow({ radius: 4, color: $r('app.color.warning_color_bg'), offsetX: 0, offsetY: 2 })
             .accessibilityText($r('app.string.pomo_start'))
             .onClick((): void => this.onStartClick())
@@ -238,8 +250,16 @@ export struct PomodoroTimerCard {
         .alignItems(VerticalAlign.Center)
       } else {
         Row({ space: 10 }) {
-          Text(this.phase === 'focus' ? '🍅' : '☕')
-            .fontSize(CommonConstants.FONT_SIZE_MEGA)
+          // 运行中：同一系统图标，靠圆底/线色区分阶段（专注=橙、休息=绿）
+          Stack({ alignContent: Alignment.Center }) {
+            SymbolGlyph($r('sys.symbol.timer'))
+              .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
+              .fontColor([this.phase === 'focus' ? $r('app.color.icon_text_orange') : $r('app.color.icon_text_green')])
+          }
+          .width(36)
+          .height(36)
+          .borderRadius(18)
+          .backgroundColor(this.phase === 'focus' ? $r('app.color.icon_bg_orange') : $r('app.color.icon_bg_green'))
           Column({ space: 2 }) {
             Text(this.state === 'paused' ? $r('app.string.pomo_focus_paused') :
               (this.phase === 'focus' ? $r('app.string.pomo_focus_in_progress') : $r('app.string.pomo_resting')))
@@ -265,7 +285,7 @@ export struct PomodoroTimerCard {
             .fontColor($r('app.color.text_inverse'))
             .fontSize(CommonConstants.FONT_SIZE_CAPTION)
             .fontWeight(FontWeight.Medium)
-            .borderRadius(16)
+            .borderRadius(DimensConstants.RADIUS_L)
             .accessibilityText($r('app.string.pomo_view'))
             .onClick((): void => this.onViewClick())
 
@@ -277,7 +297,7 @@ export struct PomodoroTimerCard {
             .fontColor($r('app.color.text_secondary'))
             .fontSize(CommonConstants.FONT_SIZE_CAPTION)
             .border({ width: 1, color: $r('app.color.divider') })
-            .borderRadius(16)
+            .borderRadius(DimensConstants.RADIUS_L)
             .accessibilityText($r('app.string.pomo_stop'))
             .onClick((): void => this.onStopClick())
         }
@@ -285,22 +305,19 @@ export struct PomodoroTimerCard {
         .alignItems(VerticalAlign.Center)
       }
 
-      // 休息后自动连跑开关（任意状态可见，休息结束前切换均生效）
+      // 休息后自动连跑开关（设置项弱化：分隔线 + 次要文案，与主操作区分层级）
+      Divider()
+        .color($r('app.color.divider'))
+        .margin({ top: 10, bottom: 8 })
       Row() {
-        Column({ space: 2 }) {
-          Text($r('app.string.pomo_auto_continue'))
-            .fontSize(CommonConstants.FONT_SIZE_CAPTION)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-          Text($r('app.string.pomo_auto_continue_desc'))
-            .fontSize(CommonConstants.FONT_SIZE_XS)
-            .fontColor($r('app.color.text_secondary'))
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
+        Text($r('app.string.pomo_auto_continue'))
+          .fontSize(CommonConstants.FONT_SIZE_XS)
+          .fontColor($r('app.color.text_secondary'))
+          .layoutWeight(1)
 
         Toggle({ type: ToggleType.Switch, isOn: this.autoContinue })
           .selectedColor($r('app.color.warning_color'))
+          .scale({ x: 0.85, y: 0.85 })
           .accessibilityText($r('app.string.pomo_auto_continue'))
           .onChange((isOn: boolean): void => {
             this.autoContinue = isOn
@@ -308,12 +325,12 @@ export struct PomodoroTimerCard {
           })
       }
       .width('100%')
-      .margin({ top: 12 })
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 10, bottom: 14 })
     .backgroundColor($r('app.color.bg_card'))
-    .borderRadius(12)
+    .borderRadius(DimensConstants.RADIUS_M)
     .shadow({ radius: 4, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 1 })
   }
 }

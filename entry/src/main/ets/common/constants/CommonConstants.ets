@@ -13,14 +13,32 @@ export class CommonConstants {
   /** 网络请求默认读取超时（毫秒） */
   static readonly HTTP_READ_TIMEOUT: number = 15000
 
-  /** 冷启动延迟：等待 MainTab 渲染后再执行 ViewModel 初始化（毫秒） */
-  static readonly COLD_START_INIT_DELAY_MS: number = 100
+  /**
+   * 冷启动延迟：ViewModel 初始化的发起时机（毫秒）
+   * - 0 = setTimeout(0)，仅等当前帧的 aboutToAppear + build 同步流程走完再执行
+   * - init 全程不碰 UI（async 加载），无需为它等首帧之后的任何时间；
+   *   原值 100 纯属保守空等（2026-09-17 压缩）
+   */
+  static readonly COLD_START_INIT_DELAY_MS: number = 0
 
-  /** 冷启动延迟：等待 Navigation 挂载后再执行暂存路由（毫秒） */
-  static readonly COLD_START_ROUTE_DELAY_MS: number = 500
+  /**
+   * 冷启动延迟：流转恢复 / 深链直达的执行时机（毫秒）
+   * - 语义：等 Navigation / TabBar **挂载并绑定**（`globalNavStack` / `globalTabsController`
+   *   在 MainTab.build() 时即绑定，build 完成即就绪）——不需要 500ms，留 100ms
+   *   容忍慢设备上 build + 布局长尾即可（2026-09-17 自 500 压缩）
+   * - 使用方两处：MainTab.initAndRestoreMigration（流转恢复 + 深链）、
+   *   EntryAbility.setupWindowStage（冷启动通知直达）
+   * - ⚠️ 再往下压（0 或改回调驱动）前必须真机回归：点通知直达 / 多端流转恢复 /
+   *   首次启动隐私弹窗三条时序都依赖它（历史"冷启动卡死"成因已不可考，保守为上）
+   */
+  static readonly COLD_START_ROUTE_DELAY_MS: number = 100
 
   /** 登录保护窗口：登录成功后禁止云端旧数据覆盖本地配置（毫秒） */
   static readonly LOGIN_GUARD_WINDOW_MS: number = 5000
+
+  /** 热启动同步节流：onNewWant（点通知/多端流转）距上次触发不足此窗口时跳过（毫秒）
+   *  防止"点 N 次通知 = N 次全量云往返"；窗口内变更由 SYNC_NEEDED 脏标记 + 2s 防抖兜底，不丢 */
+  static readonly HOT_START_SYNC_THROTTLE_MS: number = 30000
 
   /** 一键删除所有数据后的自动云同步抑制窗口（毫秒）
    *  覆盖 200ms 持久化防抖 + 1s 同步防抖 + 网络余量，
@@ -30,8 +48,8 @@ export class CommonConstants {
   /** 一天的毫秒数 */
   static readonly DAY_MILLIS: number = 24 * 60 * 60 * 1000
 
-  /** 截止提醒提前天数（系统通知在截止前 N 天发出） */
-  static readonly REMINDER_ADVANCE_DAYS: number = 5
+  /** 截止提醒提前量可选档位（天）：0=截止当天，已迁移至设置项（任务默认 1、目标默认 3） */
+  static readonly REMINDER_ADVANCE_OPTIONS: number[] = [0, 1, 3, 7]
 
   /** 截止提醒通知 ID 区间：任务 [20000, 30000) */
   static readonly NOTIFICATION_ID_TASK_BASE: number = 20000
@@ -91,8 +109,34 @@ export class CommonConstants {
   /** 存储键：站内通知中心列表（JSON） */
   static readonly STORAGE_KEY_APP_NOTIFICATIONS: string = 'storage_app_notifications_v1'
 
+  /** 存储键：用户反馈本地暂存队列（JSON，联网/登录后自动补传到云端 UserFeedback） */
+  static readonly STORAGE_KEY_FEEDBACK_QUEUE: string = 'storage_feedback_queue_v1'
+
+  /**
+   * 存储键：云同步脏标记（持久化 SYNC_NEEDED）
+   * - 语义：本地存在尚未成功上传到云端的改动
+   * - **必须持久化**：App 进程被杀 / 重启后仍保留，用于失败重试
+   * - 上传成功后清除；上传失败 / 网络异常 / 解析异常 / 未就绪时保留
+   * - ⚠️ 清空类操作（登出 / 一键删除所有数据 / clearAll）必须显式清除，
+   *   否则下次冷启动会拿空数据上传覆盖云端
+   */
+  static readonly STORAGE_KEY_SYNC_DIRTY: string = 'storage_sync_dirty_v1'
+
   /** 存储键：是否已看过 AI 引导（boolean） */
   static readonly STORAGE_KEY_HAS_SEEN_AI_GUIDE: string = 'has_seen_ai_guide'
+
+  /** 存储键：应用语言偏好（'default' 跟随系统 / 'zh' 简体中文 / 'en' English） */
+  static readonly STORAGE_KEY_LANGUAGE_PREF: string = 'storage_language_pref_v1'
+  /** 存储键：是否启用「智感握姿」（悬浮按钮跟随左右手握持自动换边，默认开启） */
+  static readonly STORAGE_KEY_GRIP_AWARENESS: string = 'storage_grip_awareness_v1'
+
+  /**
+   * 存储键：悬浮快捷按钮是否显示（默认 **true = 显示**）
+   *
+   * 交互链路：页面内**长按** FAB → 置 false（隐藏）；设置页「悬浮快捷按钮」开关 → 置 true（恢复）。
+   * 两处读写同一个偏好，所以是**全局**显隐（首页与路线页共用一个按钮的存在与否）。
+   */
+  static readonly STORAGE_KEY_FAB_VISIBLE: string = 'storage_fab_visible_v1'
 
   /** 列表项唯一 ID 前缀 */
   static readonly ITEM_ID_PREFIX: string = 'home_item_'

@@ -9,7 +9,8 @@
  *   - 取消机制：isCancelled 标志位（cloudFunction.call 无法真正中断，仅丢弃结果）
  *
  * 功能保底红线（已严格遵守）：
- *   1. Prompt 完整保留（DEEPSEEK_SYSTEM_PROMPT）
+ *   1. Prompt 完整保留（现由 `common/constants/AiPrompts.ets` 按语言提供中英两套，
+ *      中文侧文案与改造前逐字一致；协议键名 / <plan> 两种语言完全相同）
  *   2. Markdown 清洗完整（4 条正则）
  *   3. JSON 解析完整（field-by-field 显式映射）
  *   4. steps 字段完整保留
@@ -32,6 +33,8 @@ import { BusinessError } from '../utils/BusinessError'
 import { common } from '@kit.AbilityKit'
 import {
   AiGeneratedTask,
+  TaskStep,
+  generateStepId,
   TaskPriority,
   TaskStatus,
   DeepSeekResponse,
@@ -46,21 +49,14 @@ import {
   isStringContent,
   contentToString
 } from '../../model/Models'
-import { DEEPSEEK_SYSTEM_PROMPT } from '../../model/Models'
-import { GOAL_REVIEW_SYSTEM_PROMPT, GLOBAL_REVIEW_SYSTEM_PROMPT, TODAY_PRIORITY_SYSTEM_PROMPT } from '../../model/AppConstants'
+// AI 提示词改为按语言取用（中文 / 英文两套，判定见 AiPrompts）
+import { getAiPromptSet, formatPromptDate, AiPromptSet } from '../constants/AiPrompts'
 import { GoalCardItem } from '../../model/RouteModels'
+import { ProfileAnalyzerService } from './ProfileAnalyzerService'
 import { Logger } from '../utils/Logger'
 
-/**
- * 多模态图片引导（追加到 system prompt 末尾）
- * 当用户消息携带图片时，告诉 AI 要分析图片内容并按相同 <plan> JSON 格式输出
- */
-const IMAGE_GUIDE_PROMPT: string =
-  '\n\n---\n\n' +
-  '## 图片输入说明\n\n' +
-  '用户本次消息中包含图片。请仔细观察图片内容，结合文字（如有）理解用户意图，' +
-  '按照与纯文本场景完全相同的 <plan> JSON 格式输出拆解方案。' +
-  '若图片内容与目标拆解无直接关联，可适当结合图片信息给出建议，但仍必须输出 <plan> 标签。'
+// 注：原先内联于此的「多模态图片引导」常量已迁至 `common/constants/AiPrompts.ets`
+//（中英两套，按语言取用，经 `prompts.imageGuide` 取用）—— 勿在此重新内联。
 
 /**
  * AGC 云函数调用参数
@@ -71,12 +67,6 @@ const IMAGE_GUIDE_PROMPT: string =
  */
 const CLOUD_FUNCTION_NAME: string = 'calldeepseek'
 const CLOUD_FUNCTION_VERSION: string = '$latest'
-
-/**
- * 统一的错误提示文案（云函数调用失败 / DeepSeek 返回错误均使用此文案）
- */
-const ERROR_MESSAGE_UNAVAILABLE: string = 'AI 服务暂时不可用，请稍后重试'
-
 
 let __idCounter: number = 0
 
@@ -182,7 +172,7 @@ export class DeepSeekService {
       const msg: DeepSeekMessage = history[i]
       // 历史消息图片剥离：统一转 string，避免历史 base64 进入请求体
       // 坑1：多轮 history 中图片必须剥离，否则请求体会爆炸
-      const contentStr: string = contentToString(msg.content)
+      const contentStr: string = contentToString(msg.content, this.getString('chat_image_sent_prefix'), this.getString('chat_image_sent_suffix'))
       // 跳过空内容
       if (contentStr.length === 0) {
         Logger.info(this.tag, 'sanitizeHistory: skip empty content, role=' + msg.role)
@@ -240,12 +230,28 @@ export class DeepSeekService {
   }
 
   /**
+   * 构造当前时间锚点文本（注入 system prompt，作为 AI 推断 deadline 的时间基准）
+   *
+   * 格式示例：## 当前时间\n今天是 2026年9月12日 星期六，当前时间 14:30（用户本地时间）。
+   * 所有任务 deadline 必须以此时间为基准推算，禁止输出早于当前时间的日期。
+   */
+  private buildTimeAnchor(prompts: AiPromptSet): string {
+    const now: Date = new Date()
+    const pad: (n: number) => string = (n: number): string => (n < 10 ? '0' + n.toString() : n.toString())
+    const dateText: string = formatPromptDate(now, prompts.weekdays)
+    const timeText: string = pad(now.getHours()) + ':' + pad(now.getMinutes())
+    return prompts.timeAnchorTitle + '\n\n' +
+      `${prompts.timeAnchorPrefix}${dateText}${prompts.timeAnchorMid}${timeText}${prompts.timeAnchorSuffix}\n\n` +
+      prompts.timeAnchorRule
+  }
+
+  /**
    * 构造发送给云函数的 messages 数组
    *
    * 多模态支持（坑2/坑3）：
    *   - 当前用户消息携带图片时，content 改为 Array<ContentPart>（text + image_url 片段）
    *   - 历史消息中的图片已在 sanitizeHistory 中剥离为占位文本，绝不进入请求体
-   *   - 当用户消息携带图片时，system prompt 末尾追加 IMAGE_GUIDE_PROMPT 引导 AI 输出 <plan>
+   *   - 当用户消息携带图片时，system prompt 末尾追加 `prompts.imageGuide`（AiPrompts）引导 AI 输出 <plan>
    *
    * 注意：云函数 calldeepseek 仅接收 messages 数组，model / temperature / max_tokens 由云函数内部固定，
    *      客户端不再传 DeepSeekRequest 完整请求体。
@@ -277,8 +283,13 @@ export class DeepSeekService {
         safeHistory.length.toString() + ' -> ' + windowedHistory.length.toString())
     }
 
-    // 拼接 system prompt：基础 prompt + 用户画像 + 画像约束指令 + 图片引导
-    let systemContent: string = DEEPSEEK_SYSTEM_PROMPT
+    // 拼接 system prompt：基础 prompt + 当前时间锚点 + 用户画像 + 画像约束指令 + 图片引导
+    // 提示词按语言取用（中文 / 英文两套）——判定见 common/constants/AiPrompts
+    const prompts: AiPromptSet = getAiPromptSet()
+    let systemContent: string = prompts.system
+    // 时间锚点：LLM 无时钟，若不注入当前时间，deadline 推断只能照抄示例日期（历史 bug：
+    // 示例写死 2026-08-15，导致生成的任务截止时间永远落在过去）。每次请求实时计算。
+    systemContent += '\n\n---\n\n' + this.buildTimeAnchor(prompts)
     // 强制空值保护：profilePrompt 为 undefined/null 时转为空字符串
     const safeProfile: string = (profilePrompt !== null && profilePrompt !== undefined) ? profilePrompt : ''
     if (safeProfile.length > 0) {
@@ -291,15 +302,15 @@ export class DeepSeekService {
         .replace(/\n/g, ' ')
         .replace(/\r/g, ' ')
       systemContent += '\n\n---\n\n' +
-        '## 用户画像信息（仅供你了解用户背景，用于提供个性化建议）\n\n' +
+        prompts.profileSectionTitle +
+        '\n\n' +
         sanitizedProfile +
         '\n\n' +
-        '【重要规则】以上用户画像数据仅供参考，请勿在回复中直接复述画像中的数字。' +
-        '你应当在回复开头用一句自然的话体现你了解用户的情况，然后直接给出拆解方案。'
+        prompts.profileRule
     }
     // 坑2：用户消息携带图片时，system prompt 末尾追加图片引导
     if (hasImages) {
-      systemContent += IMAGE_GUIDE_PROMPT
+      systemContent += prompts.imageGuide
     }
 
     // ArkTS 严格模式：使用已定义的 interface 显式标注，禁用 as 强转
@@ -350,9 +361,9 @@ export class DeepSeekService {
         // 连续相同非 system role → 合并 content（保留后一条的语义）
         // 坑3：合并时必须做类型判断，避免 string + Array 拼接崩溃
         const prevText: string = isStringContent(prev.content) ?
-          (prev.content as string) : contentToString(prev.content)
+          (prev.content as string) : contentToString(prev.content, this.getString('chat_image_sent_prefix'), this.getString('chat_image_sent_suffix'))
         const currText: string = isStringContent(messages[i].content) ?
-          (messages[i].content as string) : contentToString(messages[i].content)
+          (messages[i].content as string) : contentToString(messages[i].content, this.getString('chat_image_sent_prefix'), this.getString('chat_image_sent_suffix'))
         Logger.warn(this.tag,
           'buildMessages: merging consecutive same role: ' + messages[i].role +
           ', prevContent=' + prevText.substring(0, 30) +
@@ -469,11 +480,15 @@ export class DeepSeekService {
     const taskName: string = this.safeExtractString(json.taskName, this.getString('ai_default_task_prefix') + (index + 1).toString())
     const estimatedTime: number = this.safeExtractNumber(json.estimatedTime)
     const priority: TaskPriority = this.normalizePriority(this.safeExtractString(json.priority, 'medium'))
-    const steps: Array<string> = this.safeExtractStringArray(json.steps)
+    // L3 步骤：AI 只返回文本数组，这里转成带**稳定 id** 的 `TaskStep[]`
+    //   - id 是列表增删动效的前提（keyGenerator 用 step.id）
+    //   - AI 不返回完成状态，一律初始化为 false
+    const stepTexts: Array<string> = this.safeExtractStringArray(json.steps)
+    const steps: TaskStep[] = stepTexts.map((t: string): TaskStep =>
+      new TaskStep(generateStepId(), t, false))
     // Step 1 重构：解析 deadline，ISO8601 字符串或毫秒时间戳统一转为毫秒
     const deadline: number = this.parseDeadline(json.deadline)
 
-    const completedSteps: Array<boolean> = steps.map((): boolean => false)
     const task: AiGeneratedTask = new AiGeneratedTask(
       generateTaskId(),
       taskName,
@@ -481,7 +496,6 @@ export class DeepSeekService {
       priority,
       steps,
       TaskStatus.PENDING,
-      completedSteps,
       0,              // plannedTime，AI 不生成，默认 0
       0,              // actualCompletionTime，AI 不生成，默认 0
       deadline        // deadline，四象限联动关键字段
@@ -610,11 +624,9 @@ export class DeepSeekService {
     const planJson: string | null = extracted.planJson
     // 闲聊场景：无 <plan> 标签
     if (planJson === null || planJson.length === 0) {
-      // 微调场景判断：history 非空说明用户在要求调整，但 AI 没返回 plan = 协议违例
-      // 抛错让 UI 明确提示，避免 UI 静默落入"无任务可确认"状态
-      if (history.length > 0) {
-        throw new Error(this.getString('ai_error_continue'))
-      }
+      // 修复：多轮对话中 AI 未返回 <plan> 不再视为协议违例。
+      // 用户追问"为什么这么安排"、道谢等正常对话都应得到文本回复，
+      // 强制报错会掐断所有非拆解轮次。文本原样返回，UI 按纯聊天展示。
       Logger.info(this.tag, 'parseToResult: no <plan> tag, treat as chat text')
       const chatResult: AIParseResult = {
         text: text,
@@ -654,6 +666,8 @@ export class DeepSeekService {
       const task: AiGeneratedTask = this.mapToTask(rawJsonTasks[i], i)
       tasks.push(task)
     }
+    // 兜底：AI 偶发失忆仍返回过去的时间，整组平移保持相对节奏
+    this.normalizeDeadlines(tasks)
 
     // 有 <plan> 标签但解析后 tasks 为空 → 格式异常，抛错触发 UI 错误提示
     // （与闲聊场景区分：闲聊无 <plan> 标签，已在上方提前 return）
@@ -670,6 +684,38 @@ export class DeepSeekService {
       tasks: tasks
     }
     return finalResult
+  }
+
+  /**
+   * deadline 过期兜底：若最早的 deadline 落在过去，把整组 deadline 平移到未来
+   *
+   * 场景：AI 无时钟，即使 prompt 已注入【当前时间】仍可能照抄历史日期（或微调场景
+   * 基于上一轮过期 plan 调整）。直接丢弃 deadline 会误伤四象限分类与截止提醒，
+   * 故保持任务间相对间隔，统一平移使最早任务落在"当前时间 + 1 小时"。
+   *
+   * @param tasks - 已映射的任务数组（原地修改 deadline）
+   */
+  private normalizeDeadlines(tasks: Array<AiGeneratedTask>): void {
+    const now: number = Date.now()
+    let earliest: number = 0
+    for (let i: number = 0; i < tasks.length; i++) {
+      const d: number = tasks[i].deadline
+      if (d > 0 && (earliest === 0 || d < earliest)) {
+        earliest = d
+      }
+    }
+    if (earliest === 0 || earliest >= now) {
+      return
+    }
+    // 平移量：now - earliest + 1小时，保证最早的截止时间至少在 1 小时后
+    const offset: number = now - earliest + 60 * 60 * 1000
+    for (let i: number = 0; i < tasks.length; i++) {
+      if (tasks[i].deadline > 0) {
+        tasks[i].deadline = tasks[i].deadline + offset
+      }
+    }
+    Logger.warn(this.tag, 'normalizeDeadlines: earliest deadline in the past, ' +
+      'shifted all deadlines by ' + Math.round(offset / 60000).toString() + ' minutes')
   }
 
   /**
@@ -818,7 +864,9 @@ export class DeepSeekService {
       } else {
         responseStr = JSON.stringify(fnResult.result)
       }
-      Logger.info(this.tag, '[DIAG] cloudFunction response: bodyLen=' +
+      // 隐私合规：AI 回复包含用户目标内容，禁止走 Logger.info（hilog %{public}s 公开可读）。
+      // Logger.debug 的占位是 %{private}s，release 日志中内容被系统掩码。
+      Logger.debug(this.tag, '[DIAG] cloudFunction response: bodyLen=' +
         responseStr.length.toString() + ', body=' + responseStr.substring(0, 500))
 
       const deepSeekResp: DeepSeekResponse = JSON.parse(responseStr) as DeepSeekResponse
@@ -826,7 +874,7 @@ export class DeepSeekService {
       if (!deepSeekResp.choices || deepSeekResp.choices.length === 0) {
         Logger.error(this.tag, '[DIAG] no choices in response. keys: ' +
           Object.keys(deepSeekResp as object).join(','))
-        throw new Error(ERROR_MESSAGE_UNAVAILABLE)
+        throw new Error(this.getString('ai_error_service_unavailable'))
       }
 
       const choice = deepSeekResp.choices[0]
@@ -835,7 +883,7 @@ export class DeepSeekService {
       }
       const rawContent: string | Array<ContentPart> = choice.message.content
       const content: string = isStringContent(rawContent) ?
-        (rawContent as string) : contentToString(rawContent)
+        (rawContent as string) : contentToString(rawContent, this.getString('chat_image_sent_prefix'), this.getString('chat_image_sent_suffix'))
       Logger.info(this.tag, 'AI content length=' + content.length.toString())
 
       // 7. 解析 <plan> 标签
@@ -861,7 +909,8 @@ export class DeepSeekService {
       Logger.error(this.tag, '[DIAG] cloudFunction.call FAILED: code=' + errCode.toString() +
         ', message=' + errMsg + ', typeof=' + typeof err)
       try {
-        Logger.error(this.tag, '[DIAG] full error JSON: ' + JSON.stringify(err))
+        // 隐私合规：错误对象可能夹带请求上下文，降为 debug（%{private}s，release 掩码）
+        Logger.debug(this.tag, '[DIAG] full error JSON: ' + JSON.stringify(err))
       } catch (_strErr) {
         Logger.error(this.tag, '[DIAG] error not JSON-serializable')
       }
@@ -872,7 +921,7 @@ export class DeepSeekService {
         errMsg.indexOf(this.getString('ai_error_empty_desc')) >= 0) {
         throw new Error(errMsg)
       }
-      throw new Error(ERROR_MESSAGE_UNAVAILABLE)
+      throw new Error(this.getString('ai_error_service_unavailable'))
     }
   }
 
@@ -911,11 +960,11 @@ export class DeepSeekService {
       }
       const deepSeekResp: DeepSeekResponse = JSON.parse(responseStr) as DeepSeekResponse
       if (!deepSeekResp.choices || deepSeekResp.choices.length === 0) {
-        throw new Error(ERROR_MESSAGE_UNAVAILABLE)
+        throw new Error(this.getString('ai_error_service_unavailable'))
       }
       const rawContent: string | Array<ContentPart> = deepSeekResp.choices[0].message.content
       const content: string = isStringContent(rawContent) ?
-        (rawContent as string) : contentToString(rawContent)
+        (rawContent as string) : contentToString(rawContent, this.getString('chat_image_sent_prefix'), this.getString('chat_image_sent_suffix'))
       Logger.info(this.tag, 'generatePlainText success, contentLen=' + content.length.toString())
       return content.trim()
     } catch (err) {
@@ -925,7 +974,7 @@ export class DeepSeekService {
       const error: BusinessError = err as BusinessError
       Logger.error(this.tag, 'generatePlainText FAILED: code=' + (error.code || 0).toString() +
         ', msg=' + (error.message || ''))
-      throw new Error(ERROR_MESSAGE_UNAVAILABLE)
+      throw new Error(this.getString('ai_error_service_unavailable'))
     }
   }
 
@@ -934,11 +983,12 @@ export class DeepSeekService {
    * 调用方：GoalDetailPage.handleGoalReview
    */
   async generateGoalReview(goal: GoalCardItem): Promise<string> {
-    const userData: string = '目标名称：' + goal.name +
-      '\n总进度：' + goal.progress.toString() + '%' +
-      '\n任务总数：' + goal.tasks.length.toString() +
-      '\n任务明细（名称/优先级/状态/步骤完成情况）：' + JSON.stringify(goal.tasks)
-    return await this.generatePlainText(GOAL_REVIEW_SYSTEM_PROMPT, userData)
+    // 修复：改用 ProfileAnalyzerService.buildGoalReviewData 的结构化采集文本
+    // （原实现直接 JSON.stringify 原始任务对象，把 id/status 等英文字段名喂给模型，
+    //  既浪费 token 又拉低复盘质量；该采集函数本为此设计但此前从未被调用）
+    // 注：采集文本的**标签**随提示词语言切换（见 AiPrompts.getAiPayloadLabels）
+    const userData: string = ProfileAnalyzerService.buildGoalReviewData(goal)
+    return await this.generatePlainText(getAiPromptSet().goalReview, userData)
   }
 
   /**
@@ -946,7 +996,7 @@ export class DeepSeekService {
    * 调用方：StatsPage
    */
   async generateGlobalReview(summary: string): Promise<string> {
-    return await this.generatePlainText(GLOBAL_REVIEW_SYSTEM_PROMPT, summary)
+    return await this.generatePlainText(getAiPromptSet().globalReview, summary)
   }
 
   /**
@@ -954,6 +1004,6 @@ export class DeepSeekService {
    * 调用方：HomePage.handleTodaySuggestion
    */
   async generateTodaySuggestion(todoData: string): Promise<string> {
-    return await this.generatePlainText(TODAY_PRIORITY_SYSTEM_PROMPT, todoData)
+    return await this.generatePlainText(getAiPromptSet().todayPriority, todoData)
   }
 }

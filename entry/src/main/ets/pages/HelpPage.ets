@@ -9,6 +9,7 @@
  */
 
 import { globalNavStack } from '../common/RouterManager'
+import { DimensConstants } from '../common/constants/DimensConstants'
 import { CommonConstants } from '../common/constants/CommonConstants'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
@@ -21,12 +22,12 @@ export struct HelpPage {
   }
 
   @Builder
-  HelpItemBuilder(icon: string, title: ResourceStr, desc: ResourceStr) {
+  HelpItemBuilder(icon: Resource, title: ResourceStr, desc: ResourceStr) {
     Column({ space: 4 }) {
-      Text(icon)
+      SymbolGlyph(icon)
+          .fontColor([$r('app.color.primary_color')])
         .fontSize(CommonConstants.FONT_SIZE_XXL)
         .width('100%')
-        .textAlign(TextAlign.Start)
       Text(title)
         .fontSize(CommonConstants.FONT_SIZE_MID)
         .fontWeight(FontWeight.Medium)
@@ -42,7 +43,7 @@ export struct HelpPage {
     .padding(16)
     .alignItems(HorizontalAlign.Start)
     .backgroundColor($r('app.color.bg_card'))
-    .borderRadius(16)
+    .borderRadius(DimensConstants.RADIUS_L)
   }
 
   build() {
@@ -58,11 +59,11 @@ export struct HelpPage {
 
         Scroll() {
           Column({ space: 12 }) {
-            this.HelpItemBuilder('🤖', $r('app.string.help_ai_title'), $r('app.string.help_ai_desc'))
-            this.HelpItemBuilder('🗂', $r('app.string.help_quadrant_title'), $r('app.string.help_quadrant_desc'))
-            this.HelpItemBuilder('🍅', $r('app.string.help_pomodoro_title'), $r('app.string.help_pomodoro_desc'))
-            this.HelpItemBuilder('☁️', $r('app.string.help_sync_title'), $r('app.string.help_sync_desc'))
-            this.HelpItemBuilder('🔒', $r('app.string.help_data_title'), $r('app.string.help_data_desc'))
+            this.HelpItemBuilder($r('sys.symbol.lightbulb'), $r('app.string.help_ai_title'), $r('app.string.help_ai_desc'))
+            this.HelpItemBuilder($r('sys.symbol.folder'), $r('app.string.help_quadrant_title'), $r('app.string.help_quadrant_desc'))
+            this.HelpItemBuilder($r('sys.symbol.timer'), $r('app.string.help_pomodoro_title'), $r('app.string.help_pomodoro_desc'))
+            this.HelpItemBuilder($r('sys.symbol.cloud'), $r('app.string.help_sync_title'), $r('app.string.help_sync_desc'))
+            this.HelpItemBuilder($r('sys.symbol.lock'), $r('app.string.help_data_title'), $r('app.string.help_data_desc'))
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 8, bottom: safeAreaHelper.getBottomWith(24) })
