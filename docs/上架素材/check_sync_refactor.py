@@ -1617,6 +1617,31 @@ for _obj in _schema_doc.get('objectTypes', []):
 chk('云库加密：schema.json 全部 %d 个字段均未开 isNeedEncrypt（开了会因缺 setUserKey 静默断同步）'
     % _enc_fields, _enc_fields >= 10 and not _enc_bad, 'encrypted: %s' % ','.join(_enc_bad))
 
+# ---- 附：权限收紧（2026-09-18 用户已在 AGC 控制台完成并重新导出 schema 覆盖本地）----
+# 角色语义：`Authenticated` = **全体已登录用户**，其权限作用于该对象类型的**所有记录**。
+#   · 给它 Read      ⇒ **任何登录用户可读他人全部数据**（目标 / 待办 / 设置 / 昵称 / 头像）
+#   · 给它 Upsert    ⇒ 可篡改他人数据（反馈可被覆盖）
+#   · 给它 Delete    ⇒ 可删除他人数据
+# 正确姿势：`Authenticated` 一律**空数组**；只给 `Creator`（判定基于 uid ⇒ **同一账号换设备
+#   仍是 creator**，跨设备同步不受影响）+ `Administrator`。
+# ⚠️ 反向也要防：Creator 若被收掉 Read/Upsert/Delete 中任意一项 ⇒ 自己的同步/反馈会断。
+_auth_bad = []
+_creator_bad = []
+_perms = _schema_doc.get('permissions', [])
+for _blk in _perms:
+    for _pr in _blk.get('permissions', []):
+        _role = _pr.get('role')
+        _rights = _pr.get('rights', [])
+        if _role == 'Authenticated' and _rights:
+            _auth_bad.append('%s=%s' % (_blk.get('objectTypeName'), ','.join(_rights)))
+        if _role == 'Creator' and not {'Read', 'Upsert', 'Delete'} <= set(_rights):
+            _creator_bad.append('%s=%s' % (_blk.get('objectTypeName'), ','.join(sorted(set(_rights)))))
+
+chk('云库权限：两对象的 Authenticated 均为空（防"任何登录用户读写删他人数据"）',
+    len(_perms) >= 2 and not _auth_bad, 'still open: %s' % ','.join(_auth_bad))
+chk('云库权限：Creator 保留 Read+Upsert+Delete（收太狠会断掉自己的同步与反馈）',
+    not _creator_bad, 'creator: %s' % ','.join(_creator_bad))
+
 # ---------------------------------------------------------------- 输出
 lines = []
 ok_all = True

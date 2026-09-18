@@ -168,9 +168,7 @@
         },
         {
           "role": "Authenticated",
-          "rights": [
-            "Upsert"
-          ]
+          "rights": []
         },
         {
           "role": "Creator",
@@ -199,11 +197,7 @@
         },
         {
           "role": "Authenticated",
-          "rights": [
-            "Read",
-            "Upsert",
-            "Delete"
-          ]
+          "rights": []
         },
         {
           "role": "Creator",
