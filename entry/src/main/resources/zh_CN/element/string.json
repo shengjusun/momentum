@@ -2,7 +2,7 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "MyApplication 主模块"
+      "value": "起势主模块"
     },
     {
       "name": "ability_desc",
@@ -98,7 +98,7 @@
     },
     {
       "name": "app_name",
-      "value": "Momentum"
+      "value": "起势"
     },
     {
       "name": "ai_task_more_actions",
@@ -1110,7 +1110,7 @@
     },
     {
       "name": "login_brand_name_cn",
-      "value": "势能"
+      "value": "起势"
     },
     {
       "name": "login_value_prop",

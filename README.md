@@ -1,4 +1,4 @@
-# Momentum（起势）
+# 起势（Momentum）
 
 HarmonyOS 目标与时间管理应用（ArkTS + Stage 模型，端云一体化）。
 
