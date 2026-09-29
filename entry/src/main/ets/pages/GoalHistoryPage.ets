@@ -13,14 +13,11 @@
  */
 
 import { routeVM } from '../viewmodel/RoutePageViewModel'
-import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
-import { DimensConstants } from '../common/constants/DimensConstants'
 import { GoalCardItem, RouteParam, GoalDetailRouteNavParam } from '../model/Models'
 import { globalNavStack, ROUTE_NAME } from '../common/RouterManager'
 import { Logger } from '../common/utils/Logger'
 import { safeStringUtil, safeNumberUtil, formatDeadlineUtil } from '../common/utils/SafeUtils'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
-import { MotionConstants } from '../common/constants/MotionConstants'
 
 /**
  * 目标历史页懒加载数据源
@@ -172,8 +169,7 @@ export struct GoalHistoryPage {
    */
   private updateDataSource(): void {
     const filtered: GoalCardItem[] = []
-    // 历史列表只展示存活目标（墓碑不参与展示）
-    const goals: GoalCardItem[] = routeVM.liveGoals
+    const goals: GoalCardItem[] = routeVM.goals
     for (let i: number = 0; i < goals.length; i++) {
       const goal: GoalCardItem = goals[i]
       if (goal && goal.id && Array.isArray(goal.tasks) && goal.tasks.length > 0 && this.matchStatus(goal)) {
@@ -220,7 +216,7 @@ export struct GoalHistoryPage {
               .fontColor($r('app.color.primary_color'))
               .backgroundColor($r('app.color.bg_tag'))
               .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(DimensConstants.RADIUS_XS)
+              .borderRadius(4)
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
@@ -259,7 +255,7 @@ export struct GoalHistoryPage {
     .padding(12)
     .backgroundColor(this.pressedGoalId === goal.id ?
       $r('app.color.bg_tag') : $r('app.color.bg_card'))
-    .borderRadius(DimensConstants.RADIUS_L)
+    .borderRadius(16)
     .shadow({
       radius: this.pressedGoalId === goal.id ? 4 : 8,
       color: $r('app.color.shadow_card'),
@@ -270,7 +266,7 @@ export struct GoalHistoryPage {
       x: this.pressedGoalId === goal.id ? 0.98 : 1,
       y: this.pressedGoalId === goal.id ? 0.98 : 1
     })
-    .animation(MotionConstants.pressParam())
+    .animation({ duration: 100, curve: Curve.EaseOut })
     .accessibilityText(
       getContext(this).resourceManager.getStringSync($r('app.string.acc_goal_history_card').id) + ' ' +
       safeStringUtil(goal.name, getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_goal').id)) +
@@ -307,7 +303,7 @@ export struct GoalHistoryPage {
           .fontSize(14)
           .fontColor($r('app.color.text_tertiary'))
       } else if (this.statusFilter === 'overdue') {
-        Text($r('app.string.goal_history_empty_overdue'))
+        Text($r('app.string.profile_stat_overdue'))
           .fontSize(14)
           .fontColor($r('app.color.text_tertiary'))
       } else {
@@ -333,7 +329,7 @@ export struct GoalHistoryPage {
     }
     .width('100%')
     .layoutWeight(1)
-    .padding({ left: 16, right: 16, top: 12, bottom: safeAreaHelper.getBottomWith(12) })
+    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
   }
 
   build() {

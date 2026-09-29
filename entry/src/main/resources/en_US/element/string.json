@@ -2,7 +2,7 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "Momentum main module"
+      "value": "MyApplication main module"
     },
     {
       "name": "ability_desc",
@@ -101,252 +101,308 @@
       "value": "Momentum"
     },
     {
-      "name": "stats_completed_tasks",
-      "value": "Tasks Done"
+      "name": "ai_task_more_actions",
+      "value": "Task actions"
     },
     {
-      "name": "task_edit_quadrant_preview",
-      "value": "Auto-sorted into"
+      "name": "ai_plan_generated_hint",
+      "value": "Plan generated. Adjust if needed, then confirm"
     },
     {
-      "name": "error_generic_toast",
-      "value": "Something went wrong. Please try again later."
+      "name": "ai_plan_summary_total_infix",
+      "value": ", est. "
     },
     {
-      "name": "home_moved_to_prefix",
-      "value": "Moved to "
+      "name": "ai_plan_summary_tasks_suffix",
+      "value": " tasks"
     },
     {
-      "name": "home_quadrant_current_suffix",
-      "value": " (current)"
+      "name": "ai_plan_latest_badge",
+      "value": "Latest"
     },
     {
-      "name": "pomo_auto_continue",
-      "value": "Auto-start next round"
+      "name": "ai_plan_collapse_all",
+      "value": "Collapse all"
     },
     {
-      "name": "pomo_auto_continue_desc",
-      "value": "Start the next focus round automatically when a break ends"
+      "name": "ai_plan_expand_all",
+      "value": "Expand all"
     },
     {
-      "name": "pomo_auto_continue_toast",
-      "value": "Break over. Next focus round started."
+      "name": "pomo_stop_confirm_message",
+      "value": "Stop this focus session? The current round will not count as completed."
     },
     {
-      "name": "pomo_break_complete_toast",
-      "value": "Break over. Ready for the next focus round."
+      "name": "login_error_state_csrf",
+      "value": "Login security check failed. Please retry"
     },
     {
-      "name": "pomo_break_duration_label",
-      "value": "Short break"
+      "name": "login_error_empty_openid",
+      "value": "Account info not received. Please retry"
     },
     {
-      "name": "pomo_break_hint",
-      "value": "Take a breather, then go again"
+      "name": "login_error_cert_invalid",
+      "value": "Certificate validation failed. Please sign in again"
     },
     {
-      "name": "pomo_break_prefix",
-      "value": "Break "
-    },
-    {
-      "name": "pomo_break_suffix",
-      "value": " min"
-    },
-    {
-      "name": "pomo_completed_rounds_prefix",
-      "value": "Round "
-    },
-    {
-      "name": "pomo_completed_rounds_suffix",
-      "value": " completed"
-    },
-    {
-      "name": "pomo_custom_duration",
-      "value": "Custom"
-    },
-    {
-      "name": "pomo_custom_min_suffix",
-      "value": " min"
-    },
-    {
-      "name": "pomo_cycle_label",
-      "value": "Long break every %d rounds"
-    },
-    {
-      "name": "pomo_estimated_finish_infix",
-      "value": " · focus #"
-    },
-    {
-      "name": "pomo_estimated_finish_prefix",
-      "value": "Ends by "
-    },
-    {
-      "name": "pomo_estimated_finish_suffix",
-      "value": " today"
-    },
-    {
-      "name": "pomo_focus_complete_celebrate",
-      "value": "Focus complete!"
-    },
-    {
-      "name": "pomo_focus_complete_toast",
-      "value": "Focus complete. Time for a break."
-    },
-    {
-      "name": "pomo_focus_duration_label",
-      "value": "Focus length"
-    },
-    {
-      "name": "pomo_focus_in_progress",
-      "value": "Focus in progress"
-    },
-    {
-      "name": "pomo_focus_now",
-      "value": "Focus now"
-    },
-    {
-      "name": "pomo_focus_paused",
-      "value": "Focus paused"
-    },
-    {
-      "name": "pomo_focusing",
+      "name": "liveview_title_focus",
       "value": "Focusing"
     },
     {
-      "name": "pomo_keep_focus_hint",
-      "value": "Stay focused, ignore distractions"
-    },
-    {
-      "name": "pomo_long_break_duration_label",
-      "value": "Long break"
-    },
-    {
-      "name": "pomo_long_break_hint",
-      "value": "Long break — relax a little"
-    },
-    {
-      "name": "pomo_long_break_tag",
-      "value": "Long break"
-    },
-    {
-      "name": "pomo_optional_duration_hint",
-      "value": "Pick a length, full-screen countdown"
-    },
-    {
-      "name": "pomo_pause",
-      "value": "Pause"
-    },
-    {
-      "name": "pomo_paused",
-      "value": "Paused"
-    },
-    {
-      "name": "pomo_ready_to_focus",
-      "value": "Ready to focus"
-    },
-    {
-      "name": "pomo_resting",
-      "value": "On a break"
-    },
-    {
-      "name": "pomo_resume",
-      "value": "Resume"
-    },
-    {
-      "name": "pomo_round_of",
-      "value": "Round %d"
-    },
-    {
-      "name": "pomo_rounds_completed_suffix",
-      "value": " rounds done"
-    },
-    {
-      "name": "pomo_select_duration_hint",
-      "value": "Pick a length and start focusing"
-    },
-    {
-      "name": "pomo_short_break_tag",
-      "value": "Short break"
-    },
-    {
-      "name": "pomo_start",
-      "value": "Start"
-    },
-    {
-      "name": "pomo_start_focus",
-      "value": "Start focusing"
-    },
-    {
-      "name": "pomo_start_next_round",
-      "value": "Start next round"
-    },
-    {
-      "name": "pomo_stop",
-      "value": "Stop"
-    },
-    {
-      "name": "pomo_stopped_toast",
-      "value": "Focus session stopped"
-    },
-    {
-      "name": "pomo_task_info_missing",
-      "value": "Task info missing"
-    },
-    {
-      "name": "pomo_today_count_infix",
-      "value": " · "
-    },
-    {
-      "name": "pomo_today_prefix",
-      "value": "Today "
-    },
-    {
-      "name": "pomo_view",
-      "value": "View"
-    },
-    {
-      "name": "pomo_notif_complete_break_text",
-      "value": "Ready for the next focus round."
-    },
-    {
-      "name": "pomo_notif_complete_break_title",
-      "value": "Break over"
-    },
-    {
-      "name": "pomo_notif_complete_focus_text",
-      "value": "\"%s\" finished one focus round. Take a break."
-    },
-    {
-      "name": "pomo_notif_complete_focus_title",
-      "value": "Focus complete"
-    },
-    {
-      "name": "pomo_notif_fallback_title",
-      "value": "Focus now"
-    },
-    {
-      "name": "pomo_notif_focus_prefix",
-      "value": "🍅 Focusing"
-    },
-    {
-      "name": "pomo_notif_paused_prefix",
-      "value": "⏸ Paused"
+      "name": "liveview_title_break",
+      "value": "On break"
     },
     {
       "name": "pomo_notif_remain_time",
       "value": "%s left"
     },
     {
-      "name": "pomo_notif_rest_prefix",
-      "value": "☕ On a break"
-    },
-    {
       "name": "pomo_notif_span_minutes",
-      "value": "%d min"
+      "value": "Focus session in progress"
     },
     {
-      "name": "pomo_stop_confirm_message",
-      "value": "Stop this focus session? The current round will not count as completed."
+      "name": "pomo_notif_complete_focus_title",
+      "value": "Focus complete"
+    },
+    {
+      "name": "pomo_notif_complete_focus_text",
+      "value": " round of focus done. Take a break!"
+    },
+    {
+      "name": "pomo_notif_complete_break_title",
+      "value": "Break over"
+    },
+    {
+      "name": "pomo_notif_complete_break_text",
+      "value": "Break over. Ready for the next focus session"
+    },
+    {
+      "name": "ai_duration_weeks",
+      "value": " weeks"
+    },
+    {
+      "name": "ai_duration_days",
+      "value": " days"
+    },
+    {
+      "name": "duration_unit_day",
+      "value": " days"
+    },
+    {
+      "name": "duration_unit_hour",
+      "value": " hrs"
+    },
+    {
+      "name": "duration_unit_min",
+      "value": " min"
+    },
+    {
+      "name": "error_generic_toast",
+      "value": "Something went wrong. Please try again later."
+    },
+    {
+      "name": "chat_input_count",
+      "value": "%d/%max"
+    },
+    {
+      "name": "home_deadline_overdue",
+      "value": " Overdue"
+    },
+    {
+      "name": "toast_fab_hidden",
+      "value": "Floating button hidden. Re-enable it in Settings"
+    },
+    {
+      "name": "home_quadrant_current_suffix",
+      "value": " (current)"
+    },
+    {
+      "name": "home_completed_section_title",
+      "value": "Completed"
+    },
+    {
+      "name": "home_completed_undo_hint",
+      "value": "Tap to undo"
+    },
+    {
+      "name": "home_moved_to_prefix",
+      "value": "Moved to "
+    },
+    {
+      "name": "home_add_todo_title",
+      "value": "Add To-Do"
+    },
+    {
+      "name": "home_add_todo_placeholder",
+      "value": "What needs to be done?"
+    },
+    {
+      "name": "home_add_todo_quadrant_label",
+      "value": "Quadrant"
+    },
+    {
+      "name": "import_file_filter_label",
+      "value": "Backup files (*.json)"
+    },
+    {
+      "name": "user_agreement_title",
+      "value": "User Agreement"
+    },
+    {
+      "name": "user_agreement_content",
+      "value": "Welcome. By using this app you agree to: 1) The app is for personal goal and time management; data is stored locally by default. 2) With cloud sync enabled, goals and tasks are stored on Huawei Cloud via encrypted channels, accessible only to your account. 3) The AI breakdown feature sends your goal description to a large-model service to generate plans and for no other purpose. 4) We do not collect sensitive permissions such as contacts or location. For questions, contact us via in-app feedback."
+    },
+    {
+      "name": "toast_sync_upload_pending",
+      "value": "Changes pending upload. Will sync when back online"
+    },
+    {
+      "name": "task_detail_steps_progress_prefix",
+      "value": "Completed "
+    },
+    {
+      "name": "task_detail_steps_progress_suffix",
+      "value": " steps"
+    },
+    {
+      "name": "btn_completed_undo",
+      "value": "Completed. Tap to undo"
+    },
+    {
+      "name": "btn_complete_all_steps",
+      "value": "Complete all steps"
+    },
+    {
+      "name": "task_detail_complete_all_hint",
+      "value": "Completing all steps also completes the task"
+    },
+    {
+      "name": "settings_language_zh",
+      "value": "简体中文"
+    },
+    {
+      "name": "settings_language_en",
+      "value": "English"
+    },
+    {
+      "name": "settings_language_default",
+      "value": "Follow system"
+    },
+    {
+      "name": "settings_language_restart_title",
+      "value": "Restart app"
+    },
+    {
+      "name": "settings_language_restart_message",
+      "value": "Language takes effect after restart. Restart now?"
+    },
+    {
+      "name": "settings_language_restart_later",
+      "value": "Later"
+    },
+    {
+      "name": "settings_language_restart_now",
+      "value": "Restart now"
+    },
+    {
+      "name": "settings_language_restart_toast",
+      "value": "Language saved. Takes effect after restart"
+    },
+    {
+      "name": "settings_section_general",
+      "value": "General"
+    },
+    {
+      "name": "settings_language",
+      "value": "App Language"
+    },
+    {
+      "name": "settings_grip_awareness",
+      "value": "Grip Awareness"
+    },
+    {
+      "name": "settings_grip_awareness_desc",
+      "value": "Detect grip posture to auto-position the floating button"
+    },
+    {
+      "name": "settings_fab_title",
+      "value": "Floating Button"
+    },
+    {
+      "name": "settings_fab_desc",
+      "value": "Show quick-access floating button on Home"
+    },
+    {
+      "name": "settings_section_sync",
+      "value": "Cloud Sync"
+    },
+    {
+      "name": "settings_section_notification",
+      "value": "Notifications"
+    },
+    {
+      "name": "settings_vibration",
+      "value": "Vibration"
+    },
+    {
+      "name": "settings_vibration_desc",
+      "value": "Vibrate when a focus session ends"
+    },
+    {
+      "name": "settings_section_data",
+      "value": "Data"
+    },
+    {
+      "name": "advance_option_same_day",
+      "value": "Due day"
+    },
+    {
+      "name": "advance_option_1d",
+      "value": "1 day before"
+    },
+    {
+      "name": "advance_option_3d",
+      "value": "3 days before"
+    },
+    {
+      "name": "advance_option_1w",
+      "value": "1 week before"
+    },
+    {
+      "name": "settings_advance_task_label",
+      "value": "Task reminder lead time"
+    },
+    {
+      "name": "settings_advance_goal_label",
+      "value": "Goal reminder lead time"
+    },
+    {
+      "name": "stats_completed_tasks",
+      "value": "Tasks Done"
+    },
+    {
+      "name": "goal_detail_priority_label",
+      "value": "Priority"
+    },
+    {
+      "name": "goal_detail_deadline_clear",
+      "value": "Clear"
+    },
+    {
+      "name": "task_edit_quadrant_preview",
+      "value": "Auto-sorted into"
+    },
+    {
+      "name": "task_focus_summary",
+      "value": "Focused "
+    },
+    {
+      "name": "task_focus_count_unit",
+      "value": " rounds"
+    },
+    {
+      "name": "duration_preset_half_day",
+      "value": "Half day"
     },
     {
       "name": "btn_logging_in",
@@ -430,11 +486,7 @@
     },
     {
       "name": "empty_route_subtitle",
-      "value": "Describe a goal, and AI will turn it into an actionable path"
-    },
-    {
-      "name": "empty_route_manual",
-      "value": "Create manually"
+      "value": "Use AI to break down and generate your first goal"
     },
     {
       "name": "empty_milestone",
@@ -666,31 +718,11 @@
     },
     {
       "name": "home_empty_message",
-      "value": "Nothing scheduled for today"
-    },
-    {
-      "name": "home_completed_section_title",
-      "value": "Completed"
-    },
-    {
-      "name": "home_completed_undo_hint",
-      "value": "Tap to undo"
-    },
-    {
-      "name": "home_deadline_overdue",
-      "value": " Overdue"
-    },
-    {
-      "name": "task_focus_summary",
-      "value": "Focused "
-    },
-    {
-      "name": "task_focus_count_unit",
-      "value": " rounds"
+      "value": "No todos yet. Let AI break down a goal!"
     },
     {
       "name": "home_empty_cta",
-      "value": "Break down"
+      "value": "Go to AI"
     },
     {
       "name": "category_all",
@@ -763,14 +795,6 @@
     {
       "name": "ai_week_suffix",
       "value": ""
-    },
-    {
-      "name": "ai_duration_weeks",
-      "value": " weeks"
-    },
-    {
-      "name": "ai_duration_days",
-      "value": " days"
     },
     {
       "name": "ai_default_task",
@@ -945,10 +969,6 @@
       "value": "Cloud sync is disabled. Please enable it in Settings"
     },
     {
-      "name": "toast_sync_upload_pending",
-      "value": "Remote data pulled, but your changes are not uploaded yet. Retrying automatically when the network is back"
-    },
-    {
       "name": "toast_reset_done",
       "value": "All settings reset"
     },
@@ -1025,30 +1045,6 @@
       "value": "Toggle app notifications"
     },
     {
-      "name": "settings_advance_task_label",
-      "value": "Task reminder lead time"
-    },
-    {
-      "name": "settings_advance_goal_label",
-      "value": "Goal reminder lead time"
-    },
-    {
-      "name": "advance_option_same_day",
-      "value": "Due day"
-    },
-    {
-      "name": "advance_option_1d",
-      "value": "1 day before"
-    },
-    {
-      "name": "advance_option_3d",
-      "value": "3 days before"
-    },
-    {
-      "name": "advance_option_1w",
-      "value": "1 week before"
-    },
-    {
       "name": "settings_version",
       "value": "Version"
     },
@@ -1113,6 +1109,10 @@
       "value": "Logged in"
     },
     {
+      "name": "login_brand_name_cn",
+      "value": "Momentum"
+    },
+    {
       "name": "login_value_prop",
       "value": "AI-driven, master your time"
     },
@@ -1159,10 +1159,6 @@
     {
       "name": "goal_history_empty",
       "value": "No goals yet. Create one in AI page"
-    },
-    {
-      "name": "goal_history_empty_overdue",
-      "value": "No overdue goals"
     },
     {
       "name": "goal_history_empty_completed",
@@ -1658,19 +1654,11 @@
     },
     {
       "name": "privacy_content",
-      "value": "Thank you for using Momentum!\n\n1. Account information: We collect your HUAWEI ID virtual identifiers (OpenID, UnionID), nickname and avatar, solely for sign-in, identity display and data ownership.\n2. Goals & tasks: Data is stored on your device by default. After sign-in, cloud sync is enabled automatically to support multi-device sync (you can turn it off anytime in Settings); data is uploaded to HUAWEI Cloud and visible only to you.\n3. Push & Live View: While a pomodoro is running, a system Live View shows the current phase, remaining time and the task name on your lock screen and status bar via the HUAWEI Push service; the app obtains a Push Token (a device-and-app-level identifier).\n4. Feedback & reports: The feedback/report content you submit, contact info (optional), your HUAWEI ID identifier and diagnostic data (app version, device model, OS version, data-scale statistics; no actual content) are uploaded to the cloud solely for issue locating and product improvement, and are never shown to other users.\n5. AI services: AI goal breakdown, review and todo suggestions are provided by the registered third-party large model (DeepSeek). We send the content you input plus statistical data of your goals/tasks (progress, status, priority, estimated time; tasks are anonymized as ordinal numbers, without names) to generate suggestions. See Article 3 of the User Agreement.\n6. We will never sell or share your information with unrelated third parties. You can delete all data anytime in Settings, or contact us via the User Agreement.\n\nIf you have questions, contact the developer (see the User Agreement for contact info)."
-    },
-    {
-      "name": "user_agreement_title",
-      "value": "User Agreement"
-    },
-    {
-      "name": "user_agreement_content",
-      "value": "Welcome to Qishi (起势, the App). This Agreement is between you and the developer (Sun Shengju, the Developer). By using the App you accept this Agreement.\n\n1. Services: AI goal breakdown, roadmap management, Eisenhower task matrix, Pomodoro timer, statistics, home-screen widget and optional cloud sync.\n\n2. Account: The App supports HUAWEI ID sign-in only. You may also use all local features as a guest. AI breakdown, cloud sync and feedback require sign-in. You are responsible for activities under your HUAWEI ID.\n\n3. AI-generated content: The AI breakdown calls a registered third-party large model (DeepSeek, provided by Hangzhou DeepSeek Artificial Intelligence Basic Technology Research Co., Ltd.; algorithm: DeepSeekChat求索对话生成算法, filing no. 网信算备330105747635301240017号). All AI output is explicitly labelled (AI-generated, for reference only) with a report entry. AI output is for reference only and does not constitute professional advice (medical, legal, financial or otherwise); you are responsible for decisions based on it. Do not use the AI feature to generate or spread content that violates laws or public morals.\n\n4. Code of conduct: comply with applicable laws; no infringement, reverse engineering, attacks or service disruption.\n\n5. Data & privacy: see the Privacy Policy. Goals and tasks are stored locally by default and uploaded only after you sign in and enable cloud sync. You can view, export, correct or delete your data anytime.\n\n6. IP: The design, code, icons and copy of the App belong to the Developer. Content you enter belongs to you; AI output is for your personal in-app use.\n\n7. Disclaimers: The App is provided as-is. To the maximum extent permitted by law, the Developer makes no warranties. The Developer is not liable for failures caused by force majeure, network faults or third-party services, and total liability is limited to amounts you actually paid (the App is currently free).\n\n8. Changes and termination: services may change, be interrupted or terminated with reasonable notice. You may stop using the App and delete your data anytime.\n\n9. Minors: should use the App under guardian supervision.\n\n10. Amendments: revised terms take effect upon publication; continued use constitutes acceptance.\n\n11. Governing law: PRC law; disputes shall be resolved by friendly negotiation, failing which by a competent court at the Developer’s domicile.\n\n12. Contact: Developer Sun Shengju | developersunshengju@163.com (reply within 15 business days)."
+      "value": "Thank you for using Momentum!\n\n1. We only collect necessary account info (nickname, avatar) for login and display.\n2. Your goal and task data is stored locally and will not be uploaded (cloud sync is opt-in).\n3. We will not share your information with third parties.\n4. You can delete all data anytime in Settings.\n\nFor questions, contact the developer."
     },
     {
       "name": "scenario_1_text",
-      "value": "Learn HarmonyOS"
+      "value": "HarmonyOS App Development"
     },
     {
       "name": "scenario_1_prompt",
@@ -1678,7 +1666,7 @@
     },
     {
       "name": "scenario_2_text",
-      "value": "2-Week Exam Prep"
+      "value": "Final Exam Review"
     },
     {
       "name": "scenario_2_prompt",
@@ -1686,7 +1674,7 @@
     },
     {
       "name": "scenario_3_text",
-      "value": "Hot 100 in 1 Month"
+      "value": "Algorithm Interview Prep"
     },
     {
       "name": "scenario_3_prompt",
@@ -1694,31 +1682,31 @@
     },
     {
       "name": "scenario_4_text",
-      "value": "Lose 10kg in 12 Weeks"
+      "value": "Fitness & Fat Loss"
     },
     {
       "name": "scenario_4_prompt",
       "value": "12-week fitness & fat loss plan with scientific diet, target 10kg weight loss"
     },
     {
+      "name": "scenario_accessibility_prefix",
+      "value": "Scenario: "
+    },
+    {
       "name": "scenario_5_text",
-      "value": "5-Day Qingdao Trip"
+      "value": "Exam Prep Plan"
     },
     {
       "name": "scenario_5_prompt",
-      "value": "Plan a 5-day trip to Qingdao with a daily itinerary, budget breakdown, and packing list"
+      "value": "A 6-month graduate exam prep plan, 4 hours a day, targeting 380 total score"
     },
     {
       "name": "scenario_6_text",
-      "value": "21-Day Early Riser"
+      "value": "Thesis Plan"
     },
     {
       "name": "scenario_6_prompt",
-      "value": "Build a 6:30 AM early-rising habit with a 21-day check-in plan, including bedtime routine and rewards"
-    },
-    {
-      "name": "scenario_accessibility_prefix",
-      "value": "Scenario: "
+      "value": "Finish a thesis in 3 months, from topic selection and literature review to final draft"
     },
     {
       "name": "ai_onboarding_title",
@@ -1945,10 +1933,6 @@
       "value": "Enter your goal, or tweak the previous result..."
     },
     {
-      "name": "chat_input_count",
-      "value": "%d/%max"
-    },
-    {
       "name": "chat_loading_hint",
       "value": "AI is thinking..."
     },
@@ -2119,6 +2103,10 @@
     {
       "name": "acc_category_filter_prefix",
       "value": "Category filter: "
+    },
+    {
+      "name": "acc_empty_illustration",
+      "value": "Empty illustration"
     },
     {
       "name": "eisenhower_entry_button",
@@ -2529,38 +2517,6 @@
       "value": "Deadline"
     },
     {
-      "name": "goal_detail_priority_label",
-      "value": "Priority"
-    },
-    {
-      "name": "goal_detail_deadline_clear",
-      "value": "Clear"
-    },
-    {
-      "name": "goal_detail_estimated_time_label",
-      "value": "Estimated time (optional)"
-    },
-    {
-      "name": "goal_detail_estimated_time_hint",
-      "value": "e.g. 30"
-    },
-    {
-      "name": "duration_unit_min",
-      "value": " min"
-    },
-    {
-      "name": "duration_unit_hour",
-      "value": " hrs"
-    },
-    {
-      "name": "duration_unit_day",
-      "value": " days"
-    },
-    {
-      "name": "duration_preset_half_day",
-      "value": "Half day"
-    },
-    {
       "name": "goal_detail_no_deadline",
       "value": "No deadline set"
     },
@@ -2691,718 +2647,6 @@
     {
       "name": "ai_plan_side_empty",
       "value": "No plan yet. Enter a goal and let AI break it down"
-    },
-    {
-      "name": "about_built_with",
-      "value": "Built on HarmonyOS NEXT"
-    },
-    {
-      "name": "about_copyright",
-      "value": "© 2026 Momentum"
-    },
-    {
-      "name": "acc_go_settings",
-      "value": "Go to Settings"
-    },
-    {
-      "name": "ai_added_tasks_to_todo_prefix",
-      "value": "Added "
-    },
-    {
-      "name": "ai_added_tasks_to_todo_suffix",
-      "value": " key tasks to Today's To-Do"
-    },
-    {
-      "name": "ai_cloud_sync_required_toast",
-      "value": "AI breakdown needs to upload text to the cloud. Please enable cloud sync on the 'Me' page first."
-    },
-    {
-      "name": "btn_cancel",
-      "value": "Cancel"
-    },
-    {
-      "name": "btn_create",
-      "value": "Create"
-    },
-    {
-      "name": "dialog_clear_cache_message",
-      "value": "Clear cache? This won't affect your account or task data."
-    },
-    {
-      "name": "dialog_clear_cache_title",
-      "value": "Clear Cache"
-    },
-    {
-      "name": "export_btn",
-      "value": "Export Data"
-    },
-    {
-      "name": "export_failed",
-      "value": "Export Failed"
-    },
-    {
-      "name": "export_section_desc",
-      "value": "Export goals, tasks and settings as a JSON file"
-    },
-    {
-      "name": "export_section_title",
-      "value": "Export Backup"
-    },
-    {
-      "name": "export_success",
-      "value": "Export Successful"
-    },
-    {
-      "name": "feedback_copied",
-      "value": "Diagnostic info copied to clipboard"
-    },
-    {
-      "name": "feedback_copy_diag",
-      "value": "Copy Diagnostic Info"
-    },
-    {
-      "name": "feedback_empty",
-      "value": "Feedback cannot be empty"
-    },
-    {
-      "name": "feedback_input_placeholder",
-      "value": "Describe the issue you encountered or your suggestion…"
-    },
-    {
-      "name": "feedback_submit",
-      "value": "Submit Feedback"
-    },
-    {
-      "name": "feedback_submit_success",
-      "value": "Thanks for your feedback. Saved."
-    },
-    {
-      "name": "help_ai_desc",
-      "value": "Enter a goal on the AI page, and AI breaks it down into actionable tasks and steps you can add to your route in one tap."
-    },
-    {
-      "name": "help_ai_title",
-      "value": "AI Smart Breakdown"
-    },
-    {
-      "name": "help_data_desc",
-      "value": "By default all data is stored only on this device for privacy and security. Enable cloud sync to back up across devices."
-    },
-    {
-      "name": "help_data_title",
-      "value": "Data Storage"
-    },
-    {
-      "name": "help_pomodoro_desc",
-      "value": "Focus for 25 minutes, break for 5, and track daily focus sessions to help you get into flow."
-    },
-    {
-      "name": "help_pomodoro_title",
-      "value": "Pomodoro Focus"
-    },
-    {
-      "name": "help_quadrant_desc",
-      "value": "Prioritize to-dos by 'Important × Urgent': do important & urgent ones now, schedule important but not urgent ones."
-    },
-    {
-      "name": "help_quadrant_title",
-      "value": "Four-Quadrant To-Do"
-    },
-    {
-      "name": "help_sync_desc",
-      "value": "Enable cloud sync in Me → Settings to automatically back up data to the cloud and sync across devices."
-    },
-    {
-      "name": "help_sync_title",
-      "value": "Cloud Sync"
-    },
-    {
-      "name": "home_drag_release_hint",
-      "value": "Drag to the target position and release"
-    },
-    {
-      "name": "home_quadrant_count_prefix",
-      "value": "Total "
-    },
-    {
-      "name": "home_quadrant_count_suffix",
-      "value": " items"
-    },
-    {
-      "name": "import_btn",
-      "value": "Choose File to Import"
-    },
-    {
-      "name": "import_confirm_message",
-      "value": "Backup data will be imported in merge mode. After import, local and backup data are merged and deduplicated by ID. Continue?"
-    },
-    {
-      "name": "import_failed",
-      "value": "Import Failed"
-    },
-    {
-      "name": "import_invalid",
-      "value": "Invalid or incorrectly formatted backup file"
-    },
-    {
-      "name": "import_section_desc",
-      "value": "Import from a JSON file (merge mode: dedupe by ID, keep data from both sides)"
-    },
-    {
-      "name": "import_section_title",
-      "value": "Import Backup"
-    },
-    {
-      "name": "import_success",
-      "value": "Import Successful"
-    },
-    {
-      "name": "notif_goal_deadline_text_prefix",
-      "value": "Goal '"
-    },
-    {
-      "name": "notif_goal_deadline_text_suffix",
-      "value": "' is due soon"
-    },
-    {
-      "name": "notif_goal_deadline_title",
-      "value": "Goal Deadline Reminder"
-    },
-    {
-      "name": "notif_task_deadline_text_suffix",
-      "value": " is due soon"
-    },
-    {
-      "name": "notif_task_deadline_title",
-      "value": "Task Deadline Reminder"
-    },
-    {
-      "name": "page_about",
-      "value": "About Momentum"
-    },
-    {
-      "name": "page_feedback",
-      "value": "Feedback"
-    },
-    {
-      "name": "page_help",
-      "value": "Help"
-    },
-    {
-      "name": "page_import_export",
-      "value": "Import / Export"
-    },
-    {
-      "name": "page_stats",
-      "value": "Statistics"
-    },
-    {
-      "name": "page_tag_manage",
-      "value": "Tag Management"
-    },
-    {
-      "name": "profile_cloud_sync_title",
-      "value": "Cloud Data Sync"
-    },
-    {
-      "name": "profile_cloud_sync_toggle_acc",
-      "value": "Cloud data sync switch"
-    },
-    {
-      "name": "profile_group_help",
-      "value": "Help & Info"
-    },
-    {
-      "name": "profile_group_tools",
-      "value": "Tools & Management"
-    },
-    {
-      "name": "profile_item_about",
-      "value": "About Momentum"
-    },
-    {
-      "name": "profile_item_ai_review",
-      "value": "AI Review & Statistics"
-    },
-    {
-      "name": "profile_item_feedback",
-      "value": "Feedback"
-    },
-    {
-      "name": "profile_item_help",
-      "value": "Help"
-    },
-    {
-      "name": "profile_item_import_export",
-      "value": "Import / Export Task Data"
-    },
-    {
-      "name": "profile_item_tag_manage",
-      "value": "Tag Management"
-    },
-    {
-      "name": "profile_stat_overdue",
-      "value": "Overdue"
-    },
-    {
-      "name": "profile_sync_disabled_hint",
-      "value": "After turning off, data is stored on this device only"
-    },
-    {
-      "name": "profile_sync_disabled_toast",
-      "value": "Cloud sync off. Data is stored on this device only"
-    },
-    {
-      "name": "profile_sync_enable_cancelled_toast",
-      "value": "Cancelled enabling cloud sync"
-    },
-    {
-      "name": "profile_sync_enable_confirm",
-      "value": "Enable"
-    },
-    {
-      "name": "profile_sync_enable_message",
-      "value": "After enabling, data will sync to the cloud automatically and support cross-device collaboration. Continue?"
-    },
-    {
-      "name": "profile_sync_enable_title",
-      "value": "Enable Cloud Sync"
-    },
-    {
-      "name": "profile_sync_enabled_toast",
-      "value": "Cloud sync enabled"
-    },
-    {
-      "name": "profile_sync_local_cloud",
-      "value": "Local + Cloud Sync"
-    },
-    {
-      "name": "profile_sync_local_only",
-      "value": "Local Storage Only"
-    },
-    {
-      "name": "profile_sync_off_text",
-      "value": "Sync Off"
-    },
-    {
-      "name": "route_add_plus",
-      "value": "+ Add"
-    },
-    {
-      "name": "route_create_goal_deadline_label",
-      "value": "Deadline (optional)"
-    },
-    {
-      "name": "route_create_goal_desc_placeholder",
-      "value": "Enter goal description (optional)"
-    },
-    {
-      "name": "route_create_goal_name_placeholder",
-      "value": "Enter goal name"
-    },
-    {
-      "name": "route_steps_count_suffix",
-      "value": " steps"
-    },
-    {
-      "name": "settings_cache_title",
-      "value": "Cache Management"
-    },
-    {
-      "name": "settings_default_nickname_prefix",
-      "value": "MomentumUser_"
-    },
-    {
-      "name": "settings_login_failed",
-      "value": "Login Failed"
-    },
-    {
-      "name": "settings_notification_error_prefix",
-      "value": "Notification setting error: "
-    },
-    {
-      "name": "settings_notification_failed_prefix",
-      "value": "Notification setting failed: "
-    },
-    {
-      "name": "stats_ai_review_btn",
-      "value": "AI Global Review"
-    },
-    {
-      "name": "stats_ai_review_desc",
-      "value": "Generate a global review report based on your goals, tasks and focus data"
-    },
-    {
-      "name": "stats_ai_review_loading",
-      "value": "AI is analyzing your data, please wait…"
-    },
-    {
-      "name": "stats_ai_review_title",
-      "value": "AI Global Review"
-    },
-    {
-      "name": "stats_completed_goals",
-      "value": "Completed"
-    },
-    {
-      "name": "stats_goal_total",
-      "value": "Total Goals"
-    },
-    {
-      "name": "stats_no_data",
-      "value": "No data yet. Go to AI Breakdown to create a goal."
-    },
-    {
-      "name": "stats_overdue_goals",
-      "value": "Overdue"
-    },
-    {
-      "name": "stats_task_total",
-      "value": "Total Tasks"
-    },
-    {
-      "name": "stats_today_focus",
-      "value": "Today's Focus"
-    },
-    {
-      "name": "tag_empty",
-      "value": "No categories yet. Go to AI Breakdown to create a goal."
-    },
-    {
-      "name": "tag_merge",
-      "value": "Merge"
-    },
-    {
-      "name": "tag_merge_message",
-      "value": "Enter the target category name. All goals under the current category will be moved into it."
-    },
-    {
-      "name": "tag_merge_success",
-      "value": "Category merged"
-    },
-    {
-      "name": "tag_merge_target_placeholder",
-      "value": "Target category name"
-    },
-    {
-      "name": "tag_merge_title",
-      "value": "Merge Category"
-    },
-    {
-      "name": "tag_name_empty",
-      "value": "Category name cannot be empty"
-    },
-    {
-      "name": "tag_new_name_placeholder",
-      "value": "New category name"
-    },
-    {
-      "name": "tag_rename",
-      "value": "Rename"
-    },
-    {
-      "name": "tag_rename_message",
-      "value": "After renaming, all goals under this category will be updated to the new category name."
-    },
-    {
-      "name": "tag_rename_success",
-      "value": "Category renamed"
-    },
-    {
-      "name": "tag_rename_title",
-      "value": "Rename Category"
-    },
-    {
-      "name": "tag_same_name",
-      "value": "New name is the same as the current category"
-    },
-    {
-      "name": "task_detail_date_day_suffix",
-      "value": ""
-    },
-    {
-      "name": "task_detail_date_month_suffix",
-      "value": "/"
-    },
-    {
-      "name": "toast_cache_cleared",
-      "value": "Cache cleared"
-    },
-    {
-      "name": "widget_completed_count_suffix",
-      "value": " completed"
-    },
-    {
-      "name": "widget_empty_cta",
-      "value": "Go to AI Breakdown"
-    },
-    {
-      "name": "widget_empty_title",
-      "value": "No to-dos"
-    },
-    {
-      "name": "widget_more_items_suffix",
-      "value": " more"
-    },
-    {
-      "name": "widget_today_todo",
-      "value": "Today's To-Do"
-    },
-    {
-      "name": "widget_view_all",
-      "value": "View All"
-    },
-    {
-      "name": "ai_default_step",
-      "value": "Please add the steps manually"
-    },
-    {
-      "name": "ai_default_task_prefix",
-      "value": "Task"
-    },
-    {
-      "name": "ai_error_continue",
-      "value": "AI could not continue. Please retry or rephrase your request."
-    },
-    {
-      "name": "ai_error_empty_desc",
-      "value": "Goal description cannot be empty"
-    },
-    {
-      "name": "ai_error_unparseable",
-      "value": "Unable to parse the AI response. Please shorten your goal description and retry (the content may have been truncated)."
-    },
-    {
-      "name": "ai_error_service_unavailable",
-      "value": "AI service is temporarily unavailable. Please try again later."
-    },
-    {
-      "name": "chat_image_sent_prefix",
-      "value": "[User sent "
-    },
-    {
-      "name": "chat_image_sent_suffix",
-      "value": " image(s)]"
-    },
-    {
-      "name": "import_file_filter_label",
-      "value": "JSON File"
-    },
-    {
-      "name": "login_error_cert_invalid",
-      "value": "App certificate verification failed. Please try again later."
-    },
-    {
-      "name": "login_error_empty_openid",
-      "value": "Login failed: no account information returned."
-    },
-    {
-      "name": "login_error_state_csrf",
-      "value": "Security check failed. Please try again."
-    },
-    {
-      "name": "settings_language",
-      "value": "Language"
-    },
-    {
-      "name": "settings_language_default",
-      "value": "Follow system"
-    },
-    {
-      "name": "settings_language_en",
-      "value": "English"
-    },
-    {
-      "name": "settings_language_restart_toast",
-      "value": "Language switched. Restart the app to apply."
-    },
-    {
-      "name": "settings_language_zh",
-      "value": "简体中文"
-    },
-    {
-      "name": "settings_language_restart_later",
-      "value": "Later"
-    },
-    {
-      "name": "settings_language_restart_message",
-      "value": "Language switched. A restart is required to take effect. Restart now? It is recommended to restart when no task is in progress."
-    },
-    {
-      "name": "settings_language_restart_now",
-      "value": "Restart now"
-    },
-    {
-      "name": "settings_language_restart_title",
-      "value": "Restart App"
-    },
-    {
-      "name": "ai_plan_collapse_all",
-      "value": "Collapse all"
-    },
-    {
-      "name": "ai_plan_expand_all",
-      "value": "Expand all"
-    },
-    {
-      "name": "ai_plan_summary_tasks_suffix",
-      "value": " tasks"
-    },
-    {
-      "name": "ai_plan_summary_total_infix",
-      "value": " · "
-    },
-    {
-      "name": "ai_task_more_actions",
-      "value": "More actions"
-    },
-    {
-      "name": "ai_plan_generated_hint",
-      "value": "Plan generated — see the panel →"
-    },
-    {
-      "name": "ai_plan_latest_badge",
-      "value": "Latest"
-    },
-    {
-      "name": "settings_grip_awareness",
-      "value": "Smart Grip"
-    },
-    {
-      "name": "settings_grip_awareness_desc",
-      "value": "Floating button follows your holding hand"
-    },
-    {
-      "name": "settings_fab_title",
-      "value": "Floating action button"
-    },
-    {
-      "name": "settings_fab_desc",
-      "value": "The add button on Home and Route. Long-press to hide; re-enable here"
-    },
-    {
-      "name": "settings_section_general",
-      "value": "General"
-    },
-    {
-      "name": "settings_section_sync",
-      "value": "Cloud Sync"
-    },
-    {
-      "name": "settings_section_notification",
-      "value": "Notifications & Reminders"
-    },
-    {
-      "name": "settings_section_data",
-      "value": "Data"
-    },
-    {
-      "name": "settings_vibration",
-      "value": "Vibration"
-    },
-    {
-      "name": "settings_vibration_desc",
-      "value": "Vibrate when tasks or steps complete and pomodoro sessions finish"
-    },
-    {
-      "name": "toast_fab_hidden",
-      "value": "Hidden. Re-enable it in Settings, Floating action button"
-    },
-    {
-      "name": "home_add_todo_title",
-      "value": "Add a task"
-    },
-    {
-      "name": "home_add_todo_placeholder",
-      "value": "What needs doing?"
-    },
-    {
-      "name": "home_add_todo_quadrant_label",
-      "value": "Which quadrant?"
-    },
-    {
-      "name": "empty_route_filtered_title",
-      "value": "No goals in this category"
-    },
-    {
-      "name": "empty_route_filtered_subtitle",
-      "value": "Try another category, or move a goal into this one"
-    },
-    {
-      "name": "empty_route_filtered_action",
-      "value": "View all"
-    },
-    {
-      "name": "empty_route_placeholder",
-      "value": "What do you want to achieve?"
-    },
-    {
-      "name": "empty_route_howto_title",
-      "value": "How it works"
-    },
-    {
-      "name": "empty_route_step1",
-      "value": "Tell us what you want to achieve"
-    },
-    {
-      "name": "empty_route_step2",
-      "value": "AI turns it into an actionable route"
-    },
-    {
-      "name": "empty_route_step3",
-      "value": "Move a little every day, progress adds up"
-    },
-    {
-      "name": "empty_route_examples_title",
-      "value": "Try one of these"
-    },
-    {
-      "name": "empty_route_example1",
-      "value": "Half marathon in 3 months"
-    },
-    {
-      "name": "empty_route_example2",
-      "value": "Read 3 books in 30 days"
-    },
-    {
-      "name": "empty_route_example3",
-      "value": "Pass CET-6 in 6 months"
-    },
-    {
-      "name": "liveview_title_focus",
-      "value": "Focusing"
-    },
-    {
-      "name": "liveview_title_break",
-      "value": "On a break"
-    },
-    {
-      "name": "liveview_state_running",
-      "value": "Timing"
-    },
-    {
-      "name": "liveview_state_paused",
-      "value": "Paused"
-    },
-    {
-      "name": "btn_complete_all_steps",
-      "value": "Complete all steps"
-    },
-    {
-      "name": "btn_completed_undo",
-      "value": "Completed · Undo"
-    },
-    {
-      "name": "task_detail_steps_progress_prefix",
-      "value": "Completed "
-    },
-    {
-      "name": "task_detail_steps_progress_suffix",
-      "value": " steps"
-    },
-    {
-      "name": "task_detail_complete_all_hint",
-      "value": "Marks all steps above as done"
     }
   ]
 }

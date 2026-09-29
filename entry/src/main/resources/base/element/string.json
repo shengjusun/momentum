@@ -2,7 +2,7 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "Momentum 主模块"
+      "value": "MyApplication 主模块"
     },
     {
       "name": "ability_desc",
@@ -10,7 +10,7 @@
     },
     {
       "name": "ability_label",
-      "value": "起势"
+      "value": "Momentum"
     },
     {
       "name": "reason_internet",
@@ -98,23 +98,311 @@
     },
     {
       "name": "app_name",
-      "value": "起势"
+      "value": "Momentum"
     },
     {
-      "name": "task_edit_quadrant_preview",
-      "value": "将自动归入"
+      "name": "ai_task_more_actions",
+      "value": "任务操作"
+    },
+    {
+      "name": "ai_plan_generated_hint",
+      "value": "已为你生成拆解方案，可微调后确认"
+    },
+    {
+      "name": "ai_plan_summary_total_infix",
+      "value": "，预计 "
+    },
+    {
+      "name": "ai_plan_summary_tasks_suffix",
+      "value": " 个任务"
+    },
+    {
+      "name": "ai_plan_latest_badge",
+      "value": "最新方案"
+    },
+    {
+      "name": "ai_plan_collapse_all",
+      "value": "收起全部"
+    },
+    {
+      "name": "ai_plan_expand_all",
+      "value": "展开全部"
+    },
+    {
+      "name": "pomo_stop_confirm_message",
+      "value": "确定停止本次专注吗？当前轮次将不会计入完成次数。"
+    },
+    {
+      "name": "login_error_state_csrf",
+      "value": "登录安全校验失败，请重试"
+    },
+    {
+      "name": "login_error_empty_openid",
+      "value": "未获取到账号信息，请重试"
+    },
+    {
+      "name": "login_error_cert_invalid",
+      "value": "安全校验未通过，请重新登录"
+    },
+    {
+      "name": "liveview_title_focus",
+      "value": "专注中"
+    },
+    {
+      "name": "liveview_title_break",
+      "value": "休息中"
+    },
+    {
+      "name": "pomo_notif_remain_time",
+      "value": "剩余 %s"
+    },
+    {
+      "name": "pomo_notif_span_minutes",
+      "value": "专注计时进行中"
+    },
+    {
+      "name": "pomo_notif_complete_focus_title",
+      "value": "专注完成"
+    },
+    {
+      "name": "pomo_notif_complete_focus_text",
+      "value": " 已完成一轮专注，休息一下吧"
+    },
+    {
+      "name": "pomo_notif_complete_break_title",
+      "value": "休息结束"
+    },
+    {
+      "name": "pomo_notif_complete_break_text",
+      "value": "休息结束，可以开始下一轮专注了"
+    },
+    {
+      "name": "ai_duration_weeks",
+      "value": " 周"
+    },
+    {
+      "name": "ai_duration_days",
+      "value": " 天"
+    },
+    {
+      "name": "duration_unit_day",
+      "value": " 天"
+    },
+    {
+      "name": "duration_unit_hour",
+      "value": " 小时"
+    },
+    {
+      "name": "duration_unit_min",
+      "value": " 分钟"
     },
     {
       "name": "error_generic_toast",
       "value": "操作失败，请稍后重试"
     },
     {
-      "name": "home_moved_to_prefix",
-      "value": "已移至 "
+      "name": "chat_input_count",
+      "value": "%d/%max"
+    },
+    {
+      "name": "home_deadline_overdue",
+      "value": " 已逾期"
+    },
+    {
+      "name": "toast_fab_hidden",
+      "value": "悬浮球已隐藏，可在设置中重新开启"
     },
     {
       "name": "home_quadrant_current_suffix",
       "value": "（当前）"
+    },
+    {
+      "name": "home_completed_section_title",
+      "value": "已完成"
+    },
+    {
+      "name": "home_completed_undo_hint",
+      "value": "点击恢复"
+    },
+    {
+      "name": "home_moved_to_prefix",
+      "value": "已移至 "
+    },
+    {
+      "name": "home_add_todo_title",
+      "value": "添加待办"
+    },
+    {
+      "name": "home_add_todo_placeholder",
+      "value": "输入待办内容…"
+    },
+    {
+      "name": "home_add_todo_quadrant_label",
+      "value": "所属象限"
+    },
+    {
+      "name": "import_file_filter_label",
+      "value": "备份文件(*.json)"
+    },
+    {
+      "name": "user_agreement_title",
+      "value": "用户协议"
+    },
+    {
+      "name": "user_agreement_content",
+      "value": "欢迎使用本应用。使用即表示你同意：1）本应用用于个人目标管理与时间管理，数据默认保存在本地设备；2）开启云同步后，目标与任务数据将经加密通道存储至华为云，仅本人账号可访问；3）AI 拆解功能会将你输入的目标描述发送至大模型服务用于生成方案，不会用于其他用途；4）我们不会收集你的通讯录、位置等敏感权限信息。如对协议有疑问，请通过应用内反馈渠道联系我们。"
+    },
+    {
+      "name": "toast_sync_upload_pending",
+      "value": "有未上传的更改，网络恢复后自动同步"
+    },
+    {
+      "name": "task_detail_steps_progress_prefix",
+      "value": "已完成 "
+    },
+    {
+      "name": "task_detail_steps_progress_suffix",
+      "value": " 步"
+    },
+    {
+      "name": "btn_completed_undo",
+      "value": "已完成，点击撤销"
+    },
+    {
+      "name": "btn_complete_all_steps",
+      "value": "一键完成全部步骤"
+    },
+    {
+      "name": "task_detail_complete_all_hint",
+      "value": "完成全部步骤将同步完成任务"
+    },
+    {
+      "name": "settings_language_zh",
+      "value": "简体中文"
+    },
+    {
+      "name": "settings_language_en",
+      "value": "English"
+    },
+    {
+      "name": "settings_language_default",
+      "value": "跟随系统"
+    },
+    {
+      "name": "settings_language_restart_title",
+      "value": "重启应用"
+    },
+    {
+      "name": "settings_language_restart_message",
+      "value": "语言设置将在重启后生效，是否立即重启？"
+    },
+    {
+      "name": "settings_language_restart_later",
+      "value": "稍后"
+    },
+    {
+      "name": "settings_language_restart_now",
+      "value": "立即重启"
+    },
+    {
+      "name": "settings_language_restart_toast",
+      "value": "语言设置已保存，重启后生效"
+    },
+    {
+      "name": "settings_section_general",
+      "value": "通用设置"
+    },
+    {
+      "name": "settings_language",
+      "value": "应用语言"
+    },
+    {
+      "name": "settings_grip_awareness",
+      "value": "握姿感知"
+    },
+    {
+      "name": "settings_grip_awareness_desc",
+      "value": "智能识别握持姿态，自动调整悬浮球位置"
+    },
+    {
+      "name": "settings_fab_title",
+      "value": "悬浮球"
+    },
+    {
+      "name": "settings_fab_desc",
+      "value": "在首页显示快速入口悬浮球"
+    },
+    {
+      "name": "settings_section_sync",
+      "value": "云端同步"
+    },
+    {
+      "name": "settings_section_notification",
+      "value": "通知与提醒"
+    },
+    {
+      "name": "settings_vibration",
+      "value": "震动反馈"
+    },
+    {
+      "name": "settings_vibration_desc",
+      "value": "番茄钟结束时震动提醒"
+    },
+    {
+      "name": "settings_section_data",
+      "value": "数据管理"
+    },
+    {
+      "name": "advance_option_same_day",
+      "value": "截止当天"
+    },
+    {
+      "name": "advance_option_1d",
+      "value": "1 天前"
+    },
+    {
+      "name": "advance_option_3d",
+      "value": "3 天前"
+    },
+    {
+      "name": "advance_option_1w",
+      "value": "1 周前"
+    },
+    {
+      "name": "settings_advance_task_label",
+      "value": "任务提醒提前量"
+    },
+    {
+      "name": "settings_advance_goal_label",
+      "value": "目标提醒提前量"
+    },
+    {
+      "name": "stats_completed_tasks",
+      "value": "已完成任务"
+    },
+    {
+      "name": "goal_detail_priority_label",
+      "value": "优先级"
+    },
+    {
+      "name": "goal_detail_deadline_clear",
+      "value": "清除"
+    },
+    {
+      "name": "task_edit_quadrant_preview",
+      "value": "将自动归入"
+    },
+    {
+      "name": "task_focus_summary",
+      "value": "已专注 "
+    },
+    {
+      "name": "task_focus_count_unit",
+      "value": " 轮"
+    },
+    {
+      "name": "duration_preset_half_day",
+      "value": "半天"
     },
     {
       "name": "btn_logging_in",
@@ -198,11 +486,7 @@
     },
     {
       "name": "empty_route_subtitle",
-      "value": "说一个目标，AI 帮你拆成一条可执行的路线"
-    },
-    {
-      "name": "empty_route_manual",
-      "value": "手动创建"
+      "value": "去 AI 拆解，生成你的第一个目标"
     },
     {
       "name": "empty_milestone",
@@ -434,31 +718,11 @@
     },
     {
       "name": "home_empty_message",
-      "value": "今天还没有安排"
-    },
-    {
-      "name": "home_completed_section_title",
-      "value": "已完成"
-    },
-    {
-      "name": "home_completed_undo_hint",
-      "value": "点击恢复"
-    },
-    {
-      "name": "home_deadline_overdue",
-      "value": " 已逾期"
-    },
-    {
-      "name": "task_focus_summary",
-      "value": "已专注 "
-    },
-    {
-      "name": "task_focus_count_unit",
-      "value": " 轮"
+      "value": "暂无待办，去 AI 拆解一个吧"
     },
     {
       "name": "home_empty_cta",
-      "value": "去拆解"
+      "value": "去 AI 拆解"
     },
     {
       "name": "category_all",
@@ -531,14 +795,6 @@
     {
       "name": "ai_week_suffix",
       "value": " 周"
-    },
-    {
-      "name": "ai_duration_weeks",
-      "value": " 周"
-    },
-    {
-      "name": "ai_duration_days",
-      "value": " 天"
     },
     {
       "name": "ai_default_task",
@@ -713,10 +969,6 @@
       "value": "云端同步已关闭，请在设置中开启"
     },
     {
-      "name": "toast_sync_upload_pending",
-      "value": "本地已拉取远端数据，但改动暂未上传，网络恢复后会自动重试"
-    },
-    {
       "name": "toast_reset_done",
       "value": "已重置所有设置"
     },
@@ -818,7 +1070,7 @@
     },
     {
       "name": "profile_item_about",
-      "value": "关于起势"
+      "value": "关于 Momentum"
     },
     {
       "name": "tag_coming_soon",
@@ -911,10 +1163,6 @@
     {
       "name": "stats_completed_goals",
       "value": "已完成"
-    },
-    {
-      "name": "stats_completed_tasks",
-      "value": "已完成任务"
     },
     {
       "name": "stats_overdue_goals",
@@ -1022,11 +1270,11 @@
     },
     {
       "name": "page_about",
-      "value": "关于起势"
+      "value": "关于 Momentum"
     },
     {
       "name": "about_copyright",
-      "value": "© 2026 起势"
+      "value": "© 2026 Momentum"
     },
     {
       "name": "about_built_with",
@@ -1105,30 +1353,6 @@
       "value": "控制应用通知开关"
     },
     {
-      "name": "settings_advance_task_label",
-      "value": "任务提醒提前量"
-    },
-    {
-      "name": "settings_advance_goal_label",
-      "value": "目标提醒提前量"
-    },
-    {
-      "name": "advance_option_same_day",
-      "value": "截止当天"
-    },
-    {
-      "name": "advance_option_1d",
-      "value": "1 天前"
-    },
-    {
-      "name": "advance_option_3d",
-      "value": "3 天前"
-    },
-    {
-      "name": "advance_option_1w",
-      "value": "1 周前"
-    },
-    {
       "name": "settings_version",
       "value": "版本号"
     },
@@ -1193,6 +1417,10 @@
       "value": "已登录"
     },
     {
+      "name": "login_brand_name_cn",
+      "value": "势能"
+    },
+    {
       "name": "login_value_prop",
       "value": "AI 驱动，掌控你的时间"
     },
@@ -1239,10 +1467,6 @@
     {
       "name": "goal_history_empty",
       "value": "暂无目标，去 AI 页面创建一个吧"
-    },
-    {
-      "name": "goal_history_empty_overdue",
-      "value": "暂无逾期目标"
     },
     {
       "name": "goal_history_empty_completed",
@@ -1738,19 +1962,11 @@
     },
     {
       "name": "privacy_content",
-      "value": "感谢您使用起势！\n\n1. 账号信息：我们收集您的华为帐号虚拟标识（OpenID、UnionID）以及昵称与头像，仅用于登录、身份展示与数据归属标识。\n2. 目标与任务数据：默认保存在您的设备本地；登录后为支持多设备同步会自动开启云同步（可在设置中随时关闭），数据将上传至华为云，仅您本人可见。\n3. 推送与实况窗：番茄钟运行期间会创建系统实况窗，向锁屏与状态栏展示当前阶段、剩余时间与关联任务名称；该展示经由华为推送服务通道，应用会获取推送 Token（设备与应用维度的标识）。\n4. 问题反馈与举报：您提交的反馈/举报内容、联系方式（选填）、您的华为账号标识及运行诊断信息（应用版本、设备型号、系统版本、数据规模统计，不含具体内容）会上传至云端，仅用于问题定位与产品改进，不会公开展示给其他用户。\n5. AI 服务：AI 目标拆解、复盘与待办建议由已备案的第三方大模型（DeepSeek）提供；我们会发送您输入的内容，以及目标与任务的统计数据（进度、状态、优先级、预估耗时等；任务以「任务1/任务2」序号匿名标识，不含名称）用于生成建议。详见《用户协议》第三条。\n6. 我们不会将您的任何信息出售或分享给无关第三方；您可以随时在设置中删除所有数据，也可通过《用户协议》中的联系方式联系我们。\n\n如有疑问，请联系开发者（见《用户协议》联系方式）。"
-    },
-    {
-      "name": "user_agreement_title",
-      "value": "用户协议"
-    },
-    {
-      "name": "user_agreement_content",
-      "value": "欢迎使用「起势」（以下简称“本应用”）。本协议是您与开发者孙胜举（以下简称“开发者”）之间就使用本应用服务所订立的协议。您开始使用本应用，即视为已阅读并同意本协议全部内容。\n\n一、服务内容\n本应用为目标管理与任务拆解工具，提供：AI 目标拆解、目标路线管理、四象限任务管理、番茄钟专注计时、数据统计、桌面卡片，以及可选的云同步服务。\n\n二、账号\n1. 本应用仅支持华为帐号登录，不提供其他注册方式；您也可以不登录，以游客身份使用全部本地功能。\n2. AI 目标拆解、云同步、反馈提交等功能需要登录后使用。\n3. 您应妥善保管自己的华为帐号，并对该帐号下的操作行为负责。\n\n三、AI 生成服务专项说明\n1. 本应用的 AI 目标拆解功能调用第三方已备案的大模型服务（DeepSeek，由杭州深度求索人工智能基础技术研究有限公司提供；算法名称：DeepSeekChat求索对话生成算法，备案编号：网信算备330105747635301240017号）生成任务拆解建议。\n2. 所有 AI 生成内容均在界面中明确标识（“内容由 AI 生成，仅供参考”），并内设“举报”入口。\n3. AI 生成内容仅供参考，不构成任何专业建议（包括但不限于医疗、法律、金融、投资建议），您应对采纳相关内容后作出的决策自行负责。\n4. 您不得利用 AI 功能生成、传播违反法律法规或公序良俗的内容。\n\n四、用户行为规范\n您承诺遵守法律法规，不得利用本应用从事违法违规活动，不得输入或传播侵害他人合法权益的内容，不得对应用进行反向工程、恶意攻击或干扰正常服务。\n\n五、数据与隐私\n个人信息处理规则详见《隐私政策》。要点：目标与任务数据默认保存在您的设备本地；仅在您登录并开启云同步后上传至云端；您可随时在应用内查看、导出、更正、删除您的数据，或执行“删除所有数据”。\n\n六、知识产权\n本应用的设计、代码、图标与文案归开发者所有。您输入的内容归您所有；AI 生成内容供您个人在应用内使用。\n\n七、免责声明与责任限制\n1. 本应用按“现状”提供，在适用法律允许的最大范围内，开发者不对本应用作出任何明示或默示的保证。\n2. 因不可抗力、网络故障、第三方服务中断或缺陷导致的服务异常，开发者不承担责任，但将尽力协助恢复。\n3. 开发者的赔偿责任以您为使用本应用实际支付的费用为限（本应用目前免费）。\n\n八、服务的变更、中断与终止\n开发者可能因业务调整变更、中断或终止服务，并以应用内公告等合理方式通知。您可随时停止使用并删除您的数据。\n\n九、未成年人保护\n本应用面向一般用户，未成年人使用应在监护人指导下进行。\n\n十、协议的修改\n修订后的协议将在本页面发布并更新生效日期；修订后继续使用视为接受。\n\n十一、法律适用与争议解决\n本协议适用中华人民共和国法律；争议应友好协商解决，协商不成的，任何一方可向开发者住所地有管辖权的人民法院提起诉讼。\n\n十二、联系方式\n开发者：孙胜举（个人开发者）\n联系邮箱：developersunshengju@163.com\n我们将在收到您的问题后 15 个工作日内回复。"
+      "value": "感谢您使用 Momentum！\n\n1. 我们仅收集必要的账号信息（昵称、头像）用于登录和展示。\n2. 您的目标和任务数据仅存储在本地设备上，不会上传至服务器（云同步功能需您手动开启）。\n3. 我们不会将您的任何信息分享给第三方。\n4. 您可以随时在设置中删除所有数据。\n\n如有疑问，请联系开发者。"
     },
     {
       "name": "scenario_1_text",
-      "value": "学完鸿蒙开发"
+      "value": "鸿蒙应用开发"
     },
     {
       "name": "scenario_1_prompt",
@@ -1758,7 +1974,7 @@
     },
     {
       "name": "scenario_2_text",
-      "value": "2 周搞定期末复习"
+      "value": "期末复习计划"
     },
     {
       "name": "scenario_2_prompt",
@@ -1766,7 +1982,7 @@
     },
     {
       "name": "scenario_3_text",
-      "value": "1 月刷完 HOT 100"
+      "value": "算法面试准备"
     },
     {
       "name": "scenario_3_prompt",
@@ -1774,31 +1990,31 @@
     },
     {
       "name": "scenario_4_text",
-      "value": "12 周减脂 10 斤"
+      "value": "健身减脂计划"
     },
     {
       "name": "scenario_4_prompt",
       "value": "12 周健身减脂计划，配合科学饮食，目标减重 10 公斤"
     },
     {
+      "name": "scenario_accessibility_prefix",
+      "value": "场景："
+    },
+    {
       "name": "scenario_5_text",
-      "value": "规划 5 天青岛旅行"
+      "value": "考研备考计划"
     },
     {
       "name": "scenario_5_prompt",
-      "value": "规划一次 5 天的青岛旅行，包含每日行程、预算明细与必备物品清单"
+      "value": "6 个月考研备考计划，每天 4 小时，目标总分 380"
     },
     {
       "name": "scenario_6_text",
-      "value": "21 天早起打卡"
+      "value": "论文写作规划"
     },
     {
       "name": "scenario_6_prompt",
-      "value": "养成 6:30 早起的习惯，制定 21 天打卡计划，包含睡前准备与激励奖励"
-    },
-    {
-      "name": "scenario_accessibility_prefix",
-      "value": "场景："
+      "value": "3 个月完成一篇毕业论文，从选题、文献综述到定稿"
     },
     {
       "name": "ai_onboarding_title",
@@ -2025,10 +2241,6 @@
       "value": "输入你的目标，或对上一轮结果微调..."
     },
     {
-      "name": "chat_input_count",
-      "value": "%d/%max"
-    },
-    {
       "name": "chat_loading_hint",
       "value": "AI 正在思考..."
     },
@@ -2201,6 +2413,10 @@
       "value": "分类筛选："
     },
     {
+      "name": "acc_empty_illustration",
+      "value": "空状态插图"
+    },
+    {
       "name": "eisenhower_entry_button",
       "value": "四象限"
     },
@@ -2270,7 +2486,7 @@
     },
     {
       "name": "reason_gesture_detection",
-      "value": "用于智能调整悬浮按钮位置"
+      "value": "用于只能调整悬浮按钮位置"
     },
     {
       "name": "reason_real_time_activity",
@@ -2621,10 +2837,6 @@
       "value": "已停止本次专注"
     },
     {
-      "name": "pomo_stop_confirm_message",
-      "value": "确定停止本次专注吗？当前轮次将不会计入完成次数。"
-    },
-    {
       "name": "pomo_task_info_missing",
       "value": "任务信息缺失"
     },
@@ -2869,38 +3081,6 @@
       "value": "截止日期"
     },
     {
-      "name": "goal_detail_priority_label",
-      "value": "优先级"
-    },
-    {
-      "name": "goal_detail_deadline_clear",
-      "value": "清除"
-    },
-    {
-      "name": "goal_detail_estimated_time_label",
-      "value": "预计耗时（可选）"
-    },
-    {
-      "name": "goal_detail_estimated_time_hint",
-      "value": "如 30"
-    },
-    {
-      "name": "duration_unit_min",
-      "value": " 分钟"
-    },
-    {
-      "name": "duration_unit_hour",
-      "value": " 小时"
-    },
-    {
-      "name": "duration_unit_day",
-      "value": " 天"
-    },
-    {
-      "name": "duration_preset_half_day",
-      "value": "半天"
-    },
-    {
       "name": "goal_detail_no_deadline",
       "value": "未设置截止日期"
     },
@@ -2933,44 +3113,20 @@
       "value": "暂无步骤"
     },
     {
-      "name": "pomo_notif_complete_break_text",
-      "value": "可以开始下一轮专注了"
-    },
-    {
-      "name": "pomo_notif_complete_break_title",
-      "value": "休息结束"
-    },
-    {
-      "name": "pomo_notif_complete_focus_text",
-      "value": "任务『%s』已完成一轮专注，休息一下吧"
-    },
-    {
-      "name": "pomo_notif_complete_focus_title",
-      "value": "专注完成"
-    },
-    {
       "name": "pomo_notif_fallback_title",
       "value": "专注当下"
     },
     {
       "name": "pomo_notif_focus_prefix",
-      "value": "🍅 专注中"
+      "value": "🍅 专注中："
     },
     {
       "name": "pomo_notif_paused_prefix",
-      "value": "⏸ 已暂停"
-    },
-    {
-      "name": "pomo_notif_remain_time",
-      "value": "剩余 %s"
+      "value": "⏸ 已暂停 - 剩余 "
     },
     {
       "name": "pomo_notif_rest_prefix",
-      "value": "☕ 休息中"
-    },
-    {
-      "name": "pomo_notif_span_minutes",
-      "value": "本次 %d 分钟"
+      "value": "☕ 休息中："
     },
     {
       "name": "ai_error_network",
@@ -3054,7 +3210,7 @@
     },
     {
       "name": "settings_default_nickname_prefix",
-      "value": "起势用户_"
+      "value": "Momentum用户_"
     },
     {
       "name": "profile_new_user",
@@ -3267,234 +3423,6 @@
     {
       "name": "ai_plan_side_empty",
       "value": "暂无方案，输入目标试试 AI 拆解"
-    },
-    {
-      "name": "chat_image_sent_prefix",
-      "value": "[用户发送了"
-    },
-    {
-      "name": "chat_image_sent_suffix",
-      "value": "张图片]"
-    },
-    {
-      "name": "import_file_filter_label",
-      "value": "JSON 文件"
-    },
-    {
-      "name": "login_error_cert_invalid",
-      "value": "应用证书校验失败，请稍后重试"
-    },
-    {
-      "name": "login_error_empty_openid",
-      "value": "登录失败：未获取到账号信息"
-    },
-    {
-      "name": "login_error_state_csrf",
-      "value": "安全校验失败，请重试"
-    },
-    {
-      "name": "settings_language",
-      "value": "语言"
-    },
-    {
-      "name": "settings_language_default",
-      "value": "跟随系统"
-    },
-    {
-      "name": "settings_language_en",
-      "value": "English"
-    },
-    {
-      "name": "settings_language_restart_toast",
-      "value": "语言已切换，重启应用后生效"
-    },
-    {
-      "name": "settings_language_zh",
-      "value": "简体中文"
-    },
-    {
-      "name": "settings_language_restart_later",
-      "value": "稍后"
-    },
-    {
-      "name": "settings_language_restart_message",
-      "value": "语言已切换，需重启应用才能生效。是否立即重启？建议在没有进行中的操作时重启。"
-    },
-    {
-      "name": "settings_language_restart_now",
-      "value": "立即重启"
-    },
-    {
-      "name": "settings_language_restart_title",
-      "value": "重启应用"
-    },
-    {
-      "name": "ai_plan_collapse_all",
-      "value": "全部收起"
-    },
-    {
-      "name": "ai_plan_expand_all",
-      "value": "全部展开"
-    },
-    {
-      "name": "ai_plan_summary_tasks_suffix",
-      "value": " 个任务"
-    },
-    {
-      "name": "ai_plan_summary_total_infix",
-      "value": " · 共 "
-    },
-    {
-      "name": "ai_task_more_actions",
-      "value": "更多操作"
-    },
-    {
-      "name": "ai_plan_generated_hint",
-      "value": "已生成拆解方案，见右侧 →"
-    },
-    {
-      "name": "ai_plan_latest_badge",
-      "value": "最新"
-    },
-    {
-      "name": "settings_grip_awareness",
-      "value": "智感握姿"
-    },
-    {
-      "name": "settings_grip_awareness_desc",
-      "value": "悬浮按钮跟随左右手握持自动换边"
-    },
-    {
-      "name": "settings_fab_title",
-      "value": "悬浮快捷按钮"
-    },
-    {
-      "name": "settings_fab_desc",
-      "value": "首页与路线页右下角的添加按钮；长按可隐藏，在此重新开启"
-    },
-    {
-      "name": "settings_section_general",
-      "value": "通用"
-    },
-    {
-      "name": "settings_section_sync",
-      "value": "云同步"
-    },
-    {
-      "name": "settings_section_notification",
-      "value": "通知与提醒"
-    },
-    {
-      "name": "settings_section_data",
-      "value": "数据"
-    },
-    {
-      "name": "settings_vibration",
-      "value": "震动反馈"
-    },
-    {
-      "name": "settings_vibration_desc",
-      "value": "任务、步骤完成与番茄钟结束时的震动提示"
-    },
-    {
-      "name": "toast_fab_hidden",
-      "value": "已隐藏，可在「设置 → 悬浮快捷按钮」中重新开启"
-    },
-    {
-      "name": "home_add_todo_title",
-      "value": "添加待办"
-    },
-    {
-      "name": "home_add_todo_placeholder",
-      "value": "要做什么？"
-    },
-    {
-      "name": "home_add_todo_quadrant_label",
-      "value": "放在哪一格"
-    },
-    {
-      "name": "empty_route_filtered_title",
-      "value": "该分类下还没有目标"
-    },
-    {
-      "name": "empty_route_filtered_subtitle",
-      "value": "换个分类看看，或把目标归到这一类"
-    },
-    {
-      "name": "empty_route_filtered_action",
-      "value": "查看全部"
-    },
-    {
-      "name": "empty_route_placeholder",
-      "value": "说说你想达成什么…"
-    },
-    {
-      "name": "empty_route_howto_title",
-      "value": "起势怎么用"
-    },
-    {
-      "name": "empty_route_step1",
-      "value": "说一句你想达成的事"
-    },
-    {
-      "name": "empty_route_step2",
-      "value": "AI 拆成一条可执行的路线"
-    },
-    {
-      "name": "empty_route_step3",
-      "value": "每天推进一点，进度自动累积"
-    },
-    {
-      "name": "empty_route_examples_title",
-      "value": "试试这些"
-    },
-    {
-      "name": "empty_route_example1",
-      "value": "3 个月跑完半马"
-    },
-    {
-      "name": "empty_route_example2",
-      "value": "30 天读完 3 本书"
-    },
-    {
-      "name": "empty_route_example3",
-      "value": "6 个月通过 CET-6"
-    },
-    {
-      "name": "liveview_title_focus",
-      "value": "专注中"
-    },
-    {
-      "name": "liveview_title_break",
-      "value": "休息中"
-    },
-    {
-      "name": "liveview_state_running",
-      "value": "计时中"
-    },
-    {
-      "name": "liveview_state_paused",
-      "value": "已暂停"
-    },
-    {
-      "name": "btn_complete_all_steps",
-      "value": "完成全部步骤"
-    },
-    {
-      "name": "btn_completed_undo",
-      "value": "已完成 · 取消"
-    },
-    {
-      "name": "task_detail_steps_progress_prefix",
-      "value": "已完成 "
-    },
-    {
-      "name": "task_detail_steps_progress_suffix",
-      "value": " 步"
-    },
-    {
-      "name": "task_detail_complete_all_hint",
-      "value": "会一并完成上面所有步骤"
     }
   ]
 }
