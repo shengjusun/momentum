@@ -13,11 +13,15 @@
  */
 
 import { routeVM } from '../viewmodel/RoutePageViewModel'
+import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
+import { DimensConstants } from '../common/constants/DimensConstants'
 import { GoalCardItem, RouteParam, GoalDetailRouteNavParam } from '../model/Models'
 import { globalNavStack, ROUTE_NAME } from '../common/RouterManager'
 import { Logger } from '../common/utils/Logger'
 import { safeStringUtil, safeNumberUtil, formatDeadlineUtil } from '../common/utils/SafeUtils'
 import { CommonTitleBar } from '../common/components/CommonTitleBar'
+import { MotionConstants } from '../common/constants/MotionConstants'
+import { eventBus, EventType, GoalProgressChangedPayload } from '../common/event/AppEventBus'
 
 /**
  * 目标历史页懒加载数据源
@@ -70,6 +74,33 @@ export struct GoalHistoryPage {
   @Local dataSource: GoalHistoryDataSource = new GoalHistoryDataSource()
 
   private readonly tag: string = 'GoalHistoryPage'
+
+  /**
+   * 目标进度变化订阅 ID（-1 = 未订阅）
+   *
+   * ⚠️ 本页 `dataSource` 是 `routeVM.liveGoals` 的**手写快照**，只在 `onReady` / `onShown`
+   *    时重建 ⇒ 若停留本页期间进度发生变化（云同步落地、或目标首次达成会让它换分类桶），
+   *    列表与百分比会停在旧值。补上与 RoutePage / GoalDetailPage 同口径的订阅，
+   *    三处消费端保持一致（2026-10-10）。
+   */
+  private progressCallbackId: number = -1
+
+  aboutToAppear(): void {
+    this.progressCallbackId = eventBus.on(EventType.GOAL_PROGRESS_CHANGED,
+      (payload: Object): void => {
+        const data: GoalProgressChangedPayload = payload as GoalProgressChangedPayload
+        Logger.info(this.tag, 'GOAL_PROGRESS_CHANGED: goalId=' + data.goalId +
+          ', progress=' + data.progress.toString() + ' → resync dataSource')
+        this.updateDataSource()
+      })
+  }
+
+  aboutToDisappear(): void {
+    if (this.progressCallbackId !== -1) {
+      eventBus.off(EventType.GOAL_PROGRESS_CHANGED, this.progressCallbackId)
+      this.progressCallbackId = -1
+    }
+  }
 
   /**
    * NavDestination onReady 回调，获取路由参数
@@ -169,7 +200,8 @@ export struct GoalHistoryPage {
    */
   private updateDataSource(): void {
     const filtered: GoalCardItem[] = []
-    const goals: GoalCardItem[] = routeVM.goals
+    // 历史列表只展示存活目标（墓碑不参与展示）
+    const goals: GoalCardItem[] = routeVM.liveGoals
     for (let i: number = 0; i < goals.length; i++) {
       const goal: GoalCardItem = goals[i]
       if (goal && goal.id && Array.isArray(goal.tasks) && goal.tasks.length > 0 && this.matchStatus(goal)) {
@@ -216,7 +248,7 @@ export struct GoalHistoryPage {
               .fontColor($r('app.color.primary_color'))
               .backgroundColor($r('app.color.bg_tag'))
               .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(4)
+              .borderRadius(DimensConstants.RADIUS_XS)
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
@@ -255,7 +287,7 @@ export struct GoalHistoryPage {
     .padding(12)
     .backgroundColor(this.pressedGoalId === goal.id ?
       $r('app.color.bg_tag') : $r('app.color.bg_card'))
-    .borderRadius(16)
+    .borderRadius(DimensConstants.RADIUS_L)
     .shadow({
       radius: this.pressedGoalId === goal.id ? 4 : 8,
       color: $r('app.color.shadow_card'),
@@ -266,7 +298,7 @@ export struct GoalHistoryPage {
       x: this.pressedGoalId === goal.id ? 0.98 : 1,
       y: this.pressedGoalId === goal.id ? 0.98 : 1
     })
-    .animation({ duration: 100, curve: Curve.EaseOut })
+    .animation(MotionConstants.pressParam())
     .accessibilityText(
       getContext(this).resourceManager.getStringSync($r('app.string.acc_goal_history_card').id) + ' ' +
       safeStringUtil(goal.name, getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_goal').id)) +
@@ -303,7 +335,7 @@ export struct GoalHistoryPage {
           .fontSize(14)
           .fontColor($r('app.color.text_tertiary'))
       } else if (this.statusFilter === 'overdue') {
-        Text($r('app.string.profile_stat_overdue'))
+        Text($r('app.string.goal_history_empty_overdue'))
           .fontSize(14)
           .fontColor($r('app.color.text_tertiary'))
       } else {
@@ -329,7 +361,7 @@ export struct GoalHistoryPage {
     }
     .width('100%')
     .layoutWeight(1)
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+    .padding({ left: 16, right: 16, top: 12, bottom: safeAreaHelper.getBottomWith(12) })
   }
 
   build() {

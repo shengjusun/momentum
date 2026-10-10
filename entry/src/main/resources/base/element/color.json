@@ -140,6 +140,7 @@
     { "name": "icon_text_gray", "value": "#8E8E93" },
 
     { "name": "tab_bar_border", "value": "#14000000" },
-    { "name": "tab_bar_tint", "value": "#00000000" }
+    { "name": "tab_bar_tint", "value": "#00000000" },
+    { "name": "scroll_fade_end", "value": "#00FFFFFF" }
   ]
 }

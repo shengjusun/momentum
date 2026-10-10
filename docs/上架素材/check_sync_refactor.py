@@ -1642,6 +1642,54 @@ chk('云库权限：两对象的 Authenticated 均为空（防"任何登录用�
 chk('云库权限：Creator 保留 Read+Upsert+Delete（收太狠会断掉自己的同步与反馈）',
     not _creator_bad, 'creator: %s' % ','.join(_creator_bad))
 
+# ---------------------------------------------------------------- 22. 组件字段名不得与 ArkUI 通用属性撞名
+# 背景（2026-10-10 实测踩中）：V2 组件（`@ComponentV2 struct`）的基类是 `CustomComponent`，
+#   它实现了 `CommonMethod` —— 即**全部通用属性方法**（size / width / height / id / key /
+#   opacity / rotate / clip …）。把 `@Param` / `@Local` / `@Event` 等字段命名为其中任一个，
+#   会**直接编译报错**：
+#     10505001 Property 'size' in type 'X' is not assignable to the same property in base
+#              type 'CustomComponent'. Type 'number' is not assignable to type
+#              '(value: SizeOptions) => CommonAttribute'
+#   本工程实测：`StepCheckCircle` 的 `@Param size` 踩中（已改名 `diameter`）。
+# ⚠️ 名单由 SDK `component/common.d.ts` 的 CommonMethod 块导出（生成于 2026-10-10），
+#    另含 CustomComponent 自身成员；SDK 升级若新增通用属性，重新导出即可
+#    （`.workbuddy/_param_name_audit.py` 会直接读 SDK 自动比对，可交叉验证）。
+_COMMON_METHOD_MEMBERS = set("""
+    aboutToAppear aboutToDisappear aboutToRecycle aboutToReuse align alignRules alignSelf allowDrop animation
+    aspectRatio backdropBlur background backgroundBlurStyle backgroundColor backgroundEffect backgroundFilter backgroundImage backgroundImagePosition
+    backgroundImageResizable backgroundImageSize bindPopup bindTips blendMode blur border borderColor borderImage
+    borderRadius borderStyle borderWidth brightness build chainMode chainWeight clickEffect clip
+    clipShape colorBlend compositingFilter constraintSize contrast customProperty defaultFocus direction displayPriority
+    dragPreview dragPreviewOptions draggable drawModifier enableClickSoundEffect enabled expandSafeArea flexBasis flexGrow
+    flexShrink focusBox focusOnTouch focusScopeId focusScopePriority focusable foregroundBlurStyle foregroundColor foregroundEffect
+    foregroundFilter freeze geometryTransition gesture grayscale gridOffset gridSpan groupDefaultFocus height
+    hitTestBehavior hoverEffect hueRotate id ignoreLayoutSafeArea invert key layoutGravity layoutWeight
+    linearGradient linearGradientBlur margin markAnchor mask maskShape materialFilter motionBlur motionPath
+    mouseResponseRegion nextFocus offset onAccessibilityHover onAccessibilityHoverTransparent onAppear onAreaChange onAttach onAxisEvent
+    onBlur onChildTouchTest onClick onDetach onDigitalCrown onDisAppear onDragEnd onDragEnter onDragLeave
+    onDragMove onDragStart onDrop onFocus onFocusAxisEvent onHover onHoverMove onKeyEvent onKeyEventDispatch
+    onKeyPreIme onMouse onPreDrag onTouch opacity outline outlineColor outlineRadius outlineStyle
+    outlineWidth overlay padding parallelGesture pixelRound position priorityGesture radialGradient renderGroup
+    responseRegion responseRegionList rotate safeAreaPadding saturate scale sepia shadow sharedTransition
+    size sweepGradient systemBarEffect tabIndex tabStop toolbar touchable transform transform3D
+    transition translate useEffect useShadowBatching useSizeType visibility visualEffect width zIndex
+""".split())
+
+_DECO_FIELD = re.compile(r'@(?:Param|Local|Event|Provider|Consumer|Monitor|BuilderParam|Once)\s+([A-Za-z_$][\w$]*)')
+_field_conflicts = []
+for _fp in all_ets:
+    try:
+        _fcode = io.open(_fp, encoding='utf-8').read()
+    except Exception:
+        continue
+    for _fm in _DECO_FIELD.finditer(_fcode):
+        if _fm.group(1) in _COMMON_METHOD_MEMBERS:
+            _field_conflicts.append('%s:%d %s' % (
+                os.path.relpath(_fp, ETS).replace(os.sep, '/'),
+                _fcode.count('\n', 0, _fm.start()) + 1, _fm.group(1)))
+chk('组件字段名不与 ArkUI 通用属性方法撞名（撞名 = 编译错 10505001）',
+    not _field_conflicts, '冲突: %s' % ' | '.join(_field_conflicts[:6]))
+
 # ---------------------------------------------------------------- 输出
 lines = []
 ok_all = True

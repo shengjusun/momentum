@@ -21,7 +21,10 @@ import { GoalCardItem } from '../model/RouteModels'
 import { homeVM } from '../viewmodel/HomeViewModel'
 import { globalNavStack } from '../common/RouterManager'
 import { settingsVM } from '../viewmodel/SettingsViewModel'
-import { CommonTitleBar } from '../common/components/CommonTitleBar'
+import { CommonTitleBar, TITLE_BAR_HEIGHT } from '../common/components/CommonTitleBar'
+import { MetaInfoRow } from '../common/components/ui/MetaInfoRow'
+import { StepCheckCircle } from '../common/components/ui/StepCheckCircle'
+import { ScrollLinkHelper } from '../common/utils/ScrollLinkHelper'
 import { AppActionSheet, AppActionSheetItem } from '../common/components/AppActionSheet'
 import { StateView, StateMode } from '../common/components/StateView'
 import { PomodoroTimerCard } from '../common/components/PomodoroTimerCard'
@@ -30,6 +33,7 @@ import { pomodoroService, PomodoroPhase } from '../common/services/PomodoroServi
 import { safeAreaHelper } from '../common/utils/SafeAreaHelper'
 import { MotionConstants } from '../common/constants/MotionConstants'
 import { MotionHelper } from '../common/utils/MotionHelper'
+import { hapticFeedback } from '../common/services/HapticFeedback'
 
 /**
  * 任务详情页
@@ -97,6 +101,17 @@ export struct TaskDetailPage {
   @Local showActionSheet: boolean = false
   @Local actionSheetTitle: string = ''
   @Local actionSheetItems: AppActionSheetItem[] = []
+  /** 添加步骤：幽灵行是否展开为输入态（默认收起，保持步骤卡视觉轻量） */
+  @Local showAddStepInput: boolean = false
+  /** 完成庆祝脉冲：英雄区环形进度容器的缩放值（1 = 常态），全部完成瞬间弹一下 */
+  @Local heroScale: number = 1
+  /**
+   * 标题栏滚动联动进度（0~1）——驱动栏底色、分割线与栏下渐隐遮罩（见 CommonTitleBar.scrollProgress）。
+   * 初值 0 = 未滚动（栏与页面同色、无分割线），外观与改造前的静态栏完全一致。
+   */
+  @Local titleBarProgress: number = 0
+  /** 内容滚动控制器：用于取绝对偏移（onDidScroll 回调参数是每帧增量，不能直接用） */
+  private taskScroller: Scroller = new Scroller()
   /** 番茄钟完成回调 ID（注销用） */
   private focusCompleteCbId: number = -1
   /** 沉浸屏可见性回调 ID（注销用；多订阅模式下必须按 id 注销，不能整表清空） */
@@ -151,6 +166,13 @@ export struct TaskDetailPage {
     const total: number = this.stepTotal
     if (total === 0) return this.isTaskCompleted ? 100 : 0
     return Math.round((this.stepCompletedCount / total) * 100)
+  }
+
+  /** 截止是否已逾期（含有效截止时间才算；供英雄卡元信息行复用，避免多处重复 <= 判定） */
+  @Computed
+  get isDeadlineOverdue(): boolean {
+    const l2: AiGeneratedTask | null = this.l2Task
+    return l2 !== null && l2.deadline > 0 && l2.deadline <= Date.now()
   }
 
   /** 刷新聚焦统计摘要（页面加载与每轮专注完成时调用） */
@@ -335,17 +357,11 @@ export struct TaskDetailPage {
   @Builder
   StepItemBuilder(step: TaskStep, index: number): void {
     Row({ space: 10 }) {
-      // 勾选圈：Checkbox 仅作纯视觉（18），外包 44×44 热区容器（触控规范）。
-      // ⚠️ 事件不能挂在 Checkbox 上：HitTestMode.Block 会「阻塞子节点 + 祖先节点」的触摸测试
-      //    （官方枚举原文），Checkbox 收不到触摸 → onChange 永不触发。
-      //    故由容器自己 onClick 接管勾选，并借 Block 阻断父级整行 onClick（点勾不进入编辑态）。
-      //    同款写法见 HomePage.CheckboxComponent。
+      // 自定义圆形勾选（公共件 StepCheckCircle，与目标详情页同款）：未完成 = 描边圆，
+      // 完成 = 实心主色圆 + 白对勾弹性"打进去"。⚠️ 事件范式不变：仍由外层 44×44 热区容器
+      // 接管 onClick（HitTestMode.Block 阻断父级整行 onClick，点勾不进入编辑态）。
       Row() {
-        Checkbox()
-          .select(step.isCompleted)
-          .selectedColor($r('app.color.success_color'))
-          .width(18).height(18)
-          .hitTestBehavior(HitTestMode.None)
+        StepCheckCircle({ completed: step.isCompleted })
       }
       .constraintSize({ minWidth: DimensConstants.TOUCH_COMFORT, minHeight: DimensConstants.TOUCH_COMFORT })
       .justifyContent(FlexAlign.Center)
@@ -552,6 +568,7 @@ export struct TaskDetailPage {
           // 刷新 L2 任务引用
           this.loadL2Task()
           this.newStepText = ''
+          this.showAddStepInput = false
           Logger.info('TaskDetailPage', 'addStep success via routeVM, text=' + text)
           promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.toast_step_added').id) })
           return
@@ -572,8 +589,41 @@ export struct TaskDetailPage {
     currentSteps.push(newStep)
     this.task.steps = currentSteps
     this.newStepText = ''
+    this.showAddStepInput = false
     Logger.info('TaskDetailPage', 'addStep, text=' + text + ' (UI only, not persisted)')
     promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.task_detail_toast_step_added').id), duration: 1500 })
+  }
+
+  /**
+   * 同步标题栏滚动联动进度（挂在 `Scroll.onDidScroll`，每帧回调）
+   *
+   * ⚠️ `onDidScroll` 的回调参数是**每帧增量**（`ScrollOnScrollCallback(xOffset, yOffset, scrollState)`），
+   *    不是绝对位置 ⇒ 必须用 `Scroller.currentOffset()` 取绝对偏移，否则会越滚越飘。
+   * ⚠️ 只做状态赋值、**绝不挂 `.animation()`**：滚动本身连续，再叠补间会拖尾、手感变黏。
+   * ⚠️ 回弹（overscroll）时 yOffset 为正数，clamp 到 0，避免"下拉时栏反而越拉越透明"。
+   */
+  private syncTitleBarProgress(): void {
+    // 换算与阈值统一走 ScrollLinkHelper（与目标详情页同一手感，改一处两页同时生效）
+    const progress: number = ScrollLinkHelper.progressFromOffset(this.taskScroller.currentOffset().yOffset)
+    if (Math.abs(progress - this.titleBarProgress) > ScrollLinkHelper.MIN_DELTA) {
+      this.titleBarProgress = progress
+    }
+  }
+
+  /**
+   * 完成庆祝脉冲（L3 情绪节点）：英雄区环形进度"弹一下"。
+   * 用 animateTo 驱动 heroScale 1 → 1.09 → 1，弹簧收尾；仅在用户手动完成时触发，
+   * 数据恢复 / 云同步落地路径禁止调用（与 HapticFeedback 的调用约束一致）。
+   */
+  private pulseHero(): void {
+    animateTo(MotionConstants.springParam(0.28, 0.55), (): void => {
+      this.heroScale = 1.09
+    })
+    setTimeout((): void => {
+      animateTo(MotionConstants.springParam(0.34, 0.7), (): void => {
+        this.heroScale = 1
+      })
+    }, 170)
   }
 
   /**
@@ -599,6 +649,15 @@ export struct TaskDetailPage {
           //   （isTaskCompleted / stepCompletedCount / stepProgressPercent 均为 @Computed）
           // - ForEach key 用稳定 step.id，步骤圆圈则由 StepItemBuilder 直读 @Trace 刷新
           this.loadL2Task()
+          // 触觉反馈（仅用户动作写点）：勾选完成 = 轻点；连带把整任务勾满 = 中震 + 庆祝脉冲。
+          // 此刻 stepTotal>0 且全部勾满，必然是"首次抵达完成"，无需额外状态判定。
+          if (newStatus) {
+            hapticFeedback.stepCompleted()
+            if (this.stepTotal > 0 && this.stepCompletedCount === this.stepTotal) {
+              hapticFeedback.taskCompleted()
+              this.pulseHero()
+            }
+          }
           Logger.info('TaskDetailPage', 'toggleStep success via routeVM, index=' +
             index.toString() + ', newStatus=' + newStatus.toString())
           return
@@ -738,6 +797,11 @@ export struct TaskDetailPage {
           // 刷新 L2 引用（routeVM 内部可能整体替换代理）+ 同步本地快照完成态
           this.loadL2Task()
           this.task.isCompleted = newCompleted
+          // 完成（而非取消完成）时给情绪反馈：中震 + 英雄区庆祝脉冲
+          if (newCompleted) {
+            hapticFeedback.taskCompleted()
+            this.pulseHero()
+          }
           Logger.info('TaskDetailPage', 'toggleTaskComplete: success via routeVM.setTaskCompletion')
           promptAction.showToast({ message: toastMsg })
           return
@@ -881,48 +945,63 @@ export struct TaskDetailPage {
         .onClick((): void => { this.cancelEditTask() })
 
       // 编辑面板
-      Column({ space: 14 }) {
+      Column({ space: 16 }) {
         Text($r('app.string.edit_task_panel_title'))
           .fontSize(CommonConstants.FONT_SIZE_TITLE)
           .fontWeight(FontWeight.Bold)
-          
           .fontColor($r('app.color.text_primary'))
-
-        // 任务名称输入
-        TextInput({ text: this.editTaskName, placeholder: $r('app.string.edit_task_name_hint') })
-          .type(InputType.Normal)
           .width('100%')
-          .height(44)
-          .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
-          .backgroundColor($r('app.color.bg_page'))
-          .borderRadius(DimensConstants.RADIUS_M)
-          .padding({ left: 12, right: 12 })
-          .onChange((value: string): void => { this.editTaskName = value })
 
-        // 预估时长输入（数值 + 分钟/小时/天单位）
+        // ===== 基本信息 =====
+        this.EditSectionHeader($r('app.string.edit_task_section_basic'))
         Row({ space: 8 }) {
+          SymbolGlyph($r('sys.symbol.doc_text'))
+            .fontSize(16)
+            .fontColor([$r('app.color.text_tertiary')])
+            .margin({ left: 4 })
+          TextInput({ text: this.editTaskName, placeholder: $r('app.string.edit_task_name_hint') })
+            .type(InputType.Normal)
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
+            .backgroundColor(Color.Transparent)
+            .padding({ left: 4, right: 12 })
+            .onChange((value: string): void => { this.editTaskName = value })
+        }
+        .width('100%')
+        .backgroundColor($r('app.color.bg_page'))
+        .borderRadius(DimensConstants.RADIUS_M)
+        .padding({ right: 4 })
+        .alignItems(VerticalAlign.Center)
+
+        // ===== 时间安排 =====
+        this.EditSectionHeader($r('app.string.edit_task_section_time'))
+        Row({ space: 8 }) {
+          SymbolGlyph($r('sys.symbol.timer'))
+            .fontSize(16)
+            .fontColor([$r('app.color.text_tertiary')])
+            .margin({ left: 4 })
           TextInput({ text: this.editTaskDuration, placeholder: $r('app.string.edit_task_duration_hint') })
             .type(InputType.Number)
             .layoutWeight(1)
             .height(44)
             .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
-            .backgroundColor($r('app.color.bg_page'))
-            .borderRadius(DimensConstants.RADIUS_M)
-            .padding({ left: 12, right: 12 })
+            .backgroundColor(Color.Transparent)
+            .padding({ left: 4, right: 12 })
             .onChange((value: string): void => { this.editTaskDuration = value })
           ForEach(this.durationUnitOptions, (unit: number) => {
             Text(this.durationUnitLabel(unit))
               .fontSize(CommonConstants.FONT_SIZE_XS)
-              .fontColor(this.editTaskDurationUnit === unit ?
-                $r('app.color.text_inverse') : $r('app.color.text_secondary'))
-              .backgroundColor(this.editTaskDurationUnit === unit ?
-                $r('app.color.primary_color') : $r('app.color.bg_tag'))
+              .fontColor(this.editTaskDurationUnit === unit ? $r('app.color.primary_color') : $r('app.color.text_secondary'))
+              .backgroundColor(this.editTaskDurationUnit === unit ? $r('app.color.primary_color_bg') : $r('app.color.bg_tag'))
+              .border({ width: 0.5, color: this.editTaskDurationUnit === unit ? $r('app.color.primary_color') : Color.Transparent })
               .borderRadius(DimensConstants.RADIUS_M)
               .padding({ left: 10, right: 10, top: 5, bottom: 5 })
               .onClick((): void => { this.editTaskDurationUnit = unit })
           }, (unit: number): string => 'edit_unit_' + unit.toString())
         }
         .width('100%')
+        .alignItems(VerticalAlign.Center)
 
         // 快捷档位
         Flex({ wrap: FlexWrap.Wrap }) {
@@ -936,26 +1015,6 @@ export struct TaskDetailPage {
               .margin({ right: 6, bottom: 6 })
               .onClick((): void => { this.applyPreset(minutes) })
           }, (minutes: number): string => 'edit_preset_' + minutes.toString())
-        }
-        .width('100%')
-
-        // 优先级选择（高/中/低）
-        Row({ space: 8 }) {
-          Text($r('app.string.goal_detail_priority_label'))
-            .fontSize(CommonConstants.FONT_SIZE_XS)
-            .fontColor($r('app.color.text_secondary'))
-            .layoutWeight(1)
-          ForEach([TaskPriority.HIGH, TaskPriority.MEDIUM, TaskPriority.LOW], (p: TaskPriority) => {
-            Text(this.editPriorityLabel(p))
-              .fontSize(CommonConstants.FONT_SIZE_XS)
-              .fontColor(this.editTaskPriority === p ?
-                $r('app.color.text_inverse') : $r('app.color.text_secondary'))
-              .backgroundColor(this.editTaskPriority === p ?
-                $r('app.color.primary_color') : $r('app.color.bg_tag'))
-              .borderRadius(DimensConstants.RADIUS_M)
-              .padding({ left: 12, right: 12, top: 5, bottom: 5 })
-              .onClick((): void => { this.editTaskPriority = p })
-          }, (p: TaskPriority): string => 'edit_prio_' + p.toString())
         }
         .width('100%')
 
@@ -985,6 +1044,24 @@ export struct TaskDetailPage {
         .backgroundColor($r('app.color.bg_page'))
         .borderRadius(DimensConstants.RADIUS_M)
         .onClick((): void => { this.showEditDeadlinePicker() })
+
+        // ===== 优先级 =====
+        this.EditSectionHeader($r('app.string.goal_detail_priority_label'))
+        Row({ space: 8 }) {
+          ForEach([TaskPriority.HIGH, TaskPriority.MEDIUM, TaskPriority.LOW], (p: TaskPriority) => {
+            Text(this.editPriorityLabel(p))
+              .fontSize(CommonConstants.FONT_SIZE_XS)
+              .fontColor(this.editTaskPriority === p ? $r('app.color.primary_color') : $r('app.color.text_secondary'))
+              .backgroundColor(this.editTaskPriority === p ? $r('app.color.primary_color_bg') : $r('app.color.bg_tag'))
+              .border({ width: 0.5, color: this.editTaskPriority === p ? $r('app.color.primary_color') : Color.Transparent })
+              .borderRadius(DimensConstants.RADIUS_M)
+              .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+              .layoutWeight(1)
+              .textAlign(TextAlign.Center)
+              .onClick((): void => { this.editTaskPriority = p })
+          }, (p: TaskPriority): string => 'edit_prio_' + p.toString())
+        }
+        .width('100%')
 
         // 象限实时预览：把"优先级 × 截止时间 → 四象限"的换算关系显性化
         Row({ space: 8 }) {
@@ -1199,104 +1276,139 @@ export struct TaskDetailPage {
     return capped
   }
 
-  /** 任务信息区：概览卡（菜单已收进标题栏右侧） */
+  /** 任务信息区：英雄卡（优先级圆点胶囊 + 完成度环形进度锚点 + 图标底块元信息，2026-10-10 精致化） */
   @Builder
   TaskInfoBuilder() {
-    // 顶部：任务信息卡
-    Column({ space: 10 }) {
-      // 优先级徽标（小标签，置于标题上方建立层级）
-      Row({ space: 6 }) {
-        Text(priorityLabelUtil(this.task.priority))
-          .fontSize(CommonConstants.FONT_SIZE_XS)
-          .fontColor(priorityTextColorUtil(this.task.priority))
-          .fontWeight(FontWeight.Medium)
+    Column({ space: 12 }) {
+      // 第一行：优先级胶囊（彩色圆点）+ 右侧完成度环形进度（有 L3 步骤时作为视觉锚点）
+      Row() {
+        Row({ space: 6 }) {
+          Row({ space: 5 }) {
+            Circle({ width: 6, height: 6 }).fill(priorityTextColorUtil(this.task.priority))
+            Text(priorityLabelUtil(this.task.priority))
+              .fontSize(CommonConstants.FONT_SIZE_XS)
+              .fontColor(priorityTextColorUtil(this.task.priority))
+              .fontWeight(FontWeight.Medium)
+          }
           .backgroundColor(priorityBgColorUtil(this.task.priority))
-          .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-          .borderRadius(6)
-        if (this.isTaskCompleted) {
-          Text($r('app.string.btn_completed'))
-            .fontSize(CommonConstants.FONT_SIZE_XS)
-            .fontColor($r('app.color.success_color'))
-            .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-            .backgroundColor($r('app.color.status_completed_bg'))
-            .borderRadius(6)
+          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+          .borderRadius(DimensConstants.RADIUS_XS)
+
+          if (this.isTaskCompleted) {
+            Text($r('app.string.btn_completed'))
+              .fontSize(CommonConstants.FONT_SIZE_XS)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.success_color'))
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+              .backgroundColor($r('app.color.status_completed_bg'))
+              .borderRadius(DimensConstants.RADIUS_XS)
+          }
+        }
+
+        Blank()
+
+        // 完成度环形进度：任务详情页的视觉锚点（渐变描边 + 数字居中）。
+        // heroScale 由完成瞬间的 pulseHero() 驱动弹一下（L3 情绪节点）。
+        if (this.stepTotal > 0) {
+          Stack({ alignContent: Alignment.Center }) {
+            Progress({ value: this.stepProgressPercent, total: 100, type: ProgressType.Ring })
+              .width(52)
+              .height(52)
+              .style({ strokeWidth: 5 })
+              .color({
+                angle: 90,
+                colors: [[$r('app.color.primary_color'), 0], [$r('app.color.primary_color_light'), 1]]
+              })
+            Text(this.stepProgressPercent.toString() + '%')
+              .fontSize(CommonConstants.FONT_SIZE_XXS)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.isTaskCompleted ? $r('app.color.success_color') : $r('app.color.text_primary'))
+          }
+          .scale({ x: this.heroScale, y: this.heroScale })
         }
       }
       .width('100%')
-      .justifyContent(FlexAlign.Start)
+      .alignItems(VerticalAlign.Center)
 
+      // 标题（英雄区主标题，加大加粗建立层级）
       Text(safeStringUtil(this.task.title, getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id)))
-        .fontSize(CommonConstants.FONT_SIZE_TITLE)
+        .fontSize(CommonConstants.FONT_SIZE_LARGE)
         .fontWeight(FontWeight.Bold)
-        
         .fontColor(this.isTaskCompleted ? $r('app.color.text_tertiary') : $r('app.color.text_primary'))
-        .width('100%').maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-      // 修复：ArkUI 的条件渲染 if 必须直接判断，不能先声明 const 变量
       if (safeStringUtil(this.task.description, '').length > 0) {
         Text(safeStringUtil(this.task.description, ''))
           .fontSize(CommonConstants.FONT_SIZE_SMALL)
           .fontColor($r('app.color.text_secondary'))
-          
-          .width('100%').maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+          .maxLines(3)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
 
-      // 元信息行 1：预计耗时 + 截止时间（有截止显示截止并标逾期，否则显示创建日期）
-      Row({ space: 16 }) {
-        Row({ space: 4 }) {
-          SymbolGlyph($r('sys.symbol.timer'))
-            .fontSize(CommonConstants.FONT_SIZE_SMALL)
-            .fontColor([$r('app.color.text_tertiary')])
-          Text(formatEstimatedDuration(this.l2Task ? this.l2Task.estimatedTime : 0, getContext(this).resourceManager))
-            .fontSize(CommonConstants.FONT_SIZE_SMALL)
-            .fontColor($r('app.color.text_primary'))
-            
-        }
-        if (this.l2Task !== null && this.l2Task.deadline > 0) {
-          Row({ space: 4 }) {
-            SymbolGlyph($r('sys.symbol.calendar'))
-              .fontSize(CommonConstants.FONT_SIZE_SMALL)
-              .fontColor([this.l2Task.deadline <= Date.now()
-                ? $r('app.color.error_color') : $r('app.color.text_tertiary')])
-            Text(formatDeadlineUtil(this.l2Task.deadline) +
-              (this.l2Task.deadline <= Date.now()
-                ? getContext(this).resourceManager.getStringSync($r('app.string.home_deadline_overdue').id)
-                : ''))
-              .fontSize(CommonConstants.FONT_SIZE_SMALL)
-              .fontColor(this.l2Task.deadline <= Date.now()
-                ? $r('app.color.error_color') : $r('app.color.text_primary'))
-              
-          }
-        } else {
-          Row({ space: 4 }) {
-            SymbolGlyph($r('sys.symbol.calendar'))
-              .fontSize(CommonConstants.FONT_SIZE_SMALL)
-              .fontColor([$r('app.color.text_tertiary')])
-            Text(this.formatCreateTime(this.task.createTime)).fontSize(CommonConstants.FONT_SIZE_SMALL)
-            .fontColor($r('app.color.text_primary'))
-          }
-        }
-      }
-      .width('100%')
+      Divider()
+        .color($r('app.color.divider'))
+        .strokeWidth(0.5)
+        .margin({ top: 2, bottom: 2 })
 
-      // 元信息行 2：所属目标（存在关联目标时展示）
+      // 元信息：图标底块 + 彩色图标 + 单行文字（耗时 / 截止或创建 / 所属目标）
+      MetaInfoRow({
+        icon: $r('sys.symbol.timer'),
+        iconBg: $r('app.color.icon_bg_blue'),
+        iconColor: $r('app.color.icon_text_blue'),
+        text: formatEstimatedDuration(this.l2Task ? this.l2Task.estimatedTime : 0, getContext(this).resourceManager),
+        textColor: $r('app.color.text_primary')
+      })
+
+      if (this.l2Task !== null && this.l2Task.deadline > 0) {
+        MetaInfoRow({
+          icon: $r('sys.symbol.calendar'),
+          iconBg: $r('app.color.icon_bg_orange'),
+          iconColor: $r('app.color.icon_text_orange'),
+          text: formatDeadlineUtil(this.l2Task.deadline) +
+            (this.isDeadlineOverdue
+              ? getContext(this).resourceManager.getStringSync($r('app.string.home_deadline_overdue').id)
+              : ''),
+          textColor: this.isDeadlineOverdue ? $r('app.color.error_color') : $r('app.color.text_primary')
+        })
+      } else {
+        MetaInfoRow({
+          icon: $r('sys.symbol.calendar'),
+          iconBg: $r('app.color.icon_bg_orange'),
+          iconColor: $r('app.color.icon_text_orange'),
+          text: this.formatCreateTime(this.task.createTime),
+          textColor: $r('app.color.text_primary')
+        })
+      }
+
       if (this.goalNameText.length > 0) {
-        Row({ space: 4 }) {
-          SymbolGlyph($r('sys.symbol.flag'))
-            .fontSize(CommonConstants.FONT_SIZE_SMALL)
-            .fontColor([$r('app.color.text_tertiary')])
-          Text(this.goalNameText)
-            .fontSize(CommonConstants.FONT_SIZE_SMALL)
-            .fontColor($r('app.color.text_secondary'))
-            
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-        .width('100%')
+        MetaInfoRow({
+          icon: $r('sys.symbol.flag'),
+          iconBg: $r('app.color.icon_bg_green'),
+          iconColor: $r('app.color.icon_text_green'),
+          text: this.goalNameText,
+          textColor: $r('app.color.text_secondary')
+        })
       }
     }
-    .width('100%').padding(16).backgroundColor($r('app.color.bg_card')).borderRadius(DimensConstants.RADIUS_L)
+    .width('100%')
+    .padding(16)
+    .backgroundColor($r('app.color.bg_card'))
+    .borderRadius(DimensConstants.RADIUS_L)
+    .shadow({ radius: 12, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 4 })
     .margin({ bottom: 12 })
+  }
+
+  /** 编辑面板 section 小标题（11px tertiary，分组建立节奏，2026-10-10） */
+  @Builder
+  EditSectionHeader(title: Resource) {
+    Text(title)
+      .fontSize(CommonConstants.FONT_SIZE_XS)
+      .fontWeight(FontWeight.Medium)
+      .fontColor($r('app.color.text_tertiary'))
+      .width('100%')
   }
 
   /** 标题栏右侧任务菜单按钮（原"..."悬浮按钮收编，建立归属关系） */
@@ -1393,7 +1505,8 @@ export struct TaskDetailPage {
                     Divider()
                       .color($r('app.color.divider'))
                       .strokeWidth(0.5)
-                      .margin({ left: 48, right: 12 })
+                      // 50 = 16(行内边距) + 24(勾选圆) + 10(间距)：分隔线对齐文字起始线
+                      .margin({ left: 50, right: 12 })
                   }
                   this.StepItemBuilder(step, index)
                 }
@@ -1418,26 +1531,44 @@ export struct TaskDetailPage {
             scrollBackward: NestedScrollMode.PARENT_FIRST
           })
 
-          // 添加步骤行：固定在卡片内部底部（修复悬浮遮挡）
-          Row({ space: 8 }) {
-            TextInput({ placeholder: $r('app.string.task_detail_add_step_hint') })
-              .type(InputType.Normal).layoutWeight(1).height(40).fontSize(CommonConstants.FONT_SIZE_BODY)
-              .backgroundColor($r('app.color.bg_page')).borderRadius(DimensConstants.RADIUS_M).padding({ left: 12, right: 12 })
-              .accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.task_detail_add_step_input').id))
-              .onChange((value: string): void => { this.newStepText = value })
-              .onSubmit((keyCode: EnterKeyType): void => {
-                Logger.info('TaskDetailPage', 'onSubmit, keyCode=' + keyCode.toString())
-                this.addStep()
-              })
+          // 添加步骤：默认是一条虚线幽灵行（保持步骤卡视觉轻量、不抢完成按钮的重心），
+          // 点击展开为输入态，添加成功后收回（见 addStep 内 showAddStepInput 复位）。
+          if (this.showAddStepInput) {
+            Row({ space: 8 }) {
+              TextInput({ placeholder: $r('app.string.task_detail_add_step_hint') })
+                .type(InputType.Normal).layoutWeight(1).height(40).fontSize(CommonConstants.FONT_SIZE_BODY)
+                .backgroundColor($r('app.color.bg_page')).borderRadius(DimensConstants.RADIUS_M).padding({ left: 12, right: 12 })
+                .accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.task_detail_add_step_input').id))
+                .onChange((value: string): void => { this.newStepText = value })
+                .onSubmit((keyCode: EnterKeyType): void => {
+                  Logger.info('TaskDetailPage', 'onSubmit, keyCode=' + keyCode.toString())
+                  this.addStep()
+                })
 
-            Button($r('app.string.btn_add_step'))
-              .type(ButtonType.Capsule).height(36).padding({ left: 14, right: 14 })
-              .backgroundColor($r('app.color.primary_color')).fontColor($r('app.color.text_inverse')).fontSize(CommonConstants.FONT_SIZE_SMALL)
-              .enabled(this.newStepText.trim().length > 0).accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.task_detail_add_step_button').id))
-              .onClick((): void => { this.addStep() })
+              Button($r('app.string.btn_add_step'))
+                .type(ButtonType.Capsule).height(36).padding({ left: 14, right: 14 })
+                .backgroundColor($r('app.color.primary_color')).fontColor($r('app.color.text_inverse')).fontSize(CommonConstants.FONT_SIZE_SMALL)
+                .enabled(this.newStepText.trim().length > 0).accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.task_detail_add_step_button').id))
+                .onClick((): void => { this.addStep() })
+            }
+            .width('100%')
+            .padding({ left: 4, right: 4, top: 8 })
+          } else {
+            Row() {
+              Text($r('app.string.task_detail_add_step_row'))
+                .fontSize(CommonConstants.FONT_SIZE_SMALL)
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_tertiary'))
+            }
+            .width('100%')
+            .height(40)
+            .margin({ top: 4 })
+            .justifyContent(FlexAlign.Center)
+            .alignItems(VerticalAlign.Center)
+            .borderRadius(DimensConstants.RADIUS_M)
+            .border({ width: 0.5, style: BorderStyle.Dashed, color: $r('app.color.text_tertiary') })
+            .onClick((): void => { this.showAddStepInput = true })
           }
-          .width('100%')
-          .padding({ left: 4, right: 4, top: 8 })
         }
         .width('100%')
         .padding({ top: 4, bottom: 10 })
@@ -1463,7 +1594,7 @@ export struct TaskDetailPage {
    */
   @Builder
   StepActionsBuilder() {
-    Column({ space: 10 }) {
+    Column({ space: 12 }) {
       // 步骤进度（仅在有 L3 步骤时展示；孤立 L4 任务不适用）
       if (this.stepTotal > 0) {
         Column({ space: 6 }) {
@@ -1476,45 +1607,69 @@ export struct TaskDetailPage {
               .layoutWeight(1)
             Text(this.stepProgressPercent.toString() + '%')
               .fontSize(CommonConstants.FONT_SIZE_XS)
-              .fontColor(this.isTaskCompleted ? $r('app.color.success_color') : $r('app.color.text_tertiary'))
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.isTaskCompleted ? $r('app.color.success_color') : $r('app.color.primary_color'))
           }
           .width('100%')
 
+          // 渐变进度条（未完成 = 主色→浅主色；已完成 = success 单色收尾）
           Progress({ value: this.stepProgressPercent, total: 100, type: ProgressType.Linear })
             .width('100%')
             .height(6)
             .style({ strokeWidth: 6 })
-            .color(this.isTaskCompleted ? $r('app.color.success_color') : $r('app.color.primary_color'))
+            .color(this.isTaskCompleted
+              ? $r('app.color.success_color')
+              : { angle: 90, colors: [[$r('app.color.primary_color'), 0], [$r('app.color.primary_color_light'), 1]] })
             .backgroundColor($r('app.color.bg_progress_track'))
         }
         .width('100%')
       }
 
-      // 完成主按钮（三态文案，见方法注释）
-      Button(this.isTaskCompleted
-        ? $r('app.string.btn_completed_undo')
-        : (this.stepTotal > 0 ? $r('app.string.btn_complete_all_steps') : $r('app.string.btn_mark_complete')))
-        .type(ButtonType.Capsule).height(44).width('100%')
-        .backgroundColor(this.isTaskCompleted ? $r('app.color.status_completed_bg') : $r('app.color.primary_color'))
-        .fontColor(this.isTaskCompleted ? $r('app.color.success_color') : $r('app.color.text_inverse'))
-        .fontSize(CommonConstants.FONT_SIZE_BODY)
-        .fontWeight(FontWeight.Medium)
-        .borderRadius(DimensConstants.RADIUS_XL)
-        // 完成态弱化视觉（去阴影），未完成保持轻阴影引导主操作
-        .shadow(this.isTaskCompleted
-          ? { radius: 0, color: Color.Transparent, offsetX: 0, offsetY: 0 }
-          : { radius: 4, color: $r('app.color.primary_color_bg'), offsetX: 0, offsetY: 2 })
-        .scale({ x: this.pressedCompleteBtn ? 0.97 : 1, y: this.pressedCompleteBtn ? 0.97 : 1 })
-        .animation(MotionConstants.pressParam())
-        .accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.task_detail_mark_complete_button').id))
-        .onTouch((event: TouchEvent): void => {
-          if (event.type === TouchType.Down) {
-            this.pressedCompleteBtn = true
-          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-            this.pressedCompleteBtn = false
-          }
-        })
-        .onClick((): void => { this.toggleTaskComplete() })
+      // 完成主按钮（三态文案，见方法注释）：
+      //   - 未完成 = 渐变主色实心 + 轻投影（引导主操作）
+      //   - 已完成 = success 描边 ghost（克制、明确"可反悔"，比"灰绿实心"更有确认感）
+      if (this.isTaskCompleted) {
+        Button($r('app.string.btn_completed_undo'))
+          .type(ButtonType.Capsule).height(44).width('100%')
+          .backgroundColor(Color.Transparent)
+          .border({ width: 1, color: $r('app.color.success_color') })
+          .fontColor($r('app.color.success_color'))
+          .fontSize(CommonConstants.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .borderRadius(DimensConstants.RADIUS_XL)
+          .scale({ x: this.pressedCompleteBtn ? 0.97 : 1, y: this.pressedCompleteBtn ? 0.97 : 1 })
+          .animation(MotionConstants.pressParam())
+          .accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.task_detail_mark_complete_button').id))
+          .onTouch((event: TouchEvent): void => {
+            if (event.type === TouchType.Down) {
+              this.pressedCompleteBtn = true
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.pressedCompleteBtn = false
+            }
+          })
+          .onClick((): void => { this.toggleTaskComplete() })
+      } else {
+        Button(this.stepTotal > 0 ? $r('app.string.btn_complete_all_steps') : $r('app.string.btn_mark_complete'))
+          .type(ButtonType.Capsule).height(44).width('100%')
+          .backgroundColor($r('app.color.primary_color'))
+          .fontColor($r('app.color.text_inverse'))
+          .fontSize(CommonConstants.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .borderRadius(DimensConstants.RADIUS_XL)
+          .linearGradient({ angle: 135, colors: [[$r('app.color.primary_color'), 0], [$r('app.color.primary_color_light'), 1]] })
+          .shadow({ radius: 6, color: $r('app.color.primary_color_bg'), offsetX: 0, offsetY: 3 })
+          .scale({ x: this.pressedCompleteBtn ? 0.97 : 1, y: this.pressedCompleteBtn ? 0.97 : 1 })
+          .animation(MotionConstants.pressParam())
+          .accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.task_detail_mark_complete_button').id))
+          .onTouch((event: TouchEvent): void => {
+            if (event.type === TouchType.Down) {
+              this.pressedCompleteBtn = true
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.pressedCompleteBtn = false
+            }
+          })
+          .onClick((): void => { this.toggleTaskComplete() })
+      }
 
       // 提示：尚有未完成步骤时说明按钮会连带完成它们
       if (!this.isTaskCompleted && this.stepTotal > 0 && this.stepCompletedCount < this.stepTotal) {
@@ -1525,23 +1680,24 @@ export struct TaskDetailPage {
           .textAlign(TextAlign.Center)
       }
     }
-    .width('100%').padding({ top: 12 })
+    .width('100%')
+    .padding(16)
+    .backgroundColor($r('app.color.bg_card'))
+    .borderRadius(DimensConstants.RADIUS_L)
+    .shadow({ radius: 12, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 4 })
   }
 
   build() {
     NavDestination() {
       Stack() {
+        // ===== 内容区 + 标题栏（覆盖层）=====
+        // 标题栏从「Column 兄弟节点」改为「Stack 覆盖层」——否则内容永远到不了栏下，
+        // 也做不出"内容滚到栏前渐隐"（原先栏不透明且与 Scroll 平级，被硬切成一条边）。
         Column() {
-          CommonTitleBar({
-            title: $r('app.string.page_task_detail'),
-            showBack: true,
-            onBack: (): void => { this.handleBackPress() },
-            rightActions: (): void => {
-              // 任务菜单收进标题栏（原"..."悬浮在标题与内容之间无归属）
-              this.TitleMenuButtonBuilder()
-            }
-          })
-
+          Stack({ alignContent: Alignment.Top }) {
+            // 层 1：内容。Scroll 视口从 y=0 起（**不在外层留顶部内边距**），顶部避让放在
+            //        滚动内容内部 ⇒ 内容才能真正滚到栏下、并被栏底 16vp 渐隐遮罩吃掉。
+            Column() {
         if (this.isLoading) {
           StateView({ mode: StateMode.LOADING, loadingText: $r('app.string.state_loading') })
         } else if (this.loadError) {
@@ -1551,7 +1707,7 @@ export struct TaskDetailPage {
             onRetry: (): void => { this.handleBackPress() }
           })
         } else {
-        Scroll() {
+        Scroll(this.taskScroller) {
         Column() {
           if (breakpointState.isTablet) {
             // 平板（lg）：双栏铺满——左任务信息+番茄钟，右执行步骤+操作
@@ -1574,7 +1730,7 @@ export struct TaskDetailPage {
             .padding({
               left: 16,
               right: 16,
-              top: 12,
+              top: safeAreaHelper.getStatusBar() + TITLE_BAR_HEIGHT + 12,
               bottom: safeAreaHelper.getBottomWith(16)
             })
           } else {
@@ -1595,7 +1751,7 @@ export struct TaskDetailPage {
             .padding({
               left: 16,
               right: 16,
-              top: 12,
+              top: safeAreaHelper.getStatusBar() + TITLE_BAR_HEIGHT + 12,
               bottom: safeAreaHelper.getBottomWith(16)
             })
           }
@@ -1611,9 +1767,29 @@ export struct TaskDetailPage {
       .width('100%')
       .layoutWeight(1)
       .expandSafeArea([SafeAreaType.KEYBOARD])
+      // 滚动联动标题栏：每帧回调里只读绝对偏移做状态赋值（细节见 syncTitleBarProgress）
+      .onDidScroll((): void => { this.syncTitleBarProgress() })
       }
-      }
-      // 宽屏适配：内容列限宽（钳到 640 后由外层 Stack 居中，弹层不限宽）；平板双栏铺满
+            }
+            .width('100%')
+            .height('100%')
+
+            // 层 2：标题栏（覆盖层）——滚动进度驱动底色 / 分割线 / 栏下渐隐遮罩（见 CommonTitleBar）
+            CommonTitleBar({
+              title: $r('app.string.page_task_detail'),
+              showBack: true,
+              onBack: (): void => { this.handleBackPress() },
+              scrollProgress: this.titleBarProgress,
+              rightActions: (): void => {
+                // 任务菜单收进标题栏（原"..."悬浮在标题与内容之间无归属）
+                this.TitleMenuButtonBuilder()
+              }
+            })
+          }
+          .width('100%')
+          .height('100%')
+        }
+        // 宽屏适配：内容列限宽（钳到 640 后由外层 Stack 居中，弹层不限宽）；平板双栏铺满
       .constraintSize(this.getContentConstraint())
       .width('100%')
       .height('100%')

@@ -517,25 +517,32 @@ export class RoutePageViewModel {
         // 为什么必须比（2026-09-17 补）：`filteredGoals`(@Computed) 不依赖单个目标的 progress，
         // 且 RoutePage.goalDataSource 是独立快照、`isGoalDataSourceStale()` 只比「数量 / 首项 id」
         // ⇒ 若合并只改变了进度，路线页既不同步数据源也不重渲染，卡片进度环永远停在旧值。
-        let changedGoalId: Id = ''
-        let changedProgress: number = 0
+        //
+        // ⚠️ 必须**逐个目标**着色：原实现只取「第一个变化的目标」发一条事件，
+        //    而 GoalDetailPage 的订阅回调按 `data.goalId === this.goal.id` 过滤 ⇒
+        //    本页目标若不是数组里第一个变化的那一个，事件会被过滤掉、进度环停在旧值
+        //    （2026-10-10 修复：多目标云落地时"目标详情与路线页进度不同步"）。
+        //    RoutePage 的回调忽略 goalId、做全量 resync，故它一条事件即可覆盖；
+        //    但"一条事件覆盖全部订阅者"的前提对 GoalDetailPage 不成立。
+        const changedGoalIds: string[] = []
         for (let k: number = 0; k < rehydratedGoals.length; k++) {
           const next: GoalCardItem = rehydratedGoals[k]
           const prev: GoalCardItem | null = this.findGoal(next.id)
           if (prev !== null && prev.progress !== next.progress) {
-            changedGoalId = next.id
-            changedProgress = next.progress
-            break
+            changedGoalIds.push(next.id)
           }
         }
 
         // 原子化全量覆盖 —— splice 一次完成"清空 + 插入"，只触发 1 次 @Trace
         this.goals.splice(0, this.goals.length, ...rehydratedGoals)
 
-        // 进度变化 → 复用既有广播出口，让路线页强制重同步数据源
-        // （RoutePage 的订阅回调只做 forceSyncGoalDataSource，故一次事件足以覆盖全部目标）
-        if (changedGoalId.length > 0) {
-          this.notifyGoalProgressChanged(changedGoalId, changedProgress)
+        // 进度变化 → 复用既有广播出口，逐个目标广播（见上方注释）
+        for (let m: number = 0; m < changedGoalIds.length; m++) {
+          const changedId: string = changedGoalIds[m]
+          const changedGoal: GoalCardItem | null = this.findGoal(changedId)
+          if (changedGoal !== null) {
+            this.notifyGoalProgressChanged(changedId, changedGoal.progress)
+          }
         }
       }
       // filterCategory 保持本机值（不采纳云端），见方法头注释第 3 条
@@ -1080,7 +1087,11 @@ export class RoutePageViewModel {
     // 触觉反馈：仅"未完成 → 完成"的跳变轻点一下（取消完成 / 联动写入不经过本函数）
     const wasStepCompleted: boolean = steps[stepIndex].isCompleted === true
     steps[stepIndex].isCompleted = isCompleted === true
-    task.steps = steps
+    // 回写**新数组**（slice 浅拷贝）而非 `task.steps = steps`：V2 对 @Trace 属性赋值
+    // 「引用未变」时**不发通知**，消费端若依赖该通知就会漏刷新。属防御性写法，成本仅一次浅拷贝。
+    // ⚠️ 2026-10-10 真机实测：仅改这一行**并未**修好"重勾步骤后步骤圈不刷新"（见 GoalDetailPage
+    //    的 buildStepsSignature 注释），该问题仍未根治；保留本写法是因为它语义更正确。
+    task.steps = steps.slice()
     if (isCompleted === true && !wasStepCompleted) {
       hapticFeedback.stepCompleted()
     }
@@ -1323,6 +1334,7 @@ export class RoutePageViewModel {
       ', from=' + fromIndex.toString() + ', to=' + toIndex.toString())
     return true
   }
+
 
   findGoal(goalId: Id): GoalCardItem | null {
     for (let i: number = 0; i < this.goals.length; i++) {
