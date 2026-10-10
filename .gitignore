@@ -38,3 +38,7 @@ ui_dump*.xml
 
 # JiuwenSwarm runtime file operation logs
 .agent_history/
+
+# 商业敏感文档 —— 公开仓库不入库（变现方案 / 会员付费相关的 AGC 工单）
+docs/商业化方案.md
+docs/上架素材/AGC工单·会员与付费问题清单.md
