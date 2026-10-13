@@ -42,6 +42,8 @@ interface UserProfileVMSnapshot {
   huaweiUid: string
   isLoggedIn: boolean
   lastSyncTime: number
+  /** 上次同步成功时刻（本机展示；与水位 lastSyncTime 语义不同，见 ProfileModels.UserProfile） */
+  lastSyncedAt: number
 }
 
 /**
@@ -96,6 +98,10 @@ export class SettingsViewModel {
    *   （否则冷启动若用户不操作数据，脏标记会一直滞留到下次触发）
    */
   private pendingReadySync: boolean = false
+
+  /** 就绪补跑的重试定时器与计数（竞态自愈用，见 notifyCloudReady） */
+  private readyRetryTimer: number = -1
+  private readyRetryCount: number = 0
 
   /** 快照提供者是否已注册（就绪 gate 的"本地就绪"部分） */
   private snapshotsReady: boolean = false
@@ -205,7 +211,8 @@ export class SettingsViewModel {
           profileSnapshot.aiCredits,
           profileSnapshot.huaweiUid,
           profileSnapshot.isLoggedIn,
-          profileSnapshot.lastSyncTime
+          profileSnapshot.lastSyncTime,
+          profileSnapshot.lastSyncedAt
         )
         this.syncLoginStateToAppStorage()
         Logger.info(this.tag, 'userProfile loaded, isLoggedIn=' +
@@ -265,7 +272,8 @@ export class SettingsViewModel {
           profileSnapshot.aiCredits,
           profileSnapshot.huaweiUid,
           profileSnapshot.isLoggedIn,
-          profileSnapshot.lastSyncTime
+          profileSnapshot.lastSyncTime,
+          profileSnapshot.lastSyncedAt
         )
         this.syncLoginStateToAppStorage()
         Logger.info(this.tag, 'refreshUserProfile done, isLoggedIn=' +
@@ -394,7 +402,8 @@ export class SettingsViewModel {
         aiCredits: this.userProfile.aiCredits,
         huaweiUid: this.userProfile.huaweiUid,
         isLoggedIn: this.userProfile.isLoggedIn,
-        lastSyncTime: this.userProfile.lastSyncTime
+        lastSyncTime: this.userProfile.lastSyncTime,
+        lastSyncedAt: this.userProfile.lastSyncedAt
       }
       await StorageManager.saveData(ctx, CommonConstants.STORAGE_KEY_USER_PROFILE,
         profileSnapshot as object)
@@ -485,6 +494,8 @@ export class SettingsViewModel {
     // ⚠️ 水位（lastSyncTime）是**本机专属游标**：载荷里即使带了这个字段也一律忽略，
     //    永远保留本机当前值（否则会被其它设备的水位覆盖 → 等值判据错乱）
     const keepLocalWatermark: number = this.userProfile.lastSyncTime
+    // 同为**本机专属**：合并写回时也一律保留本机值（否则会被云端载荷里的 0 冲掉）
+    const keepLocalSyncedAt: number = this.userProfile.lastSyncedAt
     this.userProfile = new UserProfile(
       typeof data['id'] === 'string' ? data['id'] as string : this.userProfile.id,
       cloudNickname.length > 0 ? cloudNickname : this.userProfile.nickname,
@@ -494,7 +505,8 @@ export class SettingsViewModel {
       typeof data['aiCredits'] === 'string' ? data['aiCredits'] as string : this.userProfile.aiCredits,
       cloudUid.length > 0 ? cloudUid : this.userProfile.huaweiUid,
       typeof loggedIn === 'boolean' ? loggedIn as boolean : this.userProfile.isLoggedIn,
-      keepLocalWatermark
+      keepLocalWatermark,
+      keepLocalSyncedAt
     )
     this.syncLoginStateToAppStorage()
     // 同步回调写回不得再触发云同步，仅本地持久化
@@ -793,10 +805,34 @@ export class SettingsViewModel {
    */
   notifyCloudReady(): void {
     if (!this.pendingReadySync) return
-    if (!this.isReadyToSync()) return
+    if (!this.isReadyToSync()) {
+      // ⚠️ 竞态自愈（2026-10-13 真机修复）：就绪 gate 需同时满足「CloudDB 已初始化」与
+      //    「快照提供者已注册」，而这两者是**两个独立事件**分别回调本方法 —— 谁先到，
+      //    另一个就还没就绪，于是本方法在两边都直接 return，`pendingReadySync` **永久滞留**，
+      //    自动同步再也不会发生。用户表现：「同一账号登录后数据不自动下来，必须手动点『立即同步』」
+      //    （手动点时两者都已就绪，所以一定成功）。此处改为退避重试，直到就绪或超上限。
+      this.scheduleReadyRetry()
+      return
+    }
+    this.readyRetryCount = 0
     this.pendingReadySync = false
     Logger.info(this.tag, 'notifyCloudReady: cloud & local ready, retry pending sync')
     this.syncNowDetached('ready-retry')
+  }
+
+  /**
+   * 就绪退避重试：每 500ms 复查一次，最多 20 次（≈10s），避免无限轮询。
+   * 期间任一就绪事件（notifyCloudReady）到达时会立刻走正常补跑路径。
+   */
+  private scheduleReadyRetry(): void {
+    if (this.readyRetryTimer !== -1) return
+    if (this.readyRetryCount >= 20) return
+    this.readyRetryCount++
+    this.readyRetryTimer = setTimeout((): void => {
+      this.readyRetryTimer = -1
+      if (this.isDestroyed) return
+      this.notifyCloudReady()
+    }, 500)
   }
 
   /**
@@ -881,6 +917,9 @@ export class SettingsViewModel {
       if (r.lastSyncTime > 0) {
         this.userProfile.lastSyncTime = r.lastSyncTime
       }
+      // ★ 修复「同步成功但时间不刷新」：展示用的"上次同步时刻"必须每次成功都推进，
+      //   不能再复用 lastSyncTime（水位：云端无新数据时不前进）
+      this.userProfile.lastSyncedAt = Date.now()
       this.clearSyncNeeded('sync ok (' + reason + ')')
       this.persistHelper.flush().catch((e: Error): void => {
         Logger.warn(this.tag, 'post-sync flush failed: ' + e.message)
@@ -988,7 +1027,8 @@ export class SettingsViewModel {
       this.userProfile.aiCredits,
       user.openId,
       true,
-      this.userProfile.lastSyncTime
+      this.userProfile.lastSyncTime,
+      this.userProfile.lastSyncedAt
     )
     // 同步到 AppStorage：其他 VM 通过 AppStorage.get('isLoggedIn') 读取，不 import SettingsVM
     this.syncLoginStateToAppStorage()

@@ -220,7 +220,7 @@ export struct ProfilePage {
             ? $r('app.color.success_color_bg') : $r('app.color.bg_tag'))
       }
 
-      Text(this.formatSyncTime(this.settingsVM.userProfile.lastSyncTime))
+      Text(this.formatSyncTime(this.settingsVM.userProfile.lastSyncedAt))
         .fontSize(CommonConstants.FONT_SIZE_XXS)
         .fontColor($r('app.color.text_tertiary'))
     }

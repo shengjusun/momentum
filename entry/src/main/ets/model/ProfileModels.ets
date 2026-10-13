@@ -16,6 +16,18 @@ export class UserProfile {
   @Trace huaweiUid: string = ''
   @Trace isLoggedIn: boolean = false
   @Trace lastSyncTime: number = 0
+  /**
+   * 上次**同步成功时刻**（`Date.now()`，本机展示用）。
+   *
+   * ⚠️ 与 `lastSyncTime` 语义完全不同，别再合并：
+   *   `lastSyncTime` = **水位游标**（本次见到的云端记录 updatedAt），参与准入判据，
+   *   云端无新数据时**不会前进** ⇒ 拿它当"上次同步时间"显示会一直停在旧值
+   *   （真机表现：点"立即同步"提示成功、时间仍显示"3 天前"）。
+   *   `lastSyncedAt` 才是"我最后一次成功同步的时刻"，每次 outcome==='ok' 都会推进。
+   * 同为**本机专属**：进 toJSON（本地持久化需要），但**不进同步载荷**（由
+   *   CloudSyncService.neutralizeLastSyncTime 中性化，避免污染指纹）。
+   */
+  @Trace lastSyncedAt: number = 0
 
   constructor(
     id: string = '',
@@ -26,7 +38,8 @@ export class UserProfile {
     aiCredits: string = '0',
     huaweiUid: string = '',
     isLoggedIn: boolean = false,
-    lastSyncTime: number = 0
+    lastSyncTime: number = 0,
+    lastSyncedAt: number = 0
   ) {
     this.id = id
     this.nickname = nickname
@@ -37,6 +50,7 @@ export class UserProfile {
     this.huaweiUid = huaweiUid
     this.isLoggedIn = isLoggedIn
     this.lastSyncTime = lastSyncTime
+    this.lastSyncedAt = lastSyncedAt
   }
 
   toJSON(): Record<string, Object> {
@@ -49,7 +63,8 @@ export class UserProfile {
       'aiCredits': this.aiCredits,
       'huaweiUid': this.huaweiUid,
       'isLoggedIn': this.isLoggedIn,
-      'lastSyncTime': this.lastSyncTime
+      'lastSyncTime': this.lastSyncTime,
+      'lastSyncedAt': this.lastSyncedAt
     } as Record<string, Object>
   }
 
@@ -63,7 +78,8 @@ export class UserProfile {
       typeof json['aiCredits'] === 'string' ? json['aiCredits'] as string : '0',
       typeof json['huaweiUid'] === 'string' ? json['huaweiUid'] as string : '',
       typeof json['isLoggedIn'] === 'boolean' ? json['isLoggedIn'] as boolean : false,
-      typeof json['lastSyncTime'] === 'number' ? json['lastSyncTime'] as number : 0
+      typeof json['lastSyncTime'] === 'number' ? json['lastSyncTime'] as number : 0,
+      typeof json['lastSyncedAt'] === 'number' ? json['lastSyncedAt'] as number : 0
     )
   }
 }

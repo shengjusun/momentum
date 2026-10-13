@@ -696,7 +696,7 @@ export struct SettingPage {
           Text(this.getSyncButtonText())
             .fontSize(CommonConstants.FONT_SIZE_BODY)
             .fontColor(this.getSyncButtonColor())
-          Text(this.formatSyncTime(this.settingsVM.userProfile.lastSyncTime))
+          Text(this.formatSyncTime(this.settingsVM.userProfile.lastSyncedAt))
             .fontSize(CommonConstants.FONT_SIZE_XS)
             .fontColor($r('app.color.text_tertiary'))
         }

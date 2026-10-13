@@ -871,10 +871,16 @@ export class CloudSyncService {
       + '|' + settings.length.toString() + '|' + profile.length.toString()
   }
 
-  /** 把 profileJson 中的 lastSyncTime 数值中性化（本机水位，不参与内容比较） */
+  /**
+   * 把 profileJson 中的**本机专属字段**数值中性化（不参与内容比较、永不上传）
+   * - `lastSyncTime`：本机水位游标
+   * - `lastSyncedAt`：本机"上次同步成功时刻"（2026-10-13 新增，展示用）
+   * ⚠️ 两者都必须中性化：否则每次同步成功都会改变载荷指纹 → 白跑一轮上传
+   */
   private neutralizeLastSyncTime(profileJson: string): string {
     if (profileJson.length === 0) return ''
     return profileJson.replace(/"lastSyncTime"\s*:\s*-?\d+/g, '"lastSyncTime":0')
+      .replace(/"lastSyncedAt"\s*:\s*-?\d+/g, '"lastSyncedAt":0')
   }
 
   /** 解析并 canonical 化（对象键排序）；任一步失败则退化为原字符串 */
