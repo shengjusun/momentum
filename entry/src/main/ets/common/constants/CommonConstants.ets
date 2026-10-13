@@ -38,6 +38,18 @@ export class CommonConstants {
 
   /** 热启动同步节流：onNewWant（点通知/多端流转）距上次触发不足此窗口时跳过（毫秒）
    *  防止"点 N 次通知 = N 次全量云往返"；窗口内变更由 SYNC_NEEDED 脏标记 + 2s 防抖兜底，不丢 */
+  /**
+   * 前台云端复查：最短间隔（毫秒）。**仅前台运行**（退后台立即停，不耗电）。
+   * 用途：多设备场景下"另一台改了、本机自动刷新"。每次只做一次轻量拉取 + 准入判断，
+   * 无变化则不上传、不落地；有变化则走统一 merge。
+   * ⚠️ 这个值直接影响 CloudDB **出站流量**（免费档 10GB/月）：无变化时会指数退避到
+   *    {@link SYNC_PROBE_INTERVAL_MAX_MS}，上架后按真实 DAU 调大。
+   */
+  static readonly SYNC_PROBE_INTERVAL_MIN_MS: number = 180000
+
+  /** 前台云端复查：最长间隔（毫秒）——长时间无变化后退避到此值（15 分钟） */
+  static readonly SYNC_PROBE_INTERVAL_MAX_MS: number = 900000
+
   static readonly HOT_START_SYNC_THROTTLE_MS: number = 30000
 
   /** 一键删除所有数据后的自动云同步抑制窗口（毫秒）

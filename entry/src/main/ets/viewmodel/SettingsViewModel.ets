@@ -115,6 +115,11 @@ export class SettingsViewModel {
   // syncNow 防抖定时器，避免静止状态周期 Upsert
   private syncDebounceTimer: number = -1
 
+  /** 前台云端复查定时器（-1 = 未运行）。仅在**前台**运行：进前台启动、退后台立即停 */
+  private foregroundProbeTimer: number = -1
+  /** 当前复查间隔（指数退避：无变化逐次翻倍到上限，有变化立刻回到最短） */
+  private probeIntervalMs: number = CommonConstants.SYNC_PROBE_INTERVAL_MIN_MS
+
   private persistHelper: PersistHelper = new PersistHelper(
     'SettingsViewModel',
     async (): Promise<void> => { await this.persistData() },
@@ -833,6 +838,62 @@ export class SettingsViewModel {
       if (this.isDestroyed) return
       this.notifyCloudReady()
     }, 500)
+  }
+
+  /**
+   * 进入前台：启动云端复查（**多端无感刷新的实现**）
+   *
+   * 为什么要它：本机在**前台停留**时，若另一台设备改了数据，本机没有任何机制会知道
+   * （鸿蒙 `@kit.CloudFoundationKit` 的 cloudDatabase **未提供实时侦听 API**，全工程亦无轮询）
+   * ⇒ 表现为"多端不同步，必须手动点立即同步/切后台再回来"。
+   * 这里按**指数退避**复查：最短 3 分钟、最长 15 分钟；一旦发现云端变化立刻回到最短间隔。
+   * 复查走统一入口 `syncNow('probe')` ⇒ 未就绪不发请求、无变化零写入、有变化正常 merge。
+   */
+  startForegroundProbe(): void {
+    this.stopForegroundProbe()
+    this.probeIntervalMs = CommonConstants.SYNC_PROBE_INTERVAL_MIN_MS
+    this.scheduleProbe()
+  }
+
+  /** 退出前台：立即停止复查（后台不做任何轮询） */
+  stopForegroundProbe(): void {
+    if (this.foregroundProbeTimer !== -1) {
+      clearTimeout(this.foregroundProbeTimer)
+      this.foregroundProbeTimer = -1
+    }
+  }
+
+  private scheduleProbe(): void {
+    if (this.foregroundProbeTimer !== -1) return
+    this.foregroundProbeTimer = setTimeout((): void => {
+      this.foregroundProbeTimer = -1
+      if (this.isDestroyed) return
+      this.probeOnce()
+      this.scheduleProbe()
+    }, this.probeIntervalMs)
+  }
+
+  /** 复查一次：有变化 → 回到最短间隔；无变化 → 间隔翻倍（上限 SYNC_PROBE_INTERVAL_MAX_MS） */
+  private probeOnce(): void {
+    if (!this.isReadyToSync()) {
+      return
+    }
+    const beforeWatermark: number = this.userProfile.lastSyncTime
+    this.syncNow('probe').then((r: SyncResult | null): void => {
+      if (r === null) {
+        return
+      }
+      if (r.outcome === 'ok' && (r.uploaded || r.lastSyncTime !== beforeWatermark)) {
+        // 云端有变化（或本机有改动被上传）→ 立刻回到最短间隔，便于连续追平
+        this.probeIntervalMs = CommonConstants.SYNC_PROBE_INTERVAL_MIN_MS
+      } else {
+        // 无变化 → 退避，避免白耗流量
+        this.probeIntervalMs = Math.min(this.probeIntervalMs * 2,
+          CommonConstants.SYNC_PROBE_INTERVAL_MAX_MS)
+      }
+    }).catch((e: Error): void => {
+      Logger.warn(this.tag, 'probeOnce failed: ' + e.message)
+    })
   }
 
   /**

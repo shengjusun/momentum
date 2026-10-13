@@ -467,12 +467,15 @@ export default class EntryAbility extends UIAbility {
       Logger.error(this.tag, 'routeVM.flush failed: ' + e.message)
     })
     // SettingsViewModel 防护：清定时器/退订事件总线，阻断 destroy 后的云同步触发
+    settingsVM.stopForegroundProbe()
     settingsVM.destroy()
     CloudSdkService.getInstance().destroy()
   }
 
   onForeground(): void {
     Logger.info(this.tag, 'onForeground')
+    // 进前台：启动云端复查（多端无感刷新；退后台会立即停）
+    settingsVM.startForegroundProbe()
     // 回前台：不再取消后台兜底提醒，而是【重新注册】（幂等，内部会先取消旧的）。
     // 原因：取消会留下"前台运行期间进程被系统回收 / 崩溃"的提醒空洞——那条路径不会触发
     // onBackground，兜底就此丢失。重复通知的风险由两处共同消除：
@@ -491,6 +494,8 @@ export default class EntryAbility extends UIAbility {
 
   onBackground(): void {
     Logger.info(this.tag, 'onBackground')
+    // 退后台：立即停止前台复查（后台不轮询、不耗电）
+    settingsVM.stopForegroundProbe()
     settingsVM.flush().catch((e: Error): void => {
       Logger.error(this.tag, 'onBackground settingsVM.flush failed: ' + e.message)
     })
