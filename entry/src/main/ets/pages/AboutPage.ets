@@ -1,6 +1,6 @@
 /**
- * @file 关于 起势 页
- * @description 我的 → 帮助与信息 → 关于 起势
+ * @file 关于 跬步 页
+ * @description 我的 → 帮助与信息 → 关于 跬步
  *   版本信息 + 隐私协议 + 版权声明
  *
  * 跳转来源：ProfilePage 帮助与信息分组

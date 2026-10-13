@@ -168,7 +168,7 @@ export struct FeedbackPage {
       const bundleInfo = await bundleManager.getBundleInfoForSelf(
         bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT)
       const info: string =
-        '【起势 诊断信息】\n' +
+        '【跬步 诊断信息】\n' +
         '版本：' + bundleInfo.versionName + '\n' +
         '目标数：' + routeVM.liveGoals.length.toString() + '\n' +
         '待办数：' + homeVM.liveTasks.length.toString() + '\n' +

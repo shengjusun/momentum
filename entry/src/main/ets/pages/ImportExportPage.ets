@@ -76,7 +76,7 @@ export struct ImportExportPage {
       data['settings'] = settingsSnapshot
       const pkg: BackupPackage = {
         // ⚠️ 备份文件格式标识：与下方导入校验（parsed.app !== 'Momentum'）成对出现，
-        // 属导出文件的兼容契约。应用改名（Momentum → 起势）时**此处不得同步修改**，
+        // 属导出文件的兼容契约。应用改名（历次：Momentum → 起势 → 跬步）时**此处不得同步修改**，
         // 否则用户此前导出的备份将全部无法导入。如需换标识，必须同时兼容新旧两个值。
         app: 'Momentum',
         version: 1,

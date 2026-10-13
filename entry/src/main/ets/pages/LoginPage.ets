@@ -160,7 +160,7 @@ export struct LoginPage {
           })
           .alignContent(Alignment.Center)
 
-          // 应用名称 起势（大字号粗体）
+          // 应用名称 跬步（大字号粗体）
           Text($r('app.string.app_name'))
             .fontSize(CommonConstants.FONT_SIZE_XXXL)
             .fontWeight(FontWeight.Bold)

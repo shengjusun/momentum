@@ -464,13 +464,15 @@ for lang in ['base', 'zh_CN', 'en_US']:
         chk('%s 含实况窗文案' % lang,
             'liveview_title_focus' in kv and 'liveview_title_break' in kv and
             'liveview_state_running' in kv and 'liveview_state_paused' in kv, '')
-        # 品牌名回归守卫：base / zh_CN 必须是中文主名「起势」（历史出现过被外部进程整文件回退）；
+        # 品牌名回归守卫：base / zh_CN 必须是中文主名「跬步」
+        # （历史出现过被外部进程整文件回退；2026-10-13 由「起势」改名为「跬步」，
+        #   原因：AGC 名称唯一性校验报「起势」在简体中文下已被占用）
         # en_US 使用英文名 Momentum，属预期双语品牌，不做中文强校验
         if lang == 'en_US':
             chk('en_US app_name 非空（英文名）', len(kv.get('app_name') or '') > 0,
                 'app_name=%s' % kv.get('app_name'))
         else:
-            chk('%s app_name 为起势' % lang, kv.get('app_name') == '起势', 'app_name=%s' % kv.get('app_name'))
+            chk('%s app_name 为跬步' % lang, kv.get('app_name') == '跬步', 'app_name=%s' % kv.get('app_name'))
     except Exception as e:
         chk('%s string.json 可解析' % lang, False, str(e))
 
