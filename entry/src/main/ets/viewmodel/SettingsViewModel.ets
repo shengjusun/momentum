@@ -876,6 +876,10 @@ export class SettingsViewModel {
   /** 复查一次：有变化 → 回到最短间隔；无变化 → 间隔翻倍（上限 SYNC_PROBE_INTERVAL_MAX_MS） */
   private probeOnce(): void {
     if (!this.isReadyToSync()) {
+      // 未就绪（未登录 / SDK 未初始化 / 快照未注册）→ 不查，**且照样退避**
+      // ⇒ 避免"未登录时每 3 分钟一次无谓心跳"。登录/回前台等事件本就会立即触发一次同步。
+      this.probeIntervalMs = Math.min(this.probeIntervalMs * 2,
+        CommonConstants.SYNC_PROBE_INTERVAL_MAX_MS)
       return
     }
     const beforeWatermark: number = this.userProfile.lastSyncTime
@@ -946,7 +950,7 @@ export class SettingsViewModel {
     } catch (e) {
       const msg: string = (e as Error).message
       Logger.error(this.tag, 'syncNow(' + reason + ') failed: ' + msg)
-      if (this.context !== null) {
+      if (this.context !== null && this.shouldNotifySyncFailure(reason)) {
         this.toastMessage = this.context.resourceManager.getStringByNameSync('toast_sync_upload_pending')
       }
       return { outcome: 'upload_failed', uploaded: false, lastSyncTime: 0, errorMsg: msg }
@@ -971,6 +975,20 @@ export class SettingsViewModel {
    * - `pull_failed` / `upload_failed` / `parse_failed`
    *   → **水位不变 + 保留脏标记**，明确告知用户"改动暂未上传，恢复后自动重试"
    */
+  /**
+   * 同步失败是否要提示用户。
+   *
+   * ⚠️ 自动复查（reason='probe'）必须**静默**：它每 3~15 分钟跑一次，弱网/未就绪时失败很常见，
+   *    若照样置 `toastMessage`，用户一打开「我的」页就会莫名弹出"改动暂未上传"
+   *    （`ProfilePage.checkVmToast` 会消费它）⇒ 属于"自己制造的骚扰"。
+   *    手动同步（'manual'）失败由 `SettingPage.handleSync` 自己弹 toast ✔；
+   *    其它自动路径（如数据变更后上传失败）**保留**提示 —— 那种情况用户的改动确实没上去，
+   *    需要告知。
+   */
+  private shouldNotifySyncFailure(reason: string): boolean {
+    return reason !== 'probe'
+  }
+
   private handleSyncResult(r: SyncResult, reason: string): void {
     Logger.info(this.tag, 'syncNow(' + reason + ') done, outcome=' + r.outcome +
       ', uploaded=' + r.uploaded.toString() + ', lastSyncTime=' + r.lastSyncTime.toString())
@@ -996,7 +1014,8 @@ export class SettingsViewModel {
       return
     }
     // 真实失败：本地改动未成功上传 → 明确告知用户（水位不变、脏标记保留）
-    if (this.context !== null) {
+    // 例外：自动复查（probe）失败静默，见 shouldNotifySyncFailure
+    if (this.context !== null && this.shouldNotifySyncFailure(reason)) {
       this.toastMessage = this.context.resourceManager.getStringByNameSync('toast_sync_upload_pending')
     }
     Logger.warn(this.tag, 'sync incomplete (dirty flag kept). outcome=' + r.outcome +
