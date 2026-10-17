@@ -34,7 +34,7 @@ import { StorageManager } from '../common/utils/StorageManager'
 
 @Entry
 @ComponentV2
-export struct  SettingPage {
+export struct SettingPage {
   settingsVM: SettingsViewModel = settingsVM
 
   @Local isSyncing: boolean = false
