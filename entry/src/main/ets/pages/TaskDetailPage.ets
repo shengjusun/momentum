@@ -1331,10 +1331,12 @@ export struct TaskDetailPage {
       .alignItems(VerticalAlign.Center)
 
       // 标题（英雄区主标题，加大加粗建立层级）
+      // 说明：完成态**不再把标题降为 tertiary 灰**（观感像"禁用/失效"）；
+      //       完成状态由「已完成」徽章 + 绿色圆环表达，标题保持主文本色。
       Text(safeStringUtil(this.task.title, getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id)))
         .fontSize(CommonConstants.FONT_SIZE_LARGE)
         .fontWeight(FontWeight.Bold)
-        .fontColor(this.isTaskCompleted ? $r('app.color.text_tertiary') : $r('app.color.text_primary'))
+        .fontColor($r('app.color.text_primary'))
         .width('100%')
         .maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -1576,8 +1578,10 @@ export struct TaskDetailPage {
         .borderRadius(DimensConstants.RADIUS_L)
       }
     }
-    // 平板双栏：步骤区自然高度（避免 layoutWeight 把右栏撑满视口、操作按钮被顶到底部）
-    .width('100%').layoutWeight(breakpointState.isTablet ? 0 : 1)
+    // ⚠️ 2026-10-17 修复「步骤被裁切」：手机端原来用 layoutWeight(1) 抢剩余空间，
+    //    结果与下方 StepActions（进度条 + 按钮）争高 ⇒ 步骤列表被压扁甚至被遮住
+    //    （手机第 3 条看不见、平板只剩 1 行）。改为**自然高度**（两端一致），由内容决定。
+    .width('100%').layoutWeight(0)
   }
 
   /**
@@ -1629,11 +1633,13 @@ export struct TaskDetailPage {
       //   - 未完成 = 渐变主色实心 + 轻投影（引导主操作）
       //   - 已完成 = success 描边 ghost（克制、明确"可反悔"，比"灰绿实心"更有确认感）
       if (this.isTaskCompleted) {
+        // 降级（2026-10-17）：撤销是次要操作，不该占满整行、也不该用成功色抢主视觉
         Button($r('app.string.btn_completed_undo'))
-          .type(ButtonType.Capsule).height(44).width('100%')
+          .type(ButtonType.Capsule).height(34).padding({ left: 18, right: 18 })
           .backgroundColor(Color.Transparent)
-          .border({ width: 1, color: $r('app.color.success_color') })
-          .fontColor($r('app.color.success_color'))
+          .border({ width: 0.5, color: $r('app.color.divider') })
+          .fontSize(CommonConstants.FONT_SIZE_SMALL)
+          .fontColor($r('app.color.text_secondary'))
           .fontSize(CommonConstants.FONT_SIZE_BODY)
           .fontWeight(FontWeight.Medium)
           .borderRadius(DimensConstants.RADIUS_XL)

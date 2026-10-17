@@ -550,6 +550,9 @@ export class RoutePageViewModel {
         Logger.error(this.tag, 'applyCloudSnapshot persist failed: ' + e.message)
       })
       Logger.info(this.tag, 'applyCloudSnapshot done, goals=' + this.goals.length.toString())
+
+      // ★ 修复（2026-10-17）云落地后重排目标提醒（与 HomeViewModel 同一问题，见其注释）
+      deadlineReminderService.rescheduleAllGoals(this.liveGoals)
     } finally {
       // 正常情况下不会走 onScheduleFire；此处复位避免标志长期滞留
       this.isApplyingCloudSnapshot = false

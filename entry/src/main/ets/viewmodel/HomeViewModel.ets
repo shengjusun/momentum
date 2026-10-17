@@ -664,6 +664,12 @@ export class HomeViewModel {
       this.persistData().catch((e: Error): void => {
         Logger.error(this.tag, 'applyCloudSnapshot persist failed: ' + e.message)
       })
+
+      // ★ 修复（2026-10-17）云落地后重排截止提醒：
+      //   冷启动时本地数据可能为空 → rescheduleAll([]) 会把已有提醒全部取消；随后云端数据才落地，
+      //   而此前**没有任何人重排** ⇒ 明明有任务却永远没有提醒（"离开应用就不提醒"的成因之一）。
+      //   此处补齐：落地完成后按最新列表重建提醒（rescheduleAll 幂等，取消+重建）。
+      deadlineReminderService.rescheduleAll(this.liveTasks)
     } finally {
       // 正常情况下不会走 onScheduleFire；此处复位避免标志长期滞留
       this.isApplyingCloudSnapshot = false
