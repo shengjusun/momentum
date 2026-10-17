@@ -14,7 +14,7 @@ export class DimensConstants {
   static readonly CONTENT_MAX_WIDTH_TABLET: number = 860
 
   /** 分栏双栏布局整体上限（TaskDetail/GoalDetail lg 双栏） */
-  static readonly DUAL_MAX_WIDTH: number = 1080
+  static readonly DUAL_MAX_WIDTH: number = 1280
 
   /** 侧栏/分栏固定列宽（AI 侧栏等） */
   static readonly SIDE_COLUMN_WIDTH: number = 360
