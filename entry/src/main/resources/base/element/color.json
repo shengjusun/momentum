@@ -8,7 +8,7 @@
     { "name": "primary_color_bg", "value": "#0A007DFF" },
     { "name": "primary_color_disabled", "value": "#80007DFF" },
 
-    { "name": "bg_page", "value": "#F5F6FA" },
+    { "name": "bg_page", "value": "#EDEFF4" },
     { "name": "bg_card", "value": "#FFFFFF" },
     { "name": "bg_tag", "value": "#F0F2F5" },
     { "name": "bg_search", "value": "#F0F2F5" },
