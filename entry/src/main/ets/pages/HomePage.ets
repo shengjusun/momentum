@@ -1088,7 +1088,15 @@ export struct HomePage {
       }
     }
     .backgroundColor(Color.Transparent)
-    .swipeAction({ end: this.deleteBuilder(task), edgeEffect: SwipeEdgeEffect.None })
+    // ⚠️ 必须对象式 + 显式 actionAreaDistance：单用 builder 时框架按"一个按钮宽度"计算滑出距离，
+    //    两个按钮会被截断（实测只露出「编辑」，删除只剩一条红边）。
+    .swipeAction({
+      end: {
+        builder: this.deleteBuilder(task),
+        actionAreaDistance: 164
+      },
+      edgeEffect: SwipeEdgeEffect.None
+    })
     // "移动象限"菜单：锚定在被长按的那一行上（只有目标任务所在的那一行会显示）
     // 挂在 ListItem 上（ListItem 继承 CommonMethod，支持 bindPopup），不往 @ReusableV2 的
     // TaskListItemComponent 内部挂浮层 —— 复用组件里挂弹层容易串状态。
