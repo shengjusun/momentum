@@ -1157,6 +1157,10 @@ export struct TaskDetailPage {
   }
 
   private handleEditTask(): void {
+    // ⚠️ 2026-10-17 修复「点编辑后两层浮层叠着」：ActionSheet 是自绘 Stack 浮层，
+    //    且在编辑面板**之后**渲染（层级更高）⇒ 不显式关闭就会一直盖在编辑面板上，
+    //    视觉上像先弹一个、又弹一个。
+    this.showActionSheet = false
     // 预填当前任务名称和时长
     this.editTaskName = this.task.title
     // 从 L2 任务或当前任务中读取时长（分钟），自动选择能整除的最大单位
@@ -1226,6 +1230,8 @@ export struct TaskDetailPage {
   }
 
   private handleDeleteTask(): void {
+    // 同 handleEditTask：先收起菜单，避免确认框关闭后操作菜单仍停留
+    this.showActionSheet = false
     promptAction.showDialog({
       title: $r('app.string.dialog_delete_task_title'),
       message: getContext(this).resourceManager.getStringSync($r('app.string.dialog_delete_task_message').id),
