@@ -1279,6 +1279,30 @@ export struct TaskDetailPage {
     return capped
   }
 
+  /**
+   * 标题的「尾部括号」部分（如 `（500 词）`）；没有则返回空串。
+   * 用于方案 A：括号作为补充信息降字号降色，不与主标题同重量。
+   */
+  private titleSubText(): string {
+    const raw: string = safeStringUtil(this.task.title, '').trim()
+    if (!raw.endsWith('）') && !raw.endsWith(')')) {
+      return ''
+    }
+    const idx: number = Math.max(raw.lastIndexOf('（'), raw.lastIndexOf('('))
+    return idx > 0 ? raw.substring(idx) : ''
+  }
+
+  /** 标题主文本（去掉尾部括号） */
+  private titleMainText(): string {
+    const raw: string = safeStringUtil(this.task.title,
+      getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id)).trim()
+    const sub: string = this.titleSubText()
+    if (sub.length === 0 || sub.length >= raw.length) {
+      return raw
+    }
+    return raw.substring(0, raw.length - sub.length).trim()
+  }
+
   /** 任务信息区：英雄卡（优先级圆点胶囊 + 完成度环形进度锚点 + 图标底块元信息，2026-10-10 精致化） */
   @Builder
   TaskInfoBuilder() {
@@ -1336,13 +1360,21 @@ export struct TaskDetailPage {
       // 标题（英雄区主标题，加大加粗建立层级）
       // 说明：完成态**不再把标题降为 tertiary 灰**（观感像"禁用/失效"）；
       //       完成状态由「已完成」徽章 + 绿色圆环表达，标题保持主文本色。
-      Text(safeStringUtil(this.task.title, getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id)))
-        .fontSize(CommonConstants.FONT_SIZE_LARGE)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.text_primary'))
-        .width('100%')
-        .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
+      // 标题（v3 稿 · 方案 A）：主文本 18/Bold，**尾部括号内容降为 12/常规/三级灰**
+      // —— 括号属补充信息，与主标题同字号同字重会糊成一坨。
+      Text() {
+        Span(this.titleMainText())
+          .fontSize(CommonConstants.FONT_SIZE_TITLE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+        Span(this.titleSubText())
+          .fontSize(CommonConstants.FONT_SIZE_SMALL)
+          .fontWeight(FontWeight.Normal)
+          .fontColor($r('app.color.text_tertiary'))
+      }
+      .width('100%')
+      .maxLines(2)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
 
       if (safeStringUtil(this.task.description, '').length > 0) {
         Text(safeStringUtil(this.task.description, ''))
@@ -1358,45 +1390,60 @@ export struct TaskDetailPage {
         .strokeWidth(0.5)
         .margin({ top: 2, bottom: 2 })
 
-      // 元信息：图标底块 + 彩色图标 + 单行文字（耗时 / 截止或创建 / 所属目标）
-      MetaInfoRow({
-        icon: $r('sys.symbol.timer'),
-        iconBg: $r('app.color.icon_bg_blue'),
-        iconColor: $r('app.color.icon_text_blue'),
-        text: formatEstimatedDuration(this.l2Task ? this.l2Task.estimatedTime : 0, getContext(this).resourceManager),
-        textColor: $r('app.color.text_primary')
-      })
+      // 元信息（v3 稿）：**竖排三行 → 一行三格**，省两行高度。
+      // 用极简图标代替文字标签（预计时长/截止/所属目标），避免新增三组 i18n 文案。
+      Row() {
+        Row({ space: 5 }) {
+          SymbolGlyph($r('sys.symbol.timer'))
+            .fontSize(13)
+            .fontColor([$r('app.color.text_tertiary')])
+          Text(formatEstimatedDuration(this.l2Task ? this.l2Task.estimatedTime : 0,
+            getContext(this).resourceManager))
+            .fontSize(CommonConstants.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
 
-      if (this.l2Task !== null && this.l2Task.deadline > 0) {
-        MetaInfoRow({
-          icon: $r('sys.symbol.calendar'),
-          iconBg: $r('app.color.icon_bg_orange'),
-          iconColor: $r('app.color.icon_text_orange'),
-          text: formatDeadlineUtil(this.l2Task.deadline) +
-            (this.isDeadlineOverdue
-              ? getContext(this).resourceManager.getStringSync($r('app.string.home_deadline_overdue').id)
-              : ''),
-          textColor: this.isDeadlineOverdue ? $r('app.color.error_color') : $r('app.color.text_primary')
-        })
-      } else {
-        MetaInfoRow({
-          icon: $r('sys.symbol.calendar'),
-          iconBg: $r('app.color.icon_bg_orange'),
-          iconColor: $r('app.color.icon_text_orange'),
-          text: this.formatCreateTime(this.task.createTime),
-          textColor: $r('app.color.text_primary')
-        })
-      }
+        Divider().vertical(true).height(14).color($r('app.color.divider'))
 
-      if (this.goalNameText.length > 0) {
-        MetaInfoRow({
-          icon: $r('sys.symbol.flag'),
-          iconBg: $r('app.color.icon_bg_green'),
-          iconColor: $r('app.color.icon_text_green'),
-          text: this.goalNameText,
-          textColor: $r('app.color.text_secondary')
-        })
+        Row({ space: 5 }) {
+          SymbolGlyph($r('sys.symbol.calendar'))
+            .fontSize(13)
+            .fontColor([$r('app.color.text_tertiary')])
+          Text(this.l2Task !== null && this.l2Task.deadline > 0
+            ? (formatDeadlineUtil(this.l2Task.deadline) + (this.isDeadlineOverdue
+              ? getContext(this).resourceManager.getStringSync($r('app.string.home_deadline_overdue').id) : ''))
+            : this.formatCreateTime(this.task.createTime))
+            .fontSize(CommonConstants.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.isDeadlineOverdue ? $r('app.color.error_color') : $r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+
+        Divider().vertical(true).height(14).color($r('app.color.divider'))
+
+        Row({ space: 5 }) {
+          SymbolGlyph($r('sys.symbol.flag'))
+            .fontSize(13)
+            .fontColor([$r('app.color.text_tertiary')])
+          Text(this.goalNameText.length > 0 ? this.goalNameText : '-')
+            .fontSize(CommonConstants.FONT_SIZE_BODY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_secondary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
       }
+      .width('100%')
     }
     .width('100%')
     .padding(16)
