@@ -1446,7 +1446,7 @@ export struct TaskDetailPage {
       .width('100%')
     }
     .width('100%')
-    .padding(16)
+    .padding({ left: 16, right: 16, top: 16, bottom: 13 })
     .backgroundColor($r('app.color.bg_card'))
     .borderRadius(DimensConstants.RADIUS_L)
     .shadow({ radius: 12, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 4 })
@@ -1625,19 +1625,33 @@ export struct TaskDetailPage {
             .width('100%')
             .padding({ left: 4, right: 4, top: 8 })
           } else {
-            Row() {
+            // v3 稿：虚线框 → 轻量文字行（18px 加号圆底 + 主色文字，左对齐、与步骤文字同左基线）
+            Divider()
+              .color($r('app.color.divider'))
+              .strokeWidth(0.5)
+              .margin({ left: 16, right: 16 })
+
+            Row({ space: 10 }) {
+              Stack({ alignContent: Alignment.Center }) {
+                Text('+')
+                  .fontSize(14)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor($r('app.color.primary_color'))
+              }
+              .width(18)
+              .height(18)
+              .borderRadius(9)
+              .backgroundColor($r('app.color.bg_tag'))
+
               Text($r('app.string.task_detail_add_step_row'))
-                .fontSize(CommonConstants.FONT_SIZE_SMALL)
+                .fontSize(14)
                 .fontWeight(FontWeight.Medium)
-                .fontColor($r('app.color.text_tertiary'))
+                .fontColor($r('app.color.primary_color'))
+                .layoutWeight(1)
             }
             .width('100%')
-            .height(40)
-            .margin({ top: 4 })
-            .justifyContent(FlexAlign.Center)
+            .padding({ left: 16, right: 16, top: 13, bottom: 13 })
             .alignItems(VerticalAlign.Center)
-            .borderRadius(DimensConstants.RADIUS_M)
-            .border({ width: 0.5, style: BorderStyle.Dashed, color: $r('app.color.text_tertiary') })
             .onClick((): void => { this.showAddStepInput = true })
           }
         }
