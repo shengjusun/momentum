@@ -1142,11 +1142,8 @@ export struct TaskDetailPage {
   private showTaskActionMenu(): void {
     // 统一 ActionSheet：替代系统 showActionMenu 兜底样式
     this.actionSheetTitle = getContext(this).resourceManager.getStringSync($r('app.string.dialog_task_action_title').id)
+    // 2026-10-17：编辑已提到标题栏（铅笔），菜单只保留删除（破坏性操作仍需菜单兜一层确认）
     this.actionSheetItems = [
-      {
-        label: getContext(this).resourceManager.getStringSync($r('app.string.dialog_edit_task').id),
-        action: (): void => { this.handleEditTask() }
-      },
       {
         label: getContext(this).resourceManager.getStringSync($r('app.string.dialog_delete_task').id),
         danger: true,
@@ -1422,7 +1419,25 @@ export struct TaskDetailPage {
   /** 标题栏右侧任务菜单按钮（原"..."悬浮按钮收编，建立归属关系） */
   @Builder
   TitleMenuButtonBuilder() {
-    Row() {
+    Row({ space: 2 }) {
+      // 编辑（2026-10-17 新增）：一步直达编辑面板，避免「··· → 菜单 → 编辑」两级跳转
+      Row() {
+        Text($r('app.string.dialog_edit_task'))
+          .fontSize(CommonConstants.FONT_SIZE_SMALL)
+          .fontColor($r('app.color.primary_color'))
+      }
+      .height(DimensConstants.TOUCH_COMFORT)
+      .padding({ left: 10, right: 10 })
+      .borderRadius(DimensConstants.RADIUS_XL)
+      .backgroundColor(Color.Transparent)
+      .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.Center)
+      .accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.dialog_edit_task').id))
+      .onClick(() => {
+        this.handleEditTask()
+      })
+
+      Row() {
       SymbolGlyph($r('sys.symbol.ellipsis_circle'))
         .fontSize(CommonConstants.FONT_SIZE_LARGE)
         .fontColor([$r('app.color.text_secondary')])
@@ -1436,6 +1451,7 @@ export struct TaskDetailPage {
     .onClick(() => {
       this.showTaskActionMenu()
     })
+    }
   }
 
   /** 番茄钟专注计时卡片（平板双栏时为左栏下部）+ 聚焦统计摘要 */
