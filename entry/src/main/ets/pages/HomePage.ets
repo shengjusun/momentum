@@ -1093,7 +1093,7 @@ export struct HomePage {
     .swipeAction({
       end: {
         builder: this.deleteBuilder(task),
-        actionAreaDistance: 164
+        actionAreaDistance: 88
       },
       edgeEffect: SwipeEdgeEffect.None
     })
@@ -1632,18 +1632,21 @@ export struct HomePage {
 
   @Builder
   deleteBuilder(task: HomeTodoItem) {
+    // 右滑动作：编辑 + 删除，**平分 88 宽**（各 44）
+    // ⚠️ 为什么总宽是 88：实测 ArkUI 的 swipeAction 滑出距离固定按"一个按钮"的 88 计算，
+    //    actionAreaDistance 不生效；不顺着它就会出现"只露出编辑、删除只剩一条红边"。
     Row() {
-      // 「编辑」：打开任务详情（成熟做法：右滑同时给"改"与"删"，不用先关列表）
-      // 孤立待办没有详情，隐藏该按钮而不是点了报错
+      // 「编辑」：打开任务详情（孤立待办没有详情 ⇒ 不显示，避免点了报错）
       if (task.relatedTaskId && task.relatedGoalId) {
         Row() {
-          Text($r('app.string.dialog_edit_task'))
+          Text($r('app.string.btn_edit'))
             .fontSize(CommonConstants.FONT_SIZE_SMALL)
             .fontColor($r('app.color.text_primary'))
             .fontWeight(FontWeight.Medium)
+            .maxLines(1)
             .textAlign(TextAlign.Center)
         }
-        .width(76)
+        .layoutWeight(1)
         .height('100%')
         .justifyContent(FlexAlign.Center)
         .alignItems(VerticalAlign.Center)
@@ -1653,30 +1656,35 @@ export struct HomePage {
         })
       }
 
-       Column({ space: 4 }) {
-         SymbolGlyph($r('sys.symbol.trash'))
-           .fontSize(CommonConstants.FONT_SIZE_LARGE)
-           .fontColor([$r('app.color.text_inverse')])
+      Row() {
+        Column({ space: 2 }) {
+          SymbolGlyph($r('sys.symbol.trash'))
+            .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
+            .fontColor([$r('app.color.text_inverse')])
             .accessibilityText(getContext(this).resourceManager.getStringSync($r('app.string.acc_delete').id))
           Text($r('app.string.home_swipe_delete'))
-          .fontSize(CommonConstants.FONT_SIZE_BODY)
-          .fontColor($r('app.color.text_inverse'))
-          .fontWeight(FontWeight.Medium)
-          .textAlign(TextAlign.Center)
+            .fontSize(CommonConstants.FONT_SIZE_XS)
+            .fontColor($r('app.color.text_inverse'))
+            .fontWeight(FontWeight.Medium)
+            .maxLines(1)
+            .textAlign(TextAlign.Center)
+        }
+        .layoutWeight(1)
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
       }
-      .width('100%')
+      .layoutWeight(1)
       .height('100%')
+      .backgroundColor($r('app.color.error_color'))
       .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .onClick((): void => {
+        this.confirmDeleteTask(task)
+      })
     }
     .width(88)
     .height('100%')
-    .backgroundColor($r('app.color.error_color'))
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-    .onClick((): void => {
-      this.confirmDeleteTask(task)
-    })
   }
 
   /**
