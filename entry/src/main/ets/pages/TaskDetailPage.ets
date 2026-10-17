@@ -1688,7 +1688,7 @@ export struct TaskDetailPage {
           // 渐变进度条（未完成 = 主色→浅主色；已完成 = success 单色收尾）
           Progress({ value: this.stepProgressPercent, total: 100, type: ProgressType.Linear })
             .width('100%')
-            .height(6)
+            .height(4)
             .style({ strokeWidth: 6 })
             .color(this.isTaskCompleted
               ? $r('app.color.success_color')
@@ -1746,14 +1746,6 @@ export struct TaskDetailPage {
           .onClick((): void => { this.toggleTaskComplete() })
       }
 
-      // 提示：尚有未完成步骤时说明按钮会连带完成它们
-      if (!this.isTaskCompleted && this.stepTotal > 0 && this.stepCompletedCount < this.stepTotal) {
-        Text($r('app.string.task_detail_complete_all_hint'))
-          .fontSize(CommonConstants.FONT_SIZE_XS)
-          .fontColor($r('app.color.text_tertiary'))
-          .width('100%')
-          .textAlign(TextAlign.Center)
-      }
     }
     .width('100%')
     .padding(16)

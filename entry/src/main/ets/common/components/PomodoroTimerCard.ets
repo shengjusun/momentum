@@ -191,146 +191,88 @@ export struct PomodoroTimerCard {
   }
 
   build() {
-    Column() {
-      // 今日统计（右上角；无数据时隐藏，避免无信息量占位）
-      if (this.todayCount > 0 || this.todayMillis > 0) {
-        Row() {
-          Blank()
-          Text(getContext(this).resourceManager.getStringSync($r('app.string.pomo_today_prefix').id) +
-            this.todayCount.toString() +
-            getContext(this).resourceManager.getStringSync($r('app.string.pomo_today_count_infix').id) +
-            this.formatDuration(this.todayMillis))
-            .fontSize(CommonConstants.FONT_SIZE_XS)
-            .fontColor($r('app.color.text_tertiary'))
-        }
-        .width('100%')
-        .margin({ bottom: 8 })
+    // v3 稿：大卡 → **紧凑条**（图标 + 主副文案 + 右侧开关/停止；整条可点进入专注）
+    // 原「今日统计」独立行、分隔线、「可选时长」提示行、橙色"开始"按钮全部收进这一条，
+    // 把纵向空间还给步骤区（用户反馈：番茄钟占了整张卡只放一个开关，视觉重量失衡）。
+    Row({ space: 10 }) {
+      // 图标圆底：专注=橙 / 休息=绿（运行中按阶段换色）
+      Stack({ alignContent: Alignment.Center }) {
+        SymbolGlyph($r('sys.symbol.timer'))
+          .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
+          .fontColor([this.state !== 'idle' && this.phase !== 'focus'
+            ? $r('app.color.icon_text_green') : $r('app.color.icon_text_orange')])
       }
+      .width(30)
+      .height(30)
+      .borderRadius(15)
+      .backgroundColor(this.state !== 'idle' && this.phase !== 'focus'
+        ? $r('app.color.icon_bg_green') : $r('app.color.icon_bg_orange'))
 
-      // 根据状态渲染不同内容
-      if (this.state === 'idle') {
-        Row({ space: 10 }) {
-          // 图标统一为「系统 symbol + 36×36 淡色圆底」，与全站入口图标同语言
-          // （原为 30vp 手绘番茄轮廓：小尺寸下萼片与果身糊在一起，观感杂乱）
-          Stack({ alignContent: Alignment.Center }) {
-            SymbolGlyph($r('sys.symbol.timer'))
-              .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
-              .fontColor([$r('app.color.icon_text_orange')])
-          }
-          .width(36)
-          .height(36)
-          .borderRadius(18)
-          .backgroundColor($r('app.color.icon_bg_orange'))
-          Column({ space: 2 }) {
-            Text($r('app.string.pomo_start_focus'))
-              .fontSize(CommonConstants.FONT_SIZE_MID)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
-            Text($r('app.string.pomo_optional_duration_hint'))
-              .fontSize(CommonConstants.FONT_SIZE_XS)
-              .fontColor($r('app.color.text_secondary'))
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
+      // 主 + 副文案
+      Column({ space: 2 }) {
+        Text(this.state === 'idle' ? $r('app.string.pomo_start_focus') :
+          (this.state === 'paused' ? $r('app.string.pomo_focus_paused') :
+            (this.phase === 'focus' ? $r('app.string.pomo_focus_in_progress') : $r('app.string.pomo_resting'))))
+          .fontSize(CommonConstants.FONT_SIZE_BODY)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-          Button($r('app.string.pomo_start'))
-            .type(ButtonType.Capsule)
-            .height(32)
-            .padding({ left: 18, right: 18 })
-            .backgroundColor($r('app.color.warning_color'))
-            .fontColor($r('app.color.text_inverse'))
-            .fontSize(CommonConstants.FONT_SIZE_CAPTION)
-            .fontWeight(FontWeight.Medium)
-            .borderRadius(DimensConstants.RADIUS_L)
-            .shadow({ radius: 4, color: $r('app.color.warning_color_bg'), offsetX: 0, offsetY: 2 })
-            .accessibilityText($r('app.string.pomo_start'))
-            .onClick((): void => this.onStartClick())
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
-      } else {
-        Row({ space: 10 }) {
-          // 运行中：同一系统图标，靠圆底/线色区分阶段（专注=橙、休息=绿）
-          Stack({ alignContent: Alignment.Center }) {
-            SymbolGlyph($r('sys.symbol.timer'))
-              .fontSize(CommonConstants.FONT_SIZE_SUBTITLE)
-              .fontColor([this.phase === 'focus' ? $r('app.color.icon_text_orange') : $r('app.color.icon_text_green')])
-          }
-          .width(36)
-          .height(36)
-          .borderRadius(18)
-          .backgroundColor(this.phase === 'focus' ? $r('app.color.icon_bg_orange') : $r('app.color.icon_bg_green'))
-          Column({ space: 2 }) {
-            Text(this.state === 'paused' ? $r('app.string.pomo_focus_paused') :
-              (this.phase === 'focus' ? $r('app.string.pomo_focus_in_progress') : $r('app.string.pomo_resting')))
-              .fontSize(CommonConstants.FONT_SIZE_MID)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
-            if (this.completedFocusCount > 0) {
-              Text(getContext(this).resourceManager.getStringSync($r('app.string.pomo_completed_rounds_prefix').id) +
-                this.completedFocusCount.toString() +
-                getContext(this).resourceManager.getStringSync($r('app.string.pomo_completed_rounds_suffix').id))
-                .fontSize(CommonConstants.FONT_SIZE_XS)
-                .fontColor($r('app.color.text_secondary'))
-            }
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-
-          Button($r('app.string.pomo_view'))
-            .type(ButtonType.Capsule)
-            .height(32)
-            .padding({ left: 16, right: 16 })
-            .backgroundColor($r('app.color.warning_color'))
-            .fontColor($r('app.color.text_inverse'))
-            .fontSize(CommonConstants.FONT_SIZE_CAPTION)
-            .fontWeight(FontWeight.Medium)
-            .borderRadius(DimensConstants.RADIUS_L)
-            .accessibilityText($r('app.string.pomo_view'))
-            .onClick((): void => this.onViewClick())
-
-          Button($r('app.string.pomo_stop'))
-            .type(ButtonType.Capsule)
-            .height(32)
-            .padding({ left: 14, right: 14 })
-            .backgroundColor(Color.Transparent)
-            .fontColor($r('app.color.text_secondary'))
-            .fontSize(CommonConstants.FONT_SIZE_CAPTION)
-            .border({ width: 1, color: $r('app.color.divider') })
-            .borderRadius(DimensConstants.RADIUS_L)
-            .accessibilityText($r('app.string.pomo_stop'))
-            .onClick((): void => this.onStopClick())
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
-      }
-
-      // 休息后自动连跑开关（设置项弱化：分隔线 + 次要文案，与主操作区分层级）
-      Divider()
-        .color($r('app.color.divider'))
-        .margin({ top: 10, bottom: 8 })
-      Row() {
-        Text($r('app.string.pomo_auto_continue'))
+        Text(this.state === 'idle'
+          ? (this.todayCount > 0 || this.todayMillis > 0
+            ? (getContext(this).resourceManager.getStringSync($r('app.string.pomo_today_prefix').id) +
+              this.todayCount.toString() +
+              getContext(this).resourceManager.getStringSync($r('app.string.pomo_today_count_infix').id) +
+              this.formatDuration(this.todayMillis))
+            : getContext(this).resourceManager.getStringSync($r('app.string.pomo_optional_duration_hint').id))
+          : (this.completedFocusCount > 0
+            ? (getContext(this).resourceManager.getStringSync($r('app.string.pomo_completed_rounds_prefix').id) +
+              this.completedFocusCount.toString() +
+              getContext(this).resourceManager.getStringSync($r('app.string.pomo_completed_rounds_suffix').id))
+            : getContext(this).resourceManager.getStringSync($r('app.string.pomo_optional_duration_hint').id)))
           .fontSize(CommonConstants.FONT_SIZE_XS)
-          .fontColor($r('app.color.text_secondary'))
-          .layoutWeight(1)
+          .fontColor($r('app.color.text_tertiary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
 
+      // 右侧：未开始=自动连跑开关（去掉长文案，只留开关 + 无障碍标签）；运行中=停止
+      if (this.state === 'idle') {
         Toggle({ type: ToggleType.Switch, isOn: this.autoContinue })
           .selectedColor($r('app.color.warning_color'))
-          .scale({ x: 0.85, y: 0.85 })
+          .scale({ x: 0.8, y: 0.8 })
           .accessibilityText($r('app.string.pomo_auto_continue'))
           .onChange((isOn: boolean): void => {
             this.autoContinue = isOn
             pomodoroService.setAutoContinueEnabled(isOn)
           })
+      } else {
+        Text($r('app.string.pomo_stop'))
+          .fontSize(CommonConstants.FONT_SIZE_XS)
+          .fontColor($r('app.color.text_secondary'))
+          .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+          .borderRadius(DimensConstants.RADIUS_L)
+          .border({ width: 0.5, color: $r('app.color.divider') })
+          .accessibilityText($r('app.string.pomo_stop'))
+          .onClick((): void => this.onStopClick())
       }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .padding({ left: 14, right: 14, top: 10, bottom: 14 })
+    .padding({ left: 14, right: 14, top: 11, bottom: 11 })
     .backgroundColor($r('app.color.bg_card'))
     .borderRadius(DimensConstants.RADIUS_M)
     .shadow({ radius: 4, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 1 })
+    .alignItems(VerticalAlign.Center)
+    // 整条可点：未开始 → 开始专注；运行中 → 打开沉浸屏
+    .onClick((): void => {
+      if (this.state === 'idle') {
+        this.onStartClick()
+      } else {
+        this.onViewClick()
+      }
+    })
   }
 }
