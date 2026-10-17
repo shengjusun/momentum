@@ -361,7 +361,7 @@ export struct TaskDetailPage {
       // 完成 = 实心主色圆 + 白对勾弹性"打进去"。⚠️ 事件范式不变：仍由外层 44×44 热区容器
       // 接管 onClick（HitTestMode.Block 阻断父级整行 onClick，点勾不进入编辑态）。
       Row() {
-        StepCheckCircle({ completed: step.isCompleted })
+        StepCheckCircle({ completed: step.isCompleted, diameter: 20 })
       }
       .constraintSize({ minWidth: DimensConstants.TOUCH_COMFORT, minHeight: DimensConstants.TOUCH_COMFORT })
       .justifyContent(FlexAlign.Center)
@@ -436,7 +436,7 @@ export struct TaskDetailPage {
       } else {
         // 显示模式：文本行（点击整行进入编辑；删除改由左滑触发，去除常驻图标）
         Text((index + 1).toString() + '. ' + safeStringUtil(step.text, getContext(this).resourceManager.getStringSync($r('app.string.task_unnamed_step').id)))
-          .fontSize(CommonConstants.FONT_SIZE_BODY)
+          .fontSize(15)
 
           .fontColor(step.isCompleted ? $r('app.color.text_tertiary') : $r('app.color.text_primary'))
           .decoration(step.isCompleted ? { type: TextDecorationType.LineThrough } : { type: TextDecorationType.None })
@@ -1313,13 +1313,13 @@ export struct TaskDetailPage {
           Row({ space: 5 }) {
             Circle({ width: 6, height: 6 }).fill(priorityTextColorUtil(this.task.priority))
             Text(priorityLabelUtil(this.task.priority))
-              .fontSize(CommonConstants.FONT_SIZE_XS)
+              .fontSize(10.5)
               .fontColor(priorityTextColorUtil(this.task.priority))
               .fontWeight(FontWeight.Medium)
           }
           .backgroundColor(priorityBgColorUtil(this.task.priority))
-          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-          .borderRadius(DimensConstants.RADIUS_XS)
+          .padding({ left: 8, right: 8, top: 2.5, bottom: 2.5 })
+          .borderRadius(DimensConstants.RADIUS_XL)
 
           if (this.isTaskCompleted) {
             Text($r('app.string.btn_completed'))
@@ -1368,7 +1368,7 @@ export struct TaskDetailPage {
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
         Span(this.titleSubText())
-          .fontSize(CommonConstants.FONT_SIZE_SMALL)
+          .fontSize(13)
           .fontWeight(FontWeight.Normal)
           .fontColor($r('app.color.text_tertiary'))
       }
@@ -1395,11 +1395,11 @@ export struct TaskDetailPage {
       Row() {
         Row({ space: 5 }) {
           SymbolGlyph($r('sys.symbol.timer'))
-            .fontSize(13)
+            .fontSize(12)
             .fontColor([$r('app.color.text_tertiary')])
           Text(formatEstimatedDuration(this.l2Task ? this.l2Task.estimatedTime : 0,
             getContext(this).resourceManager))
-            .fontSize(CommonConstants.FONT_SIZE_BODY)
+            .fontSize(13.5)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_primary'))
             .maxLines(1)
@@ -1408,17 +1408,17 @@ export struct TaskDetailPage {
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
 
-        Divider().vertical(true).height(14).color($r('app.color.divider'))
+        Divider().vertical(true).height(16).color($r('app.color.divider'))
 
         Row({ space: 5 }) {
           SymbolGlyph($r('sys.symbol.calendar'))
-            .fontSize(13)
+            .fontSize(12)
             .fontColor([$r('app.color.text_tertiary')])
           Text(this.l2Task !== null && this.l2Task.deadline > 0
             ? (formatDeadlineUtil(this.l2Task.deadline) + (this.isDeadlineOverdue
               ? getContext(this).resourceManager.getStringSync($r('app.string.home_deadline_overdue').id) : ''))
             : this.formatCreateTime(this.task.createTime))
-            .fontSize(CommonConstants.FONT_SIZE_BODY)
+            .fontSize(13.5)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.isDeadlineOverdue ? $r('app.color.error_color') : $r('app.color.text_primary'))
             .maxLines(1)
@@ -1427,14 +1427,14 @@ export struct TaskDetailPage {
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
 
-        Divider().vertical(true).height(14).color($r('app.color.divider'))
+        Divider().vertical(true).height(16).color($r('app.color.divider'))
 
         Row({ space: 5 }) {
           SymbolGlyph($r('sys.symbol.flag'))
-            .fontSize(13)
+            .fontSize(12)
             .fontColor([$r('app.color.text_tertiary')])
           Text(this.goalNameText.length > 0 ? this.goalNameText : '-')
-            .fontSize(CommonConstants.FONT_SIZE_BODY)
+            .fontSize(13.5)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_secondary'))
             .maxLines(1)
@@ -1577,7 +1577,7 @@ export struct TaskDetailPage {
                       .color($r('app.color.divider'))
                       .strokeWidth(0.5)
                       // 50 = 16(行内边距) + 24(勾选圆) + 10(间距)：分隔线对齐文字起始线
-                      .margin({ left: 50, right: 12 })
+                      .margin({ left: 44, right: 16 })
                   }
                   this.StepItemBuilder(step, index)
                 }

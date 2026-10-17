@@ -204,7 +204,7 @@ export struct PomodoroTimerCard {
       }
       .width(30)
       .height(30)
-      .borderRadius(15)
+      .borderRadius(9)
       .backgroundColor(this.state !== 'idle' && this.phase !== 'focus'
         ? $r('app.color.icon_bg_green') : $r('app.color.icon_bg_orange'))
 
@@ -261,7 +261,7 @@ export struct PomodoroTimerCard {
       }
     }
     .width('100%')
-    .padding({ left: 14, right: 14, top: 11, bottom: 11 })
+    .padding({ left: 16, right: 16, top: 13, bottom: 13 })
     .backgroundColor($r('app.color.bg_card'))
     .borderRadius(DimensConstants.RADIUS_M)
     .shadow({ radius: 4, color: $r('app.color.shadow_card'), offsetX: 0, offsetY: 1 })
