@@ -227,6 +227,9 @@ export struct HomePage {
 
   // 艾森豪威尔四象限半模态状态：showEisenhowerSheet 控制半模态显示/隐藏
   @Local showEisenhowerSheet: boolean = false
+
+  /** 行内删除确认：仅该行显示「取消 / 删除」，同时只允许一行（成熟做法：不弹系统框，避免与半模态叠两层） */
+  @Local pendingDeleteTaskId: string = '' 
   /** 已完成任务折叠区展开状态 */
   @Local showCompletedSection: boolean = false
   /** C2 今日排序建议：弹层显示/加载中/报告文本 */
@@ -1030,6 +1033,46 @@ export struct HomePage {
   @Builder
   QuadrantTaskItemBuilder(task: HomeTodoItem) {
     ListItem() {
+      if (this.pendingDeleteTaskId === task.id) {
+        // 行内二次确认（成熟做法）：不新增浮层 ⇒ 不会再和半模态叠两层；
+        // 「删除」用**实心危险色**（系统弹窗只能文字色，做不到）
+        Row({ space: 8 }) {
+          Text(getContext(this).resourceManager.getStringSync($r('app.string.home_delete_task_title').id) +
+            '"' + safeStringUtil(task.title,
+              getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id)) + '"？')
+            .fontSize(CommonConstants.FONT_SIZE_SMALL)
+            .fontColor($r('app.color.text_secondary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
+
+          Button($r('app.string.dialog_cancel'))
+            .type(ButtonType.Capsule)
+            .height(30)
+            .padding({ left: 14, right: 14 })
+            .backgroundColor(Color.Transparent)
+            .fontColor($r('app.color.text_secondary'))
+            .fontSize(CommonConstants.FONT_SIZE_SMALL)
+            .onClick((): void => {
+              this.pendingDeleteTaskId = ''
+            })
+
+          Button($r('app.string.btn_delete'))
+            .type(ButtonType.Capsule)
+            .height(30)
+            .padding({ left: 16, right: 16 })
+            .backgroundColor($r('app.color.error_color'))
+            .fontColor($r('app.color.text_inverse'))
+            .fontSize(CommonConstants.FONT_SIZE_SMALL)
+            .onClick((): void => {
+              this.doDeleteTask(task)
+            })
+        }
+        .width('100%')
+        .padding({ left: 16, right: 12, top: 12, bottom: 12 })
+        .alignItems(VerticalAlign.Center)
+        .backgroundColor($r('app.color.bg_card'))
+      } else {
       TaskListItemComponent({
         task: task,
         onToggle: (id: Id): void => {
@@ -1039,39 +1082,10 @@ export struct HomePage {
           this.openMoveQuadrantMenu(t)
         },
         onNavigate: (todo: HomeTodoItem): void => {
-          if (todo.relatedTaskId && todo.relatedGoalId) {
-            if (!todo.id || todo.id.length === 0) {
-              promptAction.showToast({
-                message: getContext(this).resourceManager.getStringSync(
-                  $r('app.string.home_toast_task_detail_unavailable').id)
-              })
-              return
-            }
-            this.showEisenhowerSheet = false
-            const detailItem: TaskDetailItem = new TaskDetailItem(
-              todo.id,
-              todo.title,
-              '',
-              todo.duration,
-              todo.priority,
-              todo.isCompleted,
-              todo.createTime
-            )
-            const param: TaskDetailRouteNavParam = {
-              id: todo.id,
-              task: detailItem,
-              goalId: todo.relatedGoalId,
-              relatedTaskId: todo.relatedTaskId
-            }
-            pushNavPath(ROUTE_NAME.TASK_DETAIL, param)
-          } else {
-            promptAction.showToast({
-              message: getContext(this).resourceManager.getStringSync(
-                $r('app.string.home_toast_task_detail_unavailable').id)
-            })
-          }
+          this.navigateToTaskDetail(todo)
         }
       })
+      }
     }
     .backgroundColor(Color.Transparent)
     .swipeAction({ end: this.deleteBuilder(task), edgeEffect: SwipeEdgeEffect.None })
@@ -1570,9 +1584,67 @@ export struct HomePage {
     })
   }
 
+  /**
+   * 打开任务详情页（行点击 / 右滑「编辑」共用）
+   * - 只有关联了目标的待办才有步骤可看；孤立待办给出明确提示（原来静默无反馈，用户以为"点了没反应"）
+   */
+  private navigateToTaskDetail(todo: HomeTodoItem): void {
+    if (!todo.relatedTaskId || !todo.relatedGoalId || !todo.id || todo.id.length === 0) {
+      promptAction.showToast({
+        message: getContext(this).resourceManager.getStringSync($r('app.string.home_toast_task_detail_unavailable').id)
+      })
+      return
+    }
+    this.showEisenhowerSheet = false
+    const detailItem: TaskDetailItem = new TaskDetailItem(
+      todo.id, todo.title, '', todo.duration, todo.priority, todo.isCompleted, todo.createTime)
+    const param: TaskDetailRouteNavParam = {
+      id: todo.id,
+      task: detailItem,
+      goalId: todo.relatedGoalId,
+      relatedTaskId: todo.relatedTaskId
+    }
+    pushNavPath(ROUTE_NAME.TASK_DETAIL, param)
+  }
+
+  /** 执行删除（行内确认后调用）：删数据 + 刷新数据源 + 清确认态 + 提示 */
+  private doDeleteTask(task: HomeTodoItem): void {
+    const taskTitle: string = safeStringUtil(task.title,
+      getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id))
+    this.pendingDeleteTaskId = ''
+    if (!this.viewModel.isLoaded) return
+    this.viewModel.deleteTask(task.id)
+    this.forceSyncDataSource()
+    promptAction.showToast({
+      message: getContext(this).resourceManager.getStringSync($r('app.string.toast_deleted_prefix').id) + taskTitle + '"',
+      duration: 1500
+    })
+    Logger.info('HomePage', 'inline delete confirmed, id=' + task.id + ', title=' + taskTitle)
+  }
+
   @Builder
   deleteBuilder(task: HomeTodoItem) {
     Row() {
+      // 「编辑」：打开任务详情（成熟做法：右滑同时给"改"与"删"，不用先关列表）
+      // 孤立待办没有详情，隐藏该按钮而不是点了报错
+      if (task.relatedTaskId && task.relatedGoalId) {
+        Row() {
+          Text($r('app.string.dialog_edit_task'))
+            .fontSize(CommonConstants.FONT_SIZE_SMALL)
+            .fontColor($r('app.color.text_primary'))
+            .fontWeight(FontWeight.Medium)
+            .textAlign(TextAlign.Center)
+        }
+        .width(76)
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .backgroundColor($r('app.color.bg_tag'))
+        .onClick((): void => {
+          this.navigateToTaskDetail(task)
+        })
+      }
+
        Column({ space: 4 }) {
          SymbolGlyph($r('sys.symbol.trash'))
            .fontSize(CommonConstants.FONT_SIZE_LARGE)
@@ -1599,25 +1671,13 @@ export struct HomePage {
     })
   }
 
+  /**
+   * 进入行内确认态（替代原 ActionSheet）
+   * 原因：ActionSheet/系统弹窗与"四象限半模态"叠成两层 —— 关掉确认框还要再关列表；
+   * 且系统弹窗只能放文字按钮，做不到"确认键实心深色"。行内确认两个问题一起解决。
+   */
   private confirmDeleteTask(task: HomeTodoItem): void {
-    const taskTitle: string = safeStringUtil(task.title, getContext(this).resourceManager.getStringSync($r('app.string.default_unnamed_task').id))
-    // 统一 ActionSheet：替代系统 showDialog 兜底样式
-    this.actionSheetTitle = getContext(this).resourceManager.getStringSync($r('app.string.home_delete_task_title').id) +
-      '"' + taskTitle + '"？'
-    this.actionSheetItems = [
-      {
-        label: getContext(this).resourceManager.getStringSync($r('app.string.btn_delete').id),
-        danger: true,
-        action: (): void => {
-          if (!this.viewModel.isLoaded) return
-          this.viewModel.deleteTask(task.id)
-          this.forceSyncDataSource()
-          Logger.info('HomePage', 'swipe delete confirmed, id=' + task.id + ', title=' + taskTitle)
-          promptAction.showToast({ message: getContext(this).resourceManager.getStringSync($r('app.string.toast_deleted_prefix').id) + taskTitle + '"', duration: 1500 })
-        }
-      }
-    ]
-    this.showActionSheet = true
+    this.pendingDeleteTaskId = task.id
   }
 
   /**
